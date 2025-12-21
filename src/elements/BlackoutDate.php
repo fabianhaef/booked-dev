@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements;
+namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
@@ -8,8 +8,8 @@ use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
-use modules\booking\elements\db\BlackoutDateQuery;
-use modules\booking\records\BlackoutDateRecord;
+use fabian\booked\elements\db\BlackoutDateQuery;
+use fabian\booked\records\BlackoutDateRecord;
 
 /**
  * BlackoutDate Element

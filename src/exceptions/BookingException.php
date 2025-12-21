@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\exceptions;
+namespace fabian\booked\exceptions;
 
 use yii\base\Exception;
 

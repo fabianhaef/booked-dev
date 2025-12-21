@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements;
+namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
@@ -9,9 +9,9 @@ use craft\elements\actions\Duplicate;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
-use modules\booking\elements\db\BookingVariationQuery;
-use modules\booking\elements\Reservation;
-use modules\booking\records\BookingVariationRecord;
+use fabian\booked\elements\db\BookingVariationQuery;
+use fabian\booked\elements\Reservation;
+use fabian\booked\records\BookingVariationRecord;
 
 /**
  * BookingVariation Element

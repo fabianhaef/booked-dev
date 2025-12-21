@@ -1,0 +1,5 @@
+actor: UnitTester
+namespace: fabian\booked\tests
+modules:
+  enabled:
+    - Asserts

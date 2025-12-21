@@ -1,21 +1,21 @@
 <?php
 
-namespace modules\booking\services;
+namespace fabian\booked\services;
 
 use Craft;
 use craft\base\Component;
 use craft\helpers\StringHelper;
 use craft\mail\Message;
-use modules\booking\BookingModule;
-use modules\booking\elements\Reservation;
-use modules\booking\exceptions\BookingConflictException;
-use modules\booking\exceptions\BookingException;
-use modules\booking\exceptions\BookingNotFoundException;
-use modules\booking\exceptions\BookingRateLimitException;
-use modules\booking\exceptions\BookingValidationException;
-use modules\booking\models\Settings;
-use modules\booking\queue\jobs\SendBookingEmailJob;
-use modules\booking\records\ReservationRecord;
+use fabian\booked\Booked;
+use fabian\booked\elements\Reservation;
+use fabian\booked\exceptions\BookingConflictException;
+use fabian\booked\exceptions\BookingException;
+use fabian\booked\exceptions\BookingNotFoundException;
+use fabian\booked\exceptions\BookingRateLimitException;
+use fabian\booked\exceptions\BookingValidationException;
+use fabian\booked\models\Settings;
+use fabian\booked\queue\jobs\SendBookingEmailJob;
+use fabian\booked\records\ReservationRecord;
 
 /**
  * Booking Service
@@ -27,7 +27,7 @@ class BookingService extends Component
     public function init(): void
     {
         parent::init();
-        $this->availabilityService = BookingModule::getInstance()->availability;
+        $this->availabilityService = Booked::getInstance()->availability;
     }
 
     /**
@@ -217,6 +217,8 @@ class BookingService extends Component
                     $reservation->bookingDate,
                     $reservation->startTime,
                     $reservation->endTime,
+                    null, // employeeId
+                    null, // locationId
                     $reservation->variationId,
                     $reservation->quantity
                 )) {
@@ -572,7 +574,7 @@ class BookingService extends Component
         // Get variation information if available
         $variationInfo = '';
         if ($reservation->variationId) {
-            $variation = \modules\booking\elements\BookingVariation::find()
+            $variation = \fabian\booked\elements\BookingVariation::find()
                 ->id($reservation->variationId)
                 ->one();
             if ($variation) {
@@ -606,7 +608,7 @@ class BookingService extends Component
             return Craft::$app->view->renderString($settings->bookingConfirmationBody, $variables);
         }
 
-        return Craft::$app->view->renderTemplate('booking/emails/confirmation', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/confirmation', $variables);
     }
 
     /**
@@ -623,7 +625,7 @@ class BookingService extends Component
             'managementUrl' => $reservation->getManagementUrl(),
         ];
 
-        return Craft::$app->view->renderTemplate('booking/emails/status-change', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/status-change', $variables);
     }
 
     /**
@@ -637,7 +639,7 @@ class BookingService extends Component
             'ownerName' => $settings->ownerName,
         ];
 
-        return Craft::$app->view->renderTemplate('booking/emails/cancellation', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/cancellation', $variables);
     }
 
     /**

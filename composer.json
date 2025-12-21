@@ -43,11 +43,13 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "fabian\\booked\\tests\\": "tests/"
+            "fabian\\booked\\tests\\": "tests/",
+            "fabian\\booked\\tests\\_generated\\": "tests/_support/_generated/",
+            "fabian\\booked\\tests\\_support\\": "tests/_support/"
         }
     },
     "scripts": {
-        "test": "codecept run",
+        "test": "../../vendor/bin/codecept run unit -c codeception.yml",
         "phpstan": "phpstan analyse --memory-limit=256M",
         "check": [
             "@phpstan",

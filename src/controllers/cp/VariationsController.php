@@ -1,12 +1,12 @@
 <?php
 
-namespace modules\booking\controllers\cp;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
 use craft\web\Controller;
 use craft\web\Response;
-use modules\booking\elements\BookingVariation;
-use modules\booking\models\Settings;
+use fabian\booked\elements\BookingVariation;
+use fabian\booked\models\Settings;
 use yii\web\NotFoundHttpException;
 
 /**

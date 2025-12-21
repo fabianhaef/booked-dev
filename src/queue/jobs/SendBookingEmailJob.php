@@ -1,13 +1,13 @@
 <?php
 
-namespace modules\booking\queue\jobs;
+namespace fabian\booked\queue\jobs;
 
 use Craft;
 use craft\helpers\UrlHelper;
 use craft\mail\Message;
 use craft\queue\BaseJob;
-use modules\booking\elements\Reservation;
-use modules\booking\models\Settings;
+use fabian\booked\elements\Reservation;
+use fabian\booked\models\Settings;
 
 /**
  * Send Booking Email Job
@@ -86,7 +86,7 @@ class SendBookingEmailJob extends BaseJob
 
                 // Mark notification as sent for confirmation emails (only for client emails)
                 if ($this->emailType === 'confirmation' && !$reservation->notificationSent) {
-                    $reservationElement = \modules\booking\elements\Reservation::find()->id($reservation->id)->one();
+                    $reservationElement = \fabian\booked\elements\Reservation::find()->id($reservation->id)->one();
                     if ($reservationElement) {
                         $reservationElement->notificationSent = true;
                         Craft::$app->elements->saveElement($reservationElement);
@@ -219,7 +219,7 @@ class SendBookingEmailJob extends BaseJob
         // Get variation information if available
         $variationInfo = '';
         if ($reservation->variationId) {
-            $variation = \modules\booking\elements\BookingVariation::find()
+            $variation = \fabian\booked\elements\BookingVariation::find()
                 ->id($reservation->variationId)
                 ->one();
             if ($variation) {
@@ -329,7 +329,7 @@ class SendBookingEmailJob extends BaseJob
         // Get variation information if available
         $variationInfo = '';
         if ($reservation->variationId) {
-            $variation = \modules\booking\elements\BookingVariation::find()
+            $variation = \fabian\booked\elements\BookingVariation::find()
                 ->id($reservation->variationId)
                 ->one();
             if ($variation) {

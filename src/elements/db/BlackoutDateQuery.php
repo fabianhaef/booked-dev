@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements\db;
+namespace fabian\booked\elements\db;
 
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
@@ -8,9 +8,9 @@ use craft\helpers\Db;
 /**
  * BlackoutDateQuery defines the condition builder for BlackoutDate elements
  *
- * @method \modules\booking\elements\BlackoutDate[]|array all($db = null)
- * @method \modules\booking\elements\BlackoutDate|array|null one($db = null)
- * @method \modules\booking\elements\BlackoutDate|array|null nth(int $n, ?Connection $db = null)
+ * @method \fabian\booked\elements\BlackoutDate[]|array all($db = null)
+ * @method \fabian\booked\elements\BlackoutDate|array|null one($db = null)
+ * @method \fabian\booked\elements\BlackoutDate|array|null nth(int $n, ?Connection $db = null)
  */
 class BlackoutDateQuery extends ElementQuery
 {

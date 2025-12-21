@@ -111,7 +111,7 @@ class AvailabilityService extends Component
      * @param int|null $locationId Optional location ID to filter by
      * @return Schedule[] Array of Schedule elements
      */
-    private function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
+    protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
     {
         $query = Schedule::find()
             ->enabled()
@@ -140,7 +140,7 @@ class AvailabilityService extends Component
      * @param Schedule[] $schedules Array of Schedule elements
      * @return array Array of time windows [['start' => 'H:i', 'end' => 'H:i'], ...]
      */
-    private function generateTimeWindows(array $schedules): array
+    protected function generateTimeWindows(array $schedules): array
     {
         $windows = [];
 
@@ -164,7 +164,7 @@ class AvailabilityService extends Component
      * @param array $windows Array of time windows
      * @return array Merged time windows
      */
-    private function mergeTimeWindows(array $windows): array
+    protected function mergeTimeWindows(array $windows): array
     {
         if (empty($windows)) {
             return [];
@@ -207,7 +207,7 @@ class AvailabilityService extends Component
      * @param int|null $serviceId Optional service ID
      * @return array Time windows with bookings subtracted
      */
-    private function subtractBookings(array $windows, string $date, ?int $employeeId = null, ?int $serviceId = null): array
+    protected function subtractBookings(array $windows, string $date, ?int $employeeId = null, ?int $serviceId = null): array
     {
         // TODO: Get bookings from Reservation element
         // For now, return windows as-is
@@ -222,7 +222,7 @@ class AvailabilityService extends Component
      * @param Service $service Service element with buffer times
      * @return array Time windows with buffers subtracted
      */
-    private function subtractBuffers(array $windows, Service $service): array
+    protected function subtractBuffers(array $windows, $service): array
     {
         $bufferBefore = $service->bufferBefore ?? 0;
         $bufferAfter = $service->bufferAfter ?? 0;
@@ -262,7 +262,7 @@ class AvailabilityService extends Component
      * @param string $date Date in Y-m-d format
      * @return array Time windows with blackouts subtracted
      */
-    private function subtractBlackouts(array $windows, string $date): array
+    protected function subtractBlackouts(array $windows, string $date): array
     {
         // TODO: Check blackout dates
         // For now, return windows as-is
@@ -279,7 +279,7 @@ class AvailabilityService extends Component
      * @param int|null $locationId Optional location ID
      * @return array Array of slot objects
      */
-    private function generateSlots(array $windows, int $duration, ?int $serviceId = null, ?int $locationId = null): array
+    protected function generateSlots(array $windows, int $duration, ?int $serviceId = null, ?int $locationId = null): array
     {
         $slots = [];
         $durationSeconds = $duration * 60;
@@ -316,7 +316,7 @@ class AvailabilityService extends Component
      * @param string $date Date in Y-m-d format
      * @return array Filtered slots
      */
-    private function filterPastSlots(array $slots, string $date): array
+    protected function filterPastSlots(array $slots, string $date): array
     {
         $now = new DateTime();
         $today = $now->format('Y-m-d');
@@ -339,7 +339,7 @@ class AvailabilityService extends Component
      * @param string $time Time in H:i format
      * @return int Minutes since midnight
      */
-    private function timeToMinutes(string $time): int
+    protected function timeToMinutes(string $time): int
     {
         $parts = explode(':', $time);
         return (int)$parts[0] * 60 + (int)($parts[1] ?? 0);
@@ -351,7 +351,7 @@ class AvailabilityService extends Component
      * @param int $minutes Minutes since midnight
      * @return string Time in H:i format
      */
-    private function minutesToTime(int $minutes): string
+    protected function minutesToTime(int $minutes): string
     {
         $hours = floor($minutes / 60);
         $mins = $minutes % 60;

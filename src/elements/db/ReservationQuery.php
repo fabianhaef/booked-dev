@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements\db;
+namespace fabian\booked\elements\db;
 
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
@@ -8,9 +8,9 @@ use craft\helpers\Db;
 /**
  * ReservationQuery defines the condition builder for Reservation elements
  *
- * @method \modules\booking\elements\Reservation[]|array all($db = null)
- * @method \modules\booking\elements\Reservation|array|null one($db = null)
- * @method \modules\booking\elements\Reservation|array|null nth(int $n, ?Connection $db = null)
+ * @method \fabian\booked\elements\Reservation[]|array all($db = null)
+ * @method \fabian\booked\elements\Reservation|array|null one($db = null)
+ * @method \fabian\booked\elements\Reservation|array|null nth(int $n, ?Connection $db = null)
  */
 class ReservationQuery extends ElementQuery
 {

@@ -1,9 +1,9 @@
 <?php
 
-namespace modules\booking\models\forms;
+namespace fabian\booked\models\forms;
 
 use craft\base\Model;
-use modules\booking\elements\Reservation;
+use fabian\booked\elements\Reservation;
 
 /**
  * Booking Form Model

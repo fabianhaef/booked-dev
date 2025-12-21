@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements\db;
+namespace fabian\booked\elements\db;
 
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
@@ -8,9 +8,9 @@ use craft\helpers\Db;
 /**
  * AvailabilityQuery defines the condition builder for Availability elements
  *
- * @method \modules\booking\elements\Availability[]|array all($db = null)
- * @method \modules\booking\elements\Availability|array|null one($db = null)
- * @method \modules\booking\elements\Availability|array|null nth(int $n, ?Connection $db = null)
+ * @method \fabian\booked\elements\Availability[]|array all($db = null)
+ * @method \fabian\booked\elements\Availability|array|null one($db = null)
+ * @method \fabian\booked\elements\Availability|array|null nth(int $n, ?Connection $db = null)
  */
 class AvailabilityQuery extends ElementQuery
 {

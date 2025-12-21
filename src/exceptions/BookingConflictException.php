@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\exceptions;
+namespace fabian\booked\exceptions;
 
 /**
  * Exception thrown when a booking conflict occurs (slot already booked, unavailable, etc.)

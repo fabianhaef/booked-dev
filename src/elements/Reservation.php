@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements;
+namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
@@ -11,8 +11,8 @@ use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
-use modules\booking\elements\db\ReservationQuery;
-use modules\booking\records\ReservationRecord;
+use fabian\booked\elements\db\ReservationQuery;
+use fabian\booked\records\ReservationRecord;
 
 /**
  * Reservation Element
@@ -442,7 +442,7 @@ class Reservation extends Element
             }
 
             // Check minimum advance booking time
-            $settings = \modules\booking\models\Settings::loadSettings();
+            $settings = \fabian\booked\models\Settings::loadSettings();
             $minimumAdvanceHours = $settings->minimumAdvanceBookingHours ?? 2;
 
             // If set to 0, allow immediate bookings
@@ -696,7 +696,7 @@ class Reservation extends Element
         }
 
         // Get cancellation policy from settings
-        $settings = \modules\booking\models\Settings::loadSettings();
+        $settings = \fabian\booked\models\Settings::loadSettings();
         $hoursBeforeCancellation = $settings->cancellationPolicyHours ?? 24;
 
         // If policy is set to 0, allow cancellation any time

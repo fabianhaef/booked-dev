@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\records;
+namespace fabian\booked\records;
 
 use craft\db\ActiveRecord;
 

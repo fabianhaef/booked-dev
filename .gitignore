@@ -1,0 +1,21 @@
+/vendor/
+/node_modules/
+/package-lock.json
+/package.json
+/yarn.lock
+/pnpm-lock.yaml
+/pnpm-workspace.yaml
+
+# Testing artifacts
+/tests/_output/*
+/tests/_support/_generated/*
+/tests/_craft/storage/*
+/tests/_craft/config/db.php
+/tests/_craft/config/test.php
+/tests/test.env
+
+# Local development
+.DS_Store
+.env
+.env.local
+.env.*.local

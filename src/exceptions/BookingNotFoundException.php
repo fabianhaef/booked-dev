@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\exceptions;
+namespace fabian\booked\exceptions;
 
 /**
  * Exception thrown when a booking/reservation is not found

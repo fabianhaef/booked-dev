@@ -1,14 +1,14 @@
 <?php
 
-namespace modules\booking\controllers\cp;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
 use craft\web\Controller;
 use craft\web\Response;
-use modules\booking\BookingModule;
-use modules\booking\elements\Availability;
-use modules\booking\models\EventDate;
-use modules\booking\services\AvailabilityService;
+use fabian\booked\Booked;
+use fabian\booked\elements\Availability;
+use fabian\booked\models\EventDate;
+use fabian\booked\services\AvailabilityService;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -21,7 +21,7 @@ class AvailabilityController extends Controller
     public function init(): void
     {
         parent::init();
-        $this->availabilityService = BookingModule::getInstance()->availability;
+        $this->availabilityService = Booked::getInstance()->availability;
     }
 
     /**

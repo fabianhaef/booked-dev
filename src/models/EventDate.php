@@ -1,9 +1,9 @@
 <?php
 
-namespace modules\booking\models;
+namespace fabian\booked\models;
 
 use craft\base\Model;
-use modules\booking\records\EventDateRecord;
+use fabian\booked\records\EventDateRecord;
 
 /**
  * EventDate Model

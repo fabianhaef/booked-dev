@@ -1,13 +1,13 @@
 <?php
 
-namespace modules\booking\controllers\cp;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
 use craft\web\Controller;
 use craft\web\Response;
-use modules\booking\BookingModule;
-use modules\booking\elements\BlackoutDate;
-use modules\booking\services\BlackoutDateService;
+use fabian\booked\Booked;
+use fabian\booked\elements\BlackoutDate;
+use fabian\booked\services\BlackoutDateService;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -20,7 +20,7 @@ class BlackoutDatesController extends Controller
     public function init(): void
     {
         parent::init();
-        $this->blackoutDateService = BookingModule::getInstance()->blackoutDate;
+        $this->blackoutDateService = Booked::getInstance()->blackoutDate;
     }
 
     /**

@@ -1,11 +1,11 @@
 <?php
 
-namespace modules\booking\services;
+namespace fabian\booked\services;
 
 use Craft;
 use craft\base\Component;
-use modules\booking\models\BlackoutDate;
-use modules\booking\records\BlackoutDateRecord;
+use fabian\booked\models\BlackoutDate;
+use fabian\booked\records\BlackoutDateRecord;
 
 /**
  * Blackout Date Service

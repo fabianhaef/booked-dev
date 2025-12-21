@@ -1,0 +1,21 @@
+actor: Tester
+paths:
+  tests: tests
+  output: tests/_output
+  data: tests/_data
+  support: tests/_support
+  envs: tests/_envs
+bootstrap: _bootstrap.php
+params:
+  - tests/test.env
+modules:
+  config:
+    \craft\test\Craft:
+      configFile: "tests/_craft/config/test.php"
+      dbSetup: { clean: true, setupCraft: true }
+      transaction: true
+      cleanup: true
+      plugins:
+        booked:
+          class: fabian\booked\Booked
+          handle: booked

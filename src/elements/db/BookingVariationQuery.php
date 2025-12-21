@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements\db;
+namespace fabian\booked\elements\db;
 
 use craft\db\Query;
 use craft\elements\db\ElementQuery;

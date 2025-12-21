@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\booking\elements;
+namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
@@ -9,10 +9,10 @@ use craft\elements\db\ElementQueryInterface;
 use craft\helpers\Cp;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
-use modules\booking\elements\db\AvailabilityQuery;
-use modules\booking\records\AvailabilityRecord;
-use modules\booking\records\EventDateRecord;
-use modules\booking\models\EventDate;
+use fabian\booked\elements\db\AvailabilityQuery;
+use fabian\booked\records\AvailabilityRecord;
+use fabian\booked\records\EventDateRecord;
+use fabian\booked\models\EventDate;
 
 /**
  * Availability Element

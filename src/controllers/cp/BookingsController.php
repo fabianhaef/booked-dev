@@ -1,18 +1,18 @@
 <?php
 
-namespace modules\booking\controllers\cp;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
 use craft\web\Controller;
 use craft\web\Response;
-use modules\booking\BookingModule;
-use modules\booking\elements\BookingVariation;
-use modules\booking\elements\Reservation;
-use modules\booking\exceptions\BookingConflictException;
-use modules\booking\exceptions\BookingException;
-use modules\booking\exceptions\BookingNotFoundException;
-use modules\booking\exceptions\BookingValidationException;
-use modules\booking\services\BookingService;
+use fabian\booked\Booked;
+use fabian\booked\elements\BookingVariation;
+use fabian\booked\elements\Reservation;
+use fabian\booked\exceptions\BookingConflictException;
+use fabian\booked\exceptions\BookingException;
+use fabian\booked\exceptions\BookingNotFoundException;
+use fabian\booked\exceptions\BookingValidationException;
+use fabian\booked\services\BookingService;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -25,7 +25,7 @@ class BookingsController extends Controller
     public function init(): void
     {
         parent::init();
-        $this->bookingService = BookingModule::getInstance()->booking;
+        $this->bookingService = Booked::getInstance()->booking;
     }
 
     /**
