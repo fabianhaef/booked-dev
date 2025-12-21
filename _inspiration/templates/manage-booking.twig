@@ -1,0 +1,92 @@
+{#
+/**
+ * Booking Management Template
+ * 
+ * Displays booking details and allows user to cancel or reschedule
+ * Accessed via: /booking/manage/{token}
+ */
+#}
+
+{% extends "_layouts/base.twig" %}
+
+{% set bodyClass = 'page-booking-management' %}
+
+{% block content %}
+	<main id="main" class="main-content" role="main" tabindex="0">
+		<section
+			class="booking-management">
+
+			{# Flash messages #}
+			{% if craft.app.session.hasFlash('notice') %}
+				<div class="booking-management__alert booking-management__alert--success">
+					{{ craft.app.session.getFlash('notice') }}
+				</div>
+			{% endif %}
+
+			{% if craft.app.session.hasFlash('error') %}
+				<div class="booking-management__alert booking-management__alert--error">
+					{{ craft.app.session.getFlash('error') }}
+				</div>
+			{% endif %}
+
+			{# Header #}
+			<div class="booking-management__header">
+				{% include "_includes/components/heading/heading" with {
+                    title: 'Ihre Buchung',
+                    level: 1,
+                    headingLevel: 1,
+                    customClasses: 'booking-management__title'
+                } only %}
+			</div>
+
+			{# Booking Details Card #}
+			<div class="booking-management__details">
+				<h2 class="booking-management__details-title">Buchungsdetails</h2>
+
+				<div class="booking-management__detail-item">
+					<strong class="booking-management__detail-label">Datum & Uhrzeit</strong>
+					<p class="booking-management__detail-value">
+						{{ reservation.getFormattedDateTime() }}
+					</p>
+				</div>
+
+				<div class="booking-management__detail-item">
+					<strong class="booking-management__detail-label">Name</strong>
+					<p class="booking-management__detail-value">{{ reservation.userName }}</p>
+				</div>
+
+				<div class="booking-management__detail-item">
+					<strong class="booking-management__detail-label">E-Mail</strong>
+					<p class="booking-management__detail-value">{{ reservation.userEmail }}</p>
+				</div>
+
+				{% if reservation.userPhone %}
+					<div class="booking-management__detail-item">
+						<strong class="booking-management__detail-label">Telefon</strong>
+						<p class="booking-management__detail-value">{{ reservation.userPhone }}</p>
+					</div>
+				{% endif %}
+
+				{% if reservation.notes %}
+					<div class="booking-management__detail-item">
+						<strong class="booking-management__detail-label">Notizen</strong>
+						<p class="booking-management__detail-value">{{ reservation.notes }}</p>
+					</div>
+				{% endif %}
+
+				<div class="booking-management__detail-item booking-management__detail-divider">
+					<strong class="booking-management__detail-label">Dauer</strong>
+					<p class="booking-management__detail-value">{{ reservation.getDurationMinutes() }}
+						Minuten</p>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	{# Pass booking settings to JavaScript #}
+	<script>
+		window.bookingSettings = {
+slotDurationMinutes: {{ craft.booking.settings.slotDurationMinutes ?? 60 }}
+};
+	</script>
+{% endblock %}

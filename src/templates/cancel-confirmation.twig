@@ -1,0 +1,90 @@
+{#
+/**
+ * Booking Cancellation Confirmation Template
+ * 
+ * Displays confirmation page before cancelling a booking
+ * Accessed via: /booking/cancel/{token} (GET request)
+ */
+#}
+
+{% extends "_layouts/base.twig" %}
+
+{% block content %}
+<main class="main" id="main-content">
+    <div class="container" style="max-width: 600px; margin: 3rem auto; padding: 2rem; text-align: center;">
+        
+        {# Warning Icon #}
+        <div style="font-size: 4rem; color: #ffc107; margin-bottom: 1rem;">
+            ⚠️
+        </div>
+
+        {# Header #}
+        <h1 style="margin-bottom: 1rem; font-size: 2rem; color: #333;">Buchung stornieren?</h1>
+        
+        <p style="color: #666; margin-bottom: 2rem; font-size: 1.125rem;">
+            Sind Sie sicher, dass Sie diese Buchung stornieren möchten?
+        </p>
+
+        {# Booking Details Summary #}
+        <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+            <div style="margin-bottom: 0.75rem;">
+                <strong style="color: #666;">Datum & Uhrzeit:</strong><br>
+                <span style="color: #333;">{{ reservation.getFormattedDateTime() }}</span>
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <strong style="color: #666;">Name:</strong><br>
+                <span style="color: #333;">{{ reservation.userName }}</span>
+            </div>
+            <div>
+                <strong style="color: #666;">E-Mail:</strong><br>
+                <span style="color: #333;">{{ reservation.userEmail }}</span>
+            </div>
+        </div>
+
+        {# Cancellation Form #}
+        <form method="post" style="margin-bottom: 1rem;">
+            {{ csrfInput() }}
+            
+            <div style="margin-bottom: 1.5rem; text-align: left;">
+                <label for="reason" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">
+                    Grund für die Stornierung (optional):
+                </label>
+                <textarea 
+                    id="reason" 
+                    name="reason" 
+                    rows="3"
+                    placeholder="Helfen Sie uns zu verbessern, indem Sie uns mitteilen, warum Sie stornieren..."
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-family: inherit; resize: vertical;"
+                ></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button 
+                    type="submit"
+                    style="padding: 0.75rem 2rem; background: #dc3545; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500;"
+                    onmouseover="this.style.background='#c82333'"
+                    onmouseout="this.style.background='#dc3545'"
+                >
+                    Ja, Buchung stornieren
+                </button>
+                
+                <a 
+                    href="{{ reservation.getManagementUrl() }}"
+                    style="padding: 0.75rem 2rem; background: #6c757d; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-block;"
+                    onmouseover="this.style.background='#5a6268'"
+                    onmouseout="this.style.background='#6c757d'"
+                >
+                    Buchung behalten
+                </a>
+            </div>
+        </form>
+
+        {# Notice #}
+        <p style="color: #666; font-size: 0.875rem; margin-top: 2rem;">
+            Sie erhalten eine Bestätigungs-E-Mail, sobald Ihre Buchung storniert wurde.
+        </p>
+
+    </div>
+</main>
+{% endblock %}
+

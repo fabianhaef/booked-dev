@@ -1,0 +1,7 @@
+{% extends "_layouts/elementindex" %}
+{% set elementType = 'modules\\booking\\elements\\BookingVariation' %}
+{% set title = 'Buchungsvarianten' %}
+
+{% block actionButton %}
+    <a href="{{ url('booking/variations/new') }}" class="btn submit add icon">Neue Variante</a>
+{% endblock %}

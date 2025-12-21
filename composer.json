@@ -1,0 +1,73 @@
+{
+    "name": "fabian/craft-booked",
+    "description": "A comprehensive booking system for Craft CMS",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "booked",
+        "booking",
+        "appointments",
+        "scheduling"
+    ],
+    "support": {
+        "docs": "https://github.com/zeix/craft-booked/blob/master/README.md",
+        "issues": "https://github.com/zeix/craft-booked/issues"
+    },
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Zeix AG",
+            "homepage": "https://zeix.com"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^5.0.0",
+        "php": "^8.0.2"
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.0",
+        "codeception/module-yii2": "^1.1",
+        "codeception/module-asserts": "^3.0",
+        "craftcms/phpstan": "dev-main",
+        "phpstan/phpstan": "^1.10.0",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "fabian\\booked\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "fabian\\booked\\tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "codecept run",
+        "phpstan": "phpstan analyse --memory-limit=256M",
+        "check": [
+            "@phpstan",
+            "@test"
+        ]
+    },
+    "extra": {
+        "name": "Booked",
+        "handle": "booked",
+        "developer": "Fabian",
+        "developerUrl": "https://zeix.com",
+        "documentationUrl": "https://github.com/zeix/craft-booked/blob/master/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/zeix/craft-booked/master/CHANGELOG.md",
+        "class": "fabian\\booked\\Booked"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    }
+}
+

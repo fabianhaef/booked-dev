@@ -1,0 +1,10 @@
+{% extends "_layouts/elementindex" %}
+{% set elementType = 'modules\\booking\\elements\\Reservation' %}
+{% set title = 'Buchungen' %}
+
+{% block actionButton %}
+    <div class="btngroup">
+        <a class="btn submit add icon" href="{{ url('booking/bookings/new') }}">Neue Buchung</a>
+        <a class="btn" href="{{ url('booking/bookings/export') }}">CSV exportieren</a>
+    </div>
+{% endblock %}

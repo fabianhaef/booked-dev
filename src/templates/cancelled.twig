@@ -1,0 +1,87 @@
+{#
+/**
+ * Booking Cancelled Success Template
+ * 
+ * Displays success message after booking is cancelled
+ * Accessed via: /booking/cancel/{token} (POST request, after cancellation)
+ */
+#}
+
+{% extends "_layouts/base.twig" %}
+
+{% block content %}
+<main class="main" id="main-content">
+    <div class="container" style="max-width: 600px; margin: 3rem auto; padding: 2rem; text-align: center;">
+        
+        {# Success Icon #}
+        <div style="font-size: 4rem; color: #28a745; margin-bottom: 1rem;">
+            ✓
+        </div>
+
+        {# Header #}
+        <h1 style="margin-bottom: 1rem; font-size: 2rem; color: #333;">Buchung storniert</h1>
+        
+        <p style="color: #666; margin-bottom: 2rem; font-size: 1.125rem;">
+            Ihre Buchung wurde erfolgreich storniert.
+        </p>
+
+        {# Cancelled Booking Details #}
+        <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: #333;">Stornierte Buchungsdetails</h2>
+            
+            <div style="margin-bottom: 0.75rem;">
+                <strong style="color: #666;">Datum & Uhrzeit:</strong><br>
+                <span style="color: #333; text-decoration: line-through;">{{ reservation.getFormattedDateTime() }}</span>
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <strong style="color: #666;">Name:</strong><br>
+                <span style="color: #333;">{{ reservation.userName }}</span>
+            </div>
+            <div>
+                <strong style="color: #666;">E-Mail:</strong><br>
+                <span style="color: #333;">{{ reservation.userEmail }}</span>
+            </div>
+        </div>
+
+        {# Info Box #}
+        <div style="background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 1rem; margin-bottom: 2rem; border-radius: 4px; text-align: left;">
+            <strong>Wie geht es weiter?</strong><br>
+            <ul style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+                <li>Eine Bestätigungs-E-Mail wurde an {{ reservation.userEmail }} gesendet</li>
+                <li>Für diese Buchung werden Ihnen keine Kosten berechnet</li>
+                <li>Sie können jederzeit einen neuen Termin buchen</li>
+            </ul>
+        </div>
+
+        {# Action Buttons #}
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a 
+                href="/booking"
+                style="padding: 0.75rem 2rem; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-block;"
+                onmouseover="this.style.background='#0056b3'"
+                onmouseout="this.style.background='#007bff'"
+            >
+                Erneut buchen
+            </a>
+            
+            <a 
+                href="/"
+                style="padding: 0.75rem 2rem; background: #6c757d; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-block;"
+                onmouseover="this.style.background='#5a6268'"
+                onmouseout="this.style.background='#6c757d'"
+            >
+                Zur Startseite
+            </a>
+        </div>
+
+        {# Contact Info #}
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #dee2e6;">
+            <p style="color: #666; font-size: 0.875rem;">
+                Fragen? Kontaktieren Sie uns unter <a href="mailto:{{ craft.app.projectConfig.get('email.fromEmail') }}" style="color: #007bff; text-decoration: none;">{{ craft.app.projectConfig.get('email.fromEmail') }}</a>
+            </p>
+        </div>
+
+    </div>
+</main>
+{% endblock %}
+

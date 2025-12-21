@@ -1,0 +1,150 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Buchung #" ~ reservation.id %}
+{% set crumbs = [
+    { label: "Buchungen", url: url('booking/bookings') },
+    { label: "Buchung #" ~ reservation.id }
+] %}
+
+
+{% block actionButton %}
+    <div class="btngroup">
+        <a class="btn" href="{{ url('booking/bookings/edit/' ~ reservation.id) }}">Bearbeiten</a>
+        {% if reservation.canBeCancelled %}
+            <form method="post" style="display: inline;">
+                {{ csrfInput() }}
+                <input type="hidden" name="action" value="booking/bookings/update-status">
+                <input type="hidden" name="id" value="{{ reservation.id }}">
+                <input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="btn" onclick="return confirm('Diese Buchung stornieren?')">Buchung stornieren</button>
+            </form>
+        {% endif %}
+        <form method="post" style="display: inline;">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="booking/bookings/resend-confirmation">
+            <input type="hidden" name="id" value="{{ reservation.id }}">
+            <button type="submit" class="btn">Bestätigung erneut senden</button>
+        </form>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="booking-details">
+        <div class="pane">
+            <div class="meta">
+                <div class="data">
+                    <h5 class="heading">Kundeninformationen</h5>
+                    <div class="value">
+                        <strong>{{ reservation.userName }}</strong><br>
+                        <a href="mailto:{{ reservation.userEmail }}">{{ reservation.userEmail }}</a><br>
+                        {% if reservation.userPhone %}
+                            <a href="tel:{{ reservation.userPhone }}">{{ reservation.userPhone }}</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="data">
+                    <h5 class="heading">Buchungsdetails</h5>
+                    <div class="value">
+                        <strong>{{ reservation.formattedDateTime }}</strong><br>
+                        Dauer: {{ reservation.durationMinutes }} Minuten<br>
+                        Status: <span class="status {{ reservation.status }}">{{ reservation.statusLabel }}</span>
+                    </div>
+                </div>
+
+                <div class="data">
+                    <h5 class="heading">Buchungsinformationen</h5>
+                    <div class="value">
+                        Erstellt: {{ reservation.dateCreated|date('d.m.Y H:i') }}<br>
+                        Aktualisiert: {{ reservation.dateUpdated|date('d.m.Y H:i') }}<br>
+                        Benachrichtigung gesendet: {{ reservation.notificationSent ? 'Ja' : 'Nein' }}
+                    </div>
+                </div>
+
+                {% if reservation.notes %}
+                    <div class="data">
+                        <h5 class="heading">Notizen</h5>
+                        <div class="value">
+                            {{ reservation.notes|nl2br }}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pane">
+            <h5 class="heading">Schnellaktionen</h5>
+            
+            <div class="field">
+                <div class="heading">
+                    <label>Status aktualisieren</label>
+                </div>
+                <div class="input">
+                    <form method="post">
+                        {{ csrfInput() }}
+                        <input type="hidden" name="action" value="booking/bookings/update-status">
+                        <input type="hidden" name="id" value="{{ reservation.id }}">
+                        <div class="flex">
+                            <div class="select">
+                                <select name="status" onchange="this.form.submit()">
+                                    {% for value, label in reservation.statuses %}
+                                        <option value="{{ value }}" {{ reservation.status == value ? 'selected' : '' }}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="field">
+                <form method="post" onsubmit="return confirm('Sind Sie sicher, dass Sie diese Buchung löschen möchten?')">
+                    {{ csrfInput() }}
+                    <input type="hidden" name="action" value="booking/bookings/delete">
+                    <input type="hidden" name="id" value="{{ reservation.id }}">
+                    <button type="submit" class="btn submit fullwidth">Buchung löschen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% css %}
+.booking-details {
+    display: flex;
+    gap: 24px;
+}
+
+.booking-details .pane {
+    flex: 1;
+}
+
+.booking-details .pane:first-child {
+    flex: 2;
+}
+
+.status {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status.confirmed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+{% endcss %}

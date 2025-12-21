@@ -1,0 +1,7 @@
+{% extends "_layouts/elementindex" %}
+{% set elementType = 'modules\\booking\\elements\\BlackoutDate' %}
+{% set title = 'Ausfalltage' %}
+
+{% block actionButton %}
+    <a href="{{ url('booking/blackout-dates/new') }}" class="btn submit add icon">Neuer Ausfalltag</a>
+{% endblock %}

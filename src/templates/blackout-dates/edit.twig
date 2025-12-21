@@ -1,0 +1,61 @@
+{% extends "_layouts/cp" %}
+{% set title = blackoutDate ? 'Ausfalltag bearbeiten' : 'Neuer Ausfalltag' %}
+
+{% block content %}
+	<form method="post" accept-charset="UTF-8">
+		{{ csrfInput() }}
+		<input type="hidden" name="action" value="booking/blackout-dates/save">
+		{{ redirectInput('booking/blackout-dates') }}
+
+		{% if blackoutDate %}
+			<input type="hidden" name="id" value="{{ blackoutDate.id }}">
+		{% endif %}
+
+		<div class="field" id="title-field">
+			<div class="heading">
+				<label for="title" class="required">Name</label>
+			</div>
+			<div class="input ltr">
+				<input type="text" class="text fullwidth" id="title" name="title" value="{{ blackoutDate ? blackoutDate.title : '' }}" required autofocus>
+			</div>
+		</div>
+
+		<div class="field" id="startDate-field">
+			<div class="heading">
+				<label for="startDate" class="required">Startdatum</label>
+				<div class="instructions">
+					<p>Erster Tag des Ausfallzeitraums</p>
+				</div>
+			</div>
+			<div class="input ltr">
+				<input type="date" class="text" id="startDate" name="startDate" value="{{ blackoutDate ? blackoutDate.startDate : '' }}" required>
+			</div>
+		</div>
+
+		<div class="field" id="endDate-field">
+			<div class="heading">
+				<label for="endDate" class="required">Enddatum</label>
+				<div class="instructions">
+					<p>Letzter Tag des Ausfallzeitraums</p>
+				</div>
+			</div>
+			<div class="input ltr">
+				<input type="date" class="text" id="endDate" name="endDate" value="{{ blackoutDate ? blackoutDate.endDate : '' }}" required>
+			</div>
+		</div>
+
+		<div class="field" id="isActive-field">
+			<div class="heading">
+				<label for="isActive">Aktiv</label>
+			</div>
+			<div class="input ltr">
+				<input type="checkbox" id="isActive" name="isActive" value="1" {{ (not blackoutDate or blackoutDate.isActive) ? 'checked' : '' }}>
+				<label for="isActive">Aktiv</label>
+			</div>
+		</div>
+
+		<div class="buttons">
+			<input type="submit" class="btn submit" value="Speichern">
+		</div>
+	</form>
+{% endblock %}

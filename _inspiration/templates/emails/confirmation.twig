@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buchungsbestätigung</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .checkmark {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .checkmark svg {
+            width: 36px;
+            height: 36px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        h1 {
+            color: #111827;
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #6b7280;
+            font-size: 16px;
+            margin: 0;
+        }
+        .greeting {
+            font-size: 16px;
+            color: #374151;
+            margin: 24px 0 16px 0;
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: center;
+        }
+        .date-time {
+            font-size: 24px;
+            font-weight: 700;
+            color: #166534;
+            margin-bottom: 8px;
+        }
+        .event-name {
+            font-size: 18px;
+            color: #15803d;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .variation-name {
+            color: #4b5563;
+            font-size: 14px;
+        }
+        .section {
+            margin: 32px 0;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 16px;
+        }
+        .info-grid {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+            text-align: right;
+        }
+        .booking-id-badge {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .action-buttons {
+            text-align: center;
+            margin: 32px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 8px 4px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        .notice-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .notice-title {
+            color: #92400e;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        .notice-box ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #78350f;
+        }
+        .notice-box li {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .payment-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border: 2px solid #60a5fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .payment-title {
+            color: #1e40af;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        .payment-box p {
+            margin: 0;
+            color: #1e3a8a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 32px;
+            margin-top: 32px;
+            border-top: 2px solid #e5e7eb;
+        }
+        .footer-company {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        .footer-contact {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+        .footer-contact a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .footer-meta {
+            color: #9ca3af;
+            font-size: 11px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #f3f4f6;
+        }
+        @media (max-width: 600px) {
+            .email-container {
+                padding: 24px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .date-time {
+                font-size: 20px;
+            }
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .info-value {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="checkmark">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h1>Buchung bestätigt!</h1>
+            <p class="subtitle">{{ siteName }}</p>
+        </div>
+
+        <p class="greeting">Hallo {{ userName }},</p>
+        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px;">
+            vielen Dank für Ihre Buchung. Ihre Reservierung wurde erfolgreich bestätigt. Wir freuen uns auf Ihren Besuch!
+        </p>
+
+        <div class="highlight-box">
+            <div class="date-time">📅 {{ formattedDateTime }}</div>
+            {% if sourceName %}
+            <div class="event-name">{{ sourceName }}</div>
+            {% endif %}
+            {% if variationName %}
+            <div class="variation-name">{{ variationName }}</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title">Buchungsdetails</div>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Buchungsnummer</span>
+                    <span class="info-value"><span class="booking-id-badge">#{{ bookingId }}</span></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Datum</span>
+                    <span class="info-value">{{ bookingDate }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Uhrzeit</span>
+                    <span class="info-value">{{ startTime }} – {{ endTime }} Uhr</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Dauer</span>
+                    <span class="info-value">{{ duration }} Minuten</span>
+                </div>
+                {% if quantityDisplay %}
+                <div class="info-row">
+                    <span class="info-label">Anzahl Personen</span>
+                    <span class="info-value">{{ quantity }}</span>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <span class="info-label">Status</span>
+                    <span class="info-value" style="color: #10b981;">{{ status }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if notes %}
+        <div class="section">
+            <div class="section-title">Ihre Notizen</div>
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; color: #4b5563; font-size: 14px;">
+                {{ notes }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="section">
+            <div class="section-title">Ihre Kontaktdaten</div>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Name</span>
+                    <span class="info-value">{{ userName }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">E-Mail</span>
+                    <span class="info-value">{{ userEmail }}</span>
+                </div>
+                {% if userPhone %}
+                <div class="info-row">
+                    <span class="info-label">Telefon</span>
+                    <span class="info-value">{{ userPhone }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{{ managementUrl }}" class="btn btn-primary">Buchung verwalten</a>
+            <a href="{{ cancelUrl }}" class="btn btn-secondary">Stornieren</a>
+        </div>
+
+        <div class="notice-box">
+            <div class="notice-title">📋 Wichtige Hinweise</div>
+            <ul>
+                <li>Bewahren Sie diese E-Mail als Buchungsnachweis auf</li>
+                <li>Bei Verhinderung bitten wir um rechtzeitige Stornierung</li>
+                <li>Änderungen können Sie über den Button "Buchung verwalten" vornehmen</li>
+            </ul>
+        </div>
+
+        {% if hasPaymentQrAttachment is defined and hasPaymentQrAttachment %}
+        <div class="payment-box">
+            <div class="payment-title">💳 Zahlung per QR-Code</div>
+            <p>
+                Im Anhang dieser E-Mail finden Sie einen QR-Code für die bequeme Zahlung per Banking-App.
+                Scannen Sie den Code einfach mit Ihrer Bank-App, um die Zahlung durchzuführen.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <div class="footer-company">{{ ownerName }}</div>
+            {% if ownerEmail %}
+            <p class="footer-contact">
+                📧 Bei Fragen: <a href="mailto:{{ ownerEmail }}">{{ ownerEmail }}</a>
+            </p>
+            {% endif %}
+            <div class="footer-meta">
+                Buchung erstellt am {{ dateCreated }}<br>
+                Referenz: {{ confirmationToken }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
