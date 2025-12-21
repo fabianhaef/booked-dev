@@ -18,16 +18,34 @@ use Craft;
 class TestableAvailabilityService extends AvailabilityService 
 {
     public $mockWorkingHours = [];
-    public $mockBookings = null;
+    public $mockReservations = [];
+    public $mockNow = null;
 
     protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
     {
-        return $this->mockWorkingHours;
+        $filtered = $this->mockWorkingHours;
+        if ($employeeId !== null) {
+            $filtered = array_filter($filtered, function($s) use ($employeeId) {
+                return $s->employeeId === $employeeId;
+            });
+        }
+        return array_values($filtered);
     }
 
-    protected function subtractBookings(array $windows, string $date, ?int $employeeId = null, ?int $serviceId = null): array
+    protected function getReservationsForDate(string $date, ?int $employeeId = null, ?int $serviceId = null): array
     {
-        return $this->mockBookings ?? $windows;
+        $filtered = $this->mockReservations;
+        if ($employeeId !== null) {
+            $filtered = array_filter($filtered, function($r) use ($employeeId) {
+                return $r->employeeId === $employeeId;
+            });
+        }
+        return array_values($filtered);
+    }
+
+    protected function getCurrentDateTime(): DateTime
+    {
+        return $this->mockNow ?? new DateTime();
     }
 }
 
@@ -134,6 +152,59 @@ class AvailabilityServiceTest extends Unit
         $this->assertEquals([], $result);
     }
 
+    public function testSubtractWindow()
+    {
+        $windows = [['start' => '09:00', 'end' => '12:00']];
+        
+        // Case 1: Subtract from middle
+        $result = $this->invokeMethod($this->service, 'subtractWindow', [$windows, '10:00', '11:00']);
+        $this->assertCount(2, $result);
+        $this->assertEquals('09:00', $result[0]['start']);
+        $this->assertEquals('10:00', $result[0]['end']);
+        $this->assertEquals('11:00', $result[1]['start']);
+        $this->assertEquals('12:00', $result[1]['end']);
+
+        // Case 2: Subtract from start
+        $result = $this->invokeMethod($this->service, 'subtractWindow', [$windows, '09:00', '10:00']);
+        $this->assertCount(1, $result);
+        $this->assertEquals('10:00', $result[0]['start']);
+        $this->assertEquals('12:00', $result[0]['end']);
+
+        // Case 3: Subtract from end
+        $result = $this->invokeMethod($this->service, 'subtractWindow', [$windows, '11:00', '12:00']);
+        $this->assertCount(1, $result);
+        $this->assertEquals('09:00', $result[0]['start']);
+        $this->assertEquals('11:00', $result[0]['end']);
+
+        // Case 4: Subtract entire window
+        $result = $this->invokeMethod($this->service, 'subtractWindow', [$windows, '09:00', '12:00']);
+        $this->assertCount(0, $result);
+    }
+
+    public function testSubtractBookings()
+    {
+        $windows = [
+            ['start' => '09:00', 'end' => '17:00', 'employeeId' => 1]
+        ];
+        $date = '2025-12-25';
+        
+        // Mock a reservation
+        $res = new MockReservationElement();
+        $res->startTime = '10:00';
+        $res->endTime = '11:00';
+        $res->employeeId = 1;
+        
+        $this->service->mockReservations = [$res];
+
+        $result = $this->invokeMethod($this->service, 'subtractBookings', [$windows, $date, 1]);
+        
+        $this->assertCount(2, $result);
+        $this->assertEquals('09:00', $result[0]['start']);
+        $this->assertEquals('10:00', $result[0]['end']);
+        $this->assertEquals('11:00', $result[1]['start']);
+        $this->assertEquals('17:00', $result[1]['end']);
+    }
+
     public function testSubtractBuffers()
     {
         $windows = [['start' => '09:00', 'end' => '12:00']];
@@ -155,17 +226,105 @@ class AvailabilityServiceTest extends Unit
         $this->assertCount(2, $slots);
     }
 
-    public function testGetAvailableSlotsOrchestration()
+    public function testGetAvailableSlotsWithQuantity()
     {
-        $schedule = new \stdClass();
-        $schedule->startTime = '09:00';
-        $schedule->endTime = '12:00';
-        $schedule->employeeId = 1;
-        $this->service->mockWorkingHours = [$schedule];
+        // Setup mock working hours for two employees
+        $s1 = new \stdClass();
+        $s1->startTime = '09:00';
+        $s1->endTime = '10:00';
+        $s1->employeeId = 1;
+        
+        $s2 = new \stdClass();
+        $s2->startTime = '09:00';
+        $s2->endTime = '10:00';
+        $s2->employeeId = 2;
+        
+        $this->service->mockWorkingHours = [$s1, $s2];
         
         $date = '2099-12-25';
-        $slots = $this->service->getAvailableSlots($date, 1);
+        
+        // Case 1: Request quantity 1 (should see slots from both or merged)
+        // With current merge logic, it merges them.
+        $slots = $this->service->getAvailableSlots($date, null, null, null, 1);
+        $this->assertNotEmpty($slots);
 
-        $this->assertCount(3, $slots);
+        // Case 2: One employee is booked
+        $res = new MockReservationElement();
+        $res->startTime = '09:00';
+        $res->endTime = '10:00';
+        $res->employeeId = 1;
+        $res->quantity = 1;
+        $this->service->mockReservations = [$res];
+        
+        // If we request employee 1, it should be empty
+        $slotsEmp1 = $this->service->getAvailableSlots($date, 1, null, null, 1);
+        $this->assertEmpty($slotsEmp1);
+        
+        // If we request any employee, it should still have one slot (from employee 2)
+        $slotsAny = $this->service->getAvailableSlots($date, null, null, null, 1);
+        $this->assertNotEmpty($slotsAny);
+    }
+
+    public function testGetAvailableSlotsWithAdvanceBooking()
+    {
+        $today = (new DateTime())->format('Y-m-d');
+        
+        $s1 = new \stdClass();
+        $s1->startTime = '09:00';
+        $s1->endTime = '12:00';
+        $s1->employeeId = 1;
+        $this->service->mockWorkingHours = [$s1];
+        
+        // Mock current time to 08:00
+        $this->service->mockNow = new DateTime($today . ' 08:00:00');
+        
+        // Case 1: All slots are in future
+        $slots = $this->service->getAvailableSlots($today, 1);
+        $this->assertCount(3, $slots); // 09:00, 10:00, 11:00
+        $this->assertEquals('09:00', $slots[0]['time']);
+
+        // Case 2: Some slots are in past
+        $this->service->mockNow = new DateTime($today . ' 10:30:00');
+        $slotsPart = $this->service->getAvailableSlots($today, 1);
+        $this->assertCount(1, $slotsPart); // Only 11:00
+        $this->assertEquals('11:00', $slotsPart[0]['time']);
+
+        // Case 3: Past date
+        $yesterday = (new DateTime('yesterday'))->format('Y-m-d');
+        $slotsPast = $this->service->getAvailableSlots($yesterday, 1);
+        $this->assertEmpty($slotsPast);
+    }
+
+    public function testIsSlotAvailable()
+    {
+        $today = (new DateTime())->format('Y-m-d');
+        $s1 = new \stdClass();
+        $s1->startTime = '09:00';
+        $s1->endTime = '10:00';
+        $s1->employeeId = 1;
+        $this->service->mockWorkingHours = [$s1];
+        $this->service->mockNow = new DateTime($today . ' 08:00:00');
+
+        $this->assertTrue($this->service->isSlotAvailable($today, '09:00', '10:00', 1));
+        $this->assertFalse($this->service->isSlotAvailable($today, '10:00', '11:00', 1));
+        
+        // With quantity
+        $s2 = new \stdClass();
+        $s2->startTime = '09:00';
+        $s2->endTime = '10:00';
+        $s2->employeeId = 2;
+        $this->service->mockWorkingHours = [$s1, $s2];
+        
+        $this->assertTrue($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 2));
+        
+        // One booked
+        $res = new MockReservationElement();
+        $res->startTime = '09:00';
+        $res->endTime = '10:00';
+        $res->employeeId = 1;
+        $this->service->mockReservations = [$res];
+        
+        $this->assertFalse($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 2));
+        $this->assertTrue($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 1));
     }
 }

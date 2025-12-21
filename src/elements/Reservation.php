@@ -32,6 +32,9 @@ use fabian\booked\records\ReservationRecord;
  * @property int|null $sourceId
  * @property string|null $sourceHandle
  * @property int|null $variationId
+ * @property int|null $employeeId
+ * @property int|null $locationId
+ * @property int|null $serviceId
  * @property int $quantity
  */
 class Reservation extends Element
@@ -51,6 +54,9 @@ class Reservation extends Element
     public ?int $sourceId = null;
     public ?string $sourceHandle = null;
     public ?int $variationId = null;
+    public ?int $employeeId = null;
+    public ?int $locationId = null;
+    public ?int $serviceId = null;
     public int $quantity = 1;
 
     /**
@@ -564,6 +570,9 @@ class Reservation extends Element
         $record->sourceId = $this->sourceId;
         $record->sourceHandle = $this->sourceHandle;
         $record->variationId = $this->variationId;
+        $record->employeeId = $this->employeeId;
+        $record->locationId = $this->locationId;
+        $record->serviceId = $this->serviceId;
         $record->quantity = $this->quantity;
 
         $record->save(false);

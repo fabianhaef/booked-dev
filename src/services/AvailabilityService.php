@@ -40,14 +40,23 @@ class AvailabilityService extends Component
         // Check cache first
         $cacheService = Booked::getInstance()->availabilityCache;
         $cached = $cacheService->getCachedAvailability($date, $employeeId, $serviceId);
+        
         if ($cached !== null) {
+            $slots = $cached;
             // Filter by location if specified
             if ($locationId !== null) {
-                return array_filter($cached, function($slot) use ($locationId) {
+                $slots = array_filter($slots, function($slot) use ($locationId) {
                     return ($slot['locationId'] ?? null) === $locationId;
                 });
             }
-            return $cached;
+            // Filter past slots (since "now" might have changed since caching)
+            $slots = $this->filterPastSlots($slots, $date);
+            
+            // Filter by quantity if specified
+            if ($requestedQuantity > 1) {
+                $slots = $this->filterByQuantity($slots, $requestedQuantity);
+            }
+            return array_values($slots);
         }
 
         $dateObj = DateTime::createFromFormat('Y-m-d', $date);
@@ -59,10 +68,9 @@ class AvailabilityService extends Component
         $dayOfWeek = (int)$dateObj->format('w'); // 0 = Sunday, 6 = Saturday
 
         // Step 1: Get working hours (Schedule) for the date
-        $workingHours = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId);
+        $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId);
         
-        if (empty($workingHours)) {
-            // Cache empty result
+        if (empty($schedules)) {
             $cacheService->setCachedAvailability($date, [], $employeeId, $serviceId);
             return [];
         }
@@ -76,31 +84,76 @@ class AvailabilityService extends Component
             }
         }
 
-        // Step 3: Generate base time windows from working hours
-        $timeWindows = $this->generateTimeWindows($workingHours);
+        $duration = $service ? $service->duration : 60; // Default 60 minutes
+        $allSlots = [];
 
-        // Step 4: Subtract existing bookings
-        $timeWindows = $this->subtractBookings($timeWindows, $date, $employeeId, $serviceId);
-
-        // Step 5: Subtract buffer times (if service specified)
-        if ($service) {
-            $timeWindows = $this->subtractBuffers($timeWindows, $service);
+        // Group schedules by employee to process availability per-employee
+        $schedulesByEmployee = [];
+        foreach ($schedules as $schedule) {
+            $schedulesByEmployee[$schedule->employeeId][] = $schedule;
         }
 
-        // Step 6: Subtract blackout dates
-        $timeWindows = $this->subtractBlackouts($timeWindows, $date);
+        foreach ($schedulesByEmployee as $empId => $empSchedules) {
+            // Step 3: Generate base time windows for this employee
+            $timeWindows = $this->generateTimeWindows($empSchedules);
 
-        // Step 7: Divide by service duration to generate slots
-        $duration = $service ? $service->duration : 60; // Default 60 minutes
-        $slots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId);
+            // Step 4: Subtract this employee's bookings
+            $timeWindows = $this->subtractBookings($timeWindows, $date, $empId, $serviceId);
+
+            // Step 5: Subtract buffer times (if service specified)
+            if ($service) {
+                $timeWindows = $this->subtractBuffers($timeWindows, $service);
+            }
+
+            // Step 6: Subtract blackout dates
+            $timeWindows = $this->subtractBlackouts($timeWindows, $date);
+
+            // Step 7: Generate slots for this employee
+            $empSlots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId);
+            
+            // Add employee ID to each slot
+            foreach ($empSlots as &$slot) {
+                $slot['employeeId'] = $empId;
+            }
+            
+            $allSlots = array_merge($allSlots, $empSlots);
+        }
 
         // Step 8: Remove slots in the past
-        $slots = $this->filterPastSlots($slots, $date);
+        $allSlots = $this->filterPastSlots($allSlots, $date);
 
-        // Step 9: Cache the result
-        $cacheService->setCachedAvailability($date, $slots, $employeeId, $serviceId);
+        // Step 9: Cache the raw result (all employees)
+        $cacheService->setCachedAvailability($date, $allSlots, $employeeId, $serviceId);
 
-        return $slots;
+        // Step 10: Filter by requested quantity
+        if ($requestedQuantity > 1) {
+            $allSlots = $this->filterByQuantity($allSlots, $requestedQuantity);
+        }
+
+        return array_values($allSlots);
+    }
+
+    /**
+     * Filter slots by requested quantity
+     * A slot is available if at least $quantity employees are free at that time
+     */
+    protected function filterByQuantity(array $slots, int $quantity): array
+    {
+        $slotsByTime = [];
+        foreach ($slots as $slot) {
+            $slotsByTime[$slot['time']][] = $slot;
+        }
+
+        $filtered = [];
+        foreach ($slotsByTime as $time => $timeSlots) {
+            if (count($timeSlots) >= $quantity) {
+                foreach ($timeSlots as $slot) {
+                    $filtered[] = $slot;
+                }
+            }
+        }
+
+        return $filtered;
     }
 
     /**
@@ -209,10 +262,38 @@ class AvailabilityService extends Component
      */
     protected function subtractBookings(array $windows, string $date, ?int $employeeId = null, ?int $serviceId = null): array
     {
-        // TODO: Get bookings from Reservation element
-        // For now, return windows as-is
-        // This will be implemented when Reservation element is created
+        $bookings = $this->getReservationsForDate($date, $employeeId, $serviceId);
+        
+        foreach ($bookings as $booking) {
+            $windows = $this->subtractWindow($windows, $booking->startTime, $booking->endTime);
+        }
+
         return $windows;
+    }
+
+    /**
+     * Get reservations for a specific date and filters
+     * 
+     * @param string $date
+     * @param int|null $employeeId
+     * @param int|null $serviceId
+     * @return Reservation[]
+     */
+    protected function getReservationsForDate(string $date, ?int $employeeId = null, ?int $serviceId = null): array
+    {
+        $query = Reservation::find()
+            ->where(['bookingDate' => $date])
+            ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED]);
+
+        if ($employeeId !== null) {
+            $query->andWhere(['employeeId' => $employeeId]);
+        }
+
+        if ($serviceId !== null) {
+            $query->andWhere(['serviceId' => $serviceId]);
+        }
+
+        return $query->all();
     }
 
     /**
@@ -313,7 +394,7 @@ class AvailabilityService extends Component
     }
 
     /**
-     * Filter out slots that are in the past
+     * Filter out slots that don't meet advance booking requirements
      * 
      * @param array $slots Array of slot objects
      * @param string $date Date in Y-m-d format
@@ -321,19 +402,85 @@ class AvailabilityService extends Component
      */
     protected function filterPastSlots(array $slots, string $date): array
     {
-        $now = new DateTime();
+        $now = $this->getCurrentDateTime();
         $today = $now->format('Y-m-d');
 
-        if ($date !== $today) {
-            // Not today, return all slots
+        if ($date < $today) {
+            return [];
+        }
+
+        if ($date > $today) {
             return $slots;
         }
 
+        // For today, only show slots in the future
+        // TODO: Respect minimumAdvanceBookingHours from settings
         $currentTime = $now->format('H:i');
 
         return array_filter($slots, function($slot) use ($currentTime) {
             return $slot['time'] >= $currentTime;
         });
+    }
+
+    /**
+     * Get current DateTime
+     * Mockable for testing
+     */
+    protected function getCurrentDateTime(): DateTime
+    {
+        return new DateTime();
+    }
+
+    /**
+     * Subtract a time range from a set of time windows
+     * 
+     * @param array $windows Array of time windows
+     * @param string $startTime Start time to subtract (H:i)
+     * @param string $endTime End time to subtract (H:i)
+     * @return array Adjusted time windows
+     */
+    protected function subtractWindow(array $windows, string $startTime, string $endTime): array
+    {
+        $subStart = $this->timeToMinutes($startTime);
+        $subEnd = $this->timeToMinutes($endTime);
+        $adjusted = [];
+
+        foreach ($windows as $window) {
+            $winStart = $this->timeToMinutes($window['start']);
+            $winEnd = $this->timeToMinutes($window['end']);
+
+            // No overlap
+            if ($winEnd <= $subStart || $winStart >= $subEnd) {
+                $adjusted[] = $window;
+                continue;
+            }
+
+            // Subtraction covers the whole window
+            if ($winStart >= $subStart && $winEnd <= $subEnd) {
+                continue;
+            }
+
+            // Subtraction splits the window
+            if ($winStart < $subStart && $winEnd > $subEnd) {
+                $adjusted[] = array_merge($window, ['end' => $startTime]);
+                $adjusted[] = array_merge($window, ['start' => $endTime]);
+                continue;
+            }
+
+            // Subtraction trims the start
+            if ($winStart < $subEnd && $winStart >= $subStart) {
+                $adjusted[] = array_merge($window, ['start' => $endTime]);
+                continue;
+            }
+
+            // Subtraction trims the end
+            if ($winEnd > $subStart && $winEnd <= $subEnd) {
+                $adjusted[] = array_merge($window, ['end' => $startTime]);
+                continue;
+            }
+        }
+
+        return $adjusted;
     }
 
     /**
@@ -378,12 +525,17 @@ class AvailabilityService extends Component
         string $endTime,
         ?int $employeeId = null,
         ?int $locationId = null,
-        ?int $serviceId = null
+        ?int $serviceId = null,
+        int $requestedQuantity = 1
     ): bool {
-        $slots = $this->getAvailableSlots($date, $employeeId, $locationId, $serviceId);
+        $slots = $this->getAvailableSlots($date, $employeeId, $locationId, $serviceId, $requestedQuantity);
 
         foreach ($slots as $slot) {
             if ($slot['time'] === $startTime && $slot['endTime'] === $endTime) {
+                // If specific employee requested, match it
+                if ($employeeId !== null && $slot['employeeId'] !== $employeeId) {
+                    continue;
+                }
                 return true;
             }
         }

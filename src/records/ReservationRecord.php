@@ -23,6 +23,9 @@ use craft\db\ActiveRecord;
  * @property int|null $sourceId
  * @property string|null $sourceHandle
  * @property int|null $variationId
+ * @property int|null $employeeId
+ * @property int|null $locationId
+ * @property int|null $serviceId
  * @property int $quantity
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
