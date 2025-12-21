@@ -4,9 +4,7 @@ namespace fabian\booked\tests\unit;
 
 use Codeception\Test\Unit;
 use fabian\booked\services\AvailabilityCacheService;
-use fabian\booked\Booked;
 use UnitTester;
-use Craft;
 
 /**
  * Mock Cache component for Craft::$app->cache
@@ -14,7 +12,7 @@ use Craft;
 class MockCache {
     private $data = [];
     public function get($key) {
-        return $this->data[$key] ?? false;
+        return $this->data[$key] ?? null;
     }
     public function set($key, $value, $duration) {
         $this->data[$key] = $value;
@@ -43,12 +41,12 @@ class AvailabilityCacheServiceTest extends Unit
         parent::_before();
         
         // Mock Craft::$app->cache
-        if (!isset(Craft::$app)) {
+        if (!isset(\Craft::$app)) {
             $mockApp = new \stdClass();
             $mockApp->cache = new MockCache();
-            Craft::$app = $mockApp;
+            \Craft::$app = $mockApp;
         } else {
-            Craft::$app->cache = new MockCache();
+            \Craft::$app->cache = new MockCache();
         }
 
         $this->service = new AvailabilityCacheService();
@@ -93,7 +91,7 @@ class AvailabilityCacheServiceTest extends Unit
         $this->assertEquals($slots, $cached);
         
         $missing = $this->service->getCachedAvailability('2025-12-26', 1, 10);
-        $this->assertFalse($missing); // MockCache returns false on missing
+        $this->assertNull($missing);
     }
 
     public function testInvalidateCache()
@@ -105,6 +103,6 @@ class AvailabilityCacheServiceTest extends Unit
         $this->service->invalidateCache($date, 1, 10);
         
         $cached = $this->service->getCachedAvailability($date, 1, 10);
-        $this->assertFalse($cached);
+        $this->assertNull($cached);
     }
 }

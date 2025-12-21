@@ -153,13 +153,20 @@ class BlackoutDateService extends Component
      */
     public function isDateBlackedOut(string $date): bool
     {
-        $blackout = BlackoutDateRecord::find()
+        return $this->getBlackoutQuery()
             ->where(['isActive' => true])
             ->andWhere(['<=', 'startDate', $date])
             ->andWhere(['>=', 'endDate', $date])
             ->exists();
+    }
 
-        return $blackout;
+    /**
+     * Get the blackout record query
+     * @return \yii\db\ActiveQuery
+     */
+    protected function getBlackoutQuery()
+    {
+        return BlackoutDateRecord::find();
     }
 
     /**

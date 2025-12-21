@@ -264,9 +264,12 @@ class AvailabilityService extends Component
      */
     protected function subtractBlackouts(array $windows, string $date): array
     {
-        // TODO: Check blackout dates
-        // For now, return windows as-is
-        // This will be implemented when BlackoutDate element is created
+        $blackoutService = Booked::getInstance()->getBlackoutDate();
+        
+        if ($blackoutService->isDateBlackedOut($date)) {
+            return [];
+        }
+
         return $windows;
     }
 

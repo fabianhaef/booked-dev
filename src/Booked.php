@@ -124,9 +124,8 @@ class Booked extends Plugin
         $this->setComponents([
             'availability' => \fabian\booked\services\AvailabilityService::class,
             'availabilityCache' => \fabian\booked\services\AvailabilityCacheService::class,
-            // TODO: Phase 2 - Add more services
-            // 'booking' => \fabian\booked\services\BookingService::class,
-            // 'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
+            'booking' => \fabian\booked\services\BookingService::class,
+            'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
         ]);
     }
 
@@ -140,16 +139,15 @@ class Booked extends Plugin
         return $this->get('availabilityCache');
     }
 
-    // TODO: Phase 2 - Add more service getters
-    // public function getBooking(): \fabian\booked\services\BookingService
-    // {
-    //     return $this->get('booking');
-    // }
-    //
-    // public function getBlackoutDate(): \fabian\booked\services\BlackoutDateService
-    // {
-    //     return $this->get('blackoutDate');
-    // }
+    public function getBooking(): \fabian\booked\services\BookingService
+    {
+        return $this->get('booking');
+    }
+
+    public function getBlackoutDate(): \fabian\booked\services\BlackoutDateService
+    {
+        return $this->get('blackoutDate');
+    }
 
     /**
      * Register element types

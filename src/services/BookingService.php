@@ -369,7 +369,7 @@ class BookingService extends Component
     public function cancelReservation(int $id, string $reason = ''): bool
     {
         $reservation = $this->getReservationById($id);
-        if (!$reservation || !$reservation->canBeCancelled()) {
+        if (!$reservation || !$this->canCancelReservation($reservation)) {
             return false;
         }
 
@@ -386,6 +386,28 @@ class BookingService extends Component
         }
 
         return false;
+    }
+
+    /**
+     * Check if a reservation can be cancelled
+     * 
+     * @param Reservation $reservation
+     * @return bool
+     */
+    protected function canCancelReservation(Reservation $reservation): bool
+    {
+        if ($reservation->status === ReservationRecord::STATUS_CANCELLED) {
+            return false;
+        }
+
+        $now = new \DateTime();
+        $bookingDateTime = new \DateTime($reservation->bookingDate . ' ' . ($reservation->startTime ?? '00:00'));
+
+        if ($bookingDateTime < $now) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
