@@ -1,6 +1,7 @@
 {% extends "_layouts/elementindex" %}
 {% set elementType = 'fabian\\booked\\elements\\Location' %}
 {% set title = 'Locations'|t('booked') %}
+{% set selectedSubnavItem = 'locations' %}
 
 {% block actionButton %}
     <a class="btn submit add icon" href="{{ url('booked/locations/new') }}">{{ 'New Location'|t('booked') }}</a>

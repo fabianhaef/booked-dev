@@ -14,9 +14,9 @@ use fabian\booked\models\Settings;
 class SettingsController extends Controller
 {
     /**
-     * Settings page
+     * Field Layouts settings page
      */
-    public function actionIndex(): Response
+    public function actionFieldLayouts(): Response
     {
         $settings = Settings::loadSettings();
         $fieldsService = Craft::$app->getFields();
@@ -37,11 +37,90 @@ class SettingsController extends Controller
             $locationFieldLayout = new FieldLayout(['type' => \fabian\booked\elements\Location::class]);
         }
 
-        return $this->renderTemplate('booked/settings/index', [
+        return $this->renderTemplate('booked/settings/field-layouts', [
+            'selectedSubnavItem' => 'field-layouts',
             'settings' => $settings,
             'employeeFieldLayout' => $employeeFieldLayout,
             'serviceFieldLayout' => $serviceFieldLayout,
             'locationFieldLayout' => $locationFieldLayout,
+        ]);
+    }
+
+    /**
+     * General settings page
+     */
+    public function actionGeneral(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/general', [
+            'selectedSubnavItem' => 'general',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Calendar settings page
+     */
+    public function actionCalendar(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/calendar', [
+            'selectedSubnavItem' => 'calendar',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Virtual Meetings settings page
+     */
+    public function actionMeetings(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/meetings', [
+            'selectedSubnavItem' => 'meetings',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Notifications settings page
+     */
+    public function actionNotifications(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/notifications', [
+            'selectedSubnavItem' => 'notifications',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Commerce settings page
+     */
+    public function actionCommerce(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/commerce', [
+            'selectedSubnavItem' => 'commerce',
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Frontend settings page
+     */
+    public function actionFrontend(): Response
+    {
+        $settings = Settings::loadSettings();
+
+        return $this->renderTemplate('booked/settings/frontend', [
+            'selectedSubnavItem' => 'frontend',
+            'settings' => $settings,
         ]);
     }
 
@@ -55,32 +134,53 @@ class SettingsController extends Controller
         $request = Craft::$app->request;
         $settings = Settings::loadSettings();
 
-        // Handle field layout saving
-        $fieldsService = Craft::$app->getFields();
-        
-        // Save Employee field layout
-        $employeeFieldLayout = $this->saveFieldLayout(
-            $request->getBodyParam('employeeFieldLayout'),
-            $settings->employeeFieldLayoutId,
-            'Employee'
-        );
-        $settings->employeeFieldLayoutId = $employeeFieldLayout?->id;
+        // Get the section from redirect URL or referrer
+        $redirectUrl = $request->getBodyParam('redirect');
+        $section = 'field-layouts'; // default
+        if ($redirectUrl) {
+            if (strpos($redirectUrl, '/general') !== false) {
+                $section = 'general';
+            } elseif (strpos($redirectUrl, '/calendar') !== false) {
+                $section = 'calendar';
+            } elseif (strpos($redirectUrl, '/meetings') !== false) {
+                $section = 'meetings';
+            } elseif (strpos($redirectUrl, '/notifications') !== false) {
+                $section = 'notifications';
+            } elseif (strpos($redirectUrl, '/commerce') !== false) {
+                $section = 'commerce';
+            } elseif (strpos($redirectUrl, '/frontend') !== false) {
+                $section = 'frontend';
+            }
+        }
 
-        // Save Service field layout
-        $serviceFieldLayout = $this->saveFieldLayout(
-            $request->getBodyParam('serviceFieldLayout'),
-            $settings->serviceFieldLayoutId,
-            'Service'
-        );
-        $settings->serviceFieldLayoutId = $serviceFieldLayout?->id;
+        // Handle field layout saving (only for field-layouts section)
+        if ($section === 'field-layouts') {
+            $fieldsService = Craft::$app->getFields();
+            
+            // Save Employee field layout
+            $employeeFieldLayout = $this->saveFieldLayout(
+                $request->getBodyParam('employeeFieldLayout'),
+                $settings->employeeFieldLayoutId,
+                'Employee'
+            );
+            $settings->employeeFieldLayoutId = $employeeFieldLayout?->id;
 
-        // Save Location field layout
-        $locationFieldLayout = $this->saveFieldLayout(
-            $request->getBodyParam('locationFieldLayout'),
-            $settings->locationFieldLayoutId,
-            'Location'
-        );
-        $settings->locationFieldLayoutId = $locationFieldLayout?->id;
+            // Save Service field layout
+            $serviceFieldLayout = $this->saveFieldLayout(
+                $request->getBodyParam('serviceFieldLayout'),
+                $settings->serviceFieldLayoutId,
+                'Service'
+            );
+            $settings->serviceFieldLayoutId = $serviceFieldLayout?->id;
+
+            // Save Location field layout
+            $locationFieldLayout = $this->saveFieldLayout(
+                $request->getBodyParam('locationFieldLayout'),
+                $settings->locationFieldLayoutId,
+                'Location'
+            );
+            $settings->locationFieldLayoutId = $locationFieldLayout?->id;
+        }
 
         // Load all settings from POST data
         $postedSettings = $request->getBodyParam('settings', []);

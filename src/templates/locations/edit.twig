@@ -1,6 +1,7 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
+{% set selectedSubnavItem = 'locations' %}
 {% set title = location.id ? 'Edit Location'|t('booked') : 'New Location'|t('booked') %}
 {% set crumbs = [
     { label: 'Booked'|t('booked'), url: url('booked/locations') },

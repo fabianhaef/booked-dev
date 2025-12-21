@@ -7,8 +7,8 @@ use craft\base\Element;
 use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\User;
+use craft\helpers\ElementHelper;
 use craft\helpers\Html;
-use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\EmployeeQuery;
 use fabian\booked\elements\Location;
@@ -326,7 +326,7 @@ class Employee extends Element
      */
     private function generateSlugFromTitle(string $title): string
     {
-        $slug = StringHelper::toSlug($title);
+        $slug = ElementHelper::generateSlug($title);
         
         // Ensure uniqueness
         $baseSlug = $slug;

@@ -1,0 +1,58 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'commerce' %}
+{% set title = "Commerce Integration"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'Commerce'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/commerce') }}
+
+        <h2>{{ 'Commerce Integration'|t('booked') }}</h2>
+        <p class="light">{{ 'Configure Craft Commerce integration for payment processing.'|t('booked') }}</p>
+
+        {% if craft.app.plugins.isPluginEnabled('commerce') %}
+            {{ forms.lightswitchField({
+                label: 'Enable Commerce Integration'|t('booked'),
+                id: 'commerceEnabled',
+                name: 'settings[commerceEnabled]',
+                on: settings.commerceEnabled
+            }) }}
+
+            {{ forms.textField({
+                label: 'Default Payment Gateway'|t('booked'),
+                instructions: 'Handle of the default payment gateway to use.'|t('booked'),
+                id: 'defaultPaymentGateway',
+                name: 'settings[defaultPaymentGateway]',
+                value: settings.defaultPaymentGateway
+            }) }}
+
+            {{ forms.lightswitchField({
+                label: 'Require Payment Before Confirmation'|t('booked'),
+                instructions: 'Bookings will only be confirmed after payment is received.'|t('booked'),
+                id: 'requirePaymentBeforeConfirmation',
+                name: 'settings[requirePaymentBeforeConfirmation]',
+                on: settings.requirePaymentBeforeConfirmation
+            }) }}
+        {% else %}
+            <p class="warning">{{ 'Craft Commerce is not installed. Install and enable it to use payment features.'|t('booked') }}</p>
+        {% endif %}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+

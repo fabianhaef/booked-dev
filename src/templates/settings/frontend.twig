@@ -1,0 +1,68 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'frontend' %}
+{% set title = "Frontend Settings"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'Frontend'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/frontend') }}
+
+        <h2>{{ 'Frontend Settings'|t('booked') }}</h2>
+        <p class="light">{{ 'Configure the booking form and frontend display options.'|t('booked') }}</p>
+
+        {{ forms.selectField({
+            label: 'Default View Mode'|t('booked'),
+            instructions: 'Default booking interface view mode.'|t('booked'),
+            id: 'defaultViewMode',
+            name: 'settings[defaultViewMode]',
+            value: settings.defaultViewMode,
+            options: [
+                { label: 'Wizard'|t('booked'), value: 'wizard' },
+                { label: 'Catalog'|t('booked'), value: 'catalog' },
+                { label: 'Search'|t('booked'), value: 'search' }
+            ]
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enable Real-Time Availability'|t('booked'),
+            instructions: 'Update available time slots without page reload using AJAX.'|t('booked'),
+            id: 'enableRealTimeAvailability',
+            name: 'settings[enableRealTimeAvailability]',
+            on: settings.enableRealTimeAvailability
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Show Employee Selection'|t('booked'),
+            instructions: 'Allow customers to select a specific employee when booking.'|t('booked'),
+            id: 'showEmployeeSelection',
+            name: 'settings[showEmployeeSelection]',
+            on: settings.showEmployeeSelection
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Show Location Selection'|t('booked'),
+            instructions: 'Allow customers to select a specific location when booking.'|t('booked'),
+            id: 'showLocationSelection',
+            name: 'settings[showLocationSelection]',
+            on: settings.showLocationSelection
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+

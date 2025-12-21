@@ -1,6 +1,7 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
+{% set selectedSubnavItem = 'schedules' %}
 {% set title = schedule.id ? 'Edit Schedule'|t('booked') : 'New Schedule'|t('booked') %}
 {% set crumbs = [
     { label: 'Booked'|t('booked'), url: url('booked/schedules') },

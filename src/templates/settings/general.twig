@@ -1,0 +1,87 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'general' %}
+{% set title = "General Settings"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'General'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/general') }}
+
+        <h2>{{ 'General Settings'|t('booked') }}</h2>
+        <p class="light">{{ 'Configure general plugin settings.'|t('booked') }}</p>
+
+        {{ forms.textField({
+            label: 'Soft Lock Duration (minutes)'|t('booked'),
+            instructions: 'How long to hold a time slot when a user starts booking (default: 15 minutes).'|t('booked'),
+            id: 'softLockDurationMinutes',
+            name: 'settings[softLockDurationMinutes]',
+            value: settings.softLockDurationMinutes,
+            type: 'number',
+            min: 1
+        }) }}
+
+        {{ forms.textField({
+            label: 'Availability Cache TTL (seconds)'|t('booked'),
+            instructions: 'How long to cache availability calculations (default: 3600 = 1 hour).'|t('booked'),
+            id: 'availabilityCacheTtl',
+            name: 'settings[availabilityCacheTtl]',
+            value: settings.availabilityCacheTtl,
+            type: 'number',
+            min: 1
+        }) }}
+
+        {{ forms.textField({
+            label: 'Default Timezone'|t('booked'),
+            instructions: 'Default timezone for bookings (e.g., America/New_York). Leave empty to use site timezone.'|t('booked'),
+            id: 'defaultTimezone',
+            name: 'settings[defaultTimezone]',
+            value: settings.defaultTimezone
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enable Rate Limiting'|t('booked'),
+            instructions: 'Prevent abuse by limiting booking submissions per email/IP.'|t('booked'),
+            id: 'enableRateLimiting',
+            name: 'settings[enableRateLimiting]',
+            on: settings.enableRateLimiting
+        }) }}
+
+        {{ forms.textField({
+            label: 'Rate Limit: Bookings per Email per Hour'|t('booked'),
+            instructions: 'Maximum bookings allowed per email address per hour.'|t('booked'),
+            id: 'rateLimitPerEmail',
+            name: 'settings[rateLimitPerEmail]',
+            value: settings.rateLimitPerEmail,
+            type: 'number',
+            min: 1
+        }) }}
+
+        {{ forms.textField({
+            label: 'Rate Limit: Bookings per IP per Hour'|t('booked'),
+            instructions: 'Maximum bookings allowed per IP address per hour.'|t('booked'),
+            id: 'rateLimitPerIp',
+            name: 'settings[rateLimitPerIp]',
+            value: settings.rateLimitPerIp,
+            type: 'number',
+            min: 1
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+

@@ -185,6 +185,9 @@ class Booked extends Plugin
             \craft\web\UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function(\craft\events\RegisterUrlRulesEvent $event) {
                 $event->rules = array_merge($event->rules, [
+                    // Default redirect to services
+                    'booked' => 'booked/cp/services/index',
+                    
                     // Phase 1.3 - Core element management
                     'booked/services' => 'booked/cp/services/index',
                     'booked/services/new' => 'booked/cp/services/edit',
@@ -202,8 +205,15 @@ class Booked extends Plugin
                     'booked/schedules/new' => 'booked/cp/schedules/edit',
                     'booked/schedules/<id:\d+>' => 'booked/cp/schedules/edit',
                     
-                    // Settings
-                    'booked/settings' => 'booked/cp/settings/index',
+                    // Settings - with sidebar navigation
+                    'booked/settings' => 'booked/cp/settings/field-layouts',
+                    'booked/settings/field-layouts' => 'booked/cp/settings/field-layouts',
+                    'booked/settings/general' => 'booked/cp/settings/general',
+                    'booked/settings/calendar' => 'booked/cp/settings/calendar',
+                    'booked/settings/meetings' => 'booked/cp/settings/meetings',
+                    'booked/settings/notifications' => 'booked/cp/settings/notifications',
+                    'booked/settings/commerce' => 'booked/cp/settings/commerce',
+                    'booked/settings/frontend' => 'booked/cp/settings/frontend',
                     
                     // TODO: Phase 2 - Add bookings, availability routes
                     // 'booked/bookings' => 'booked/cp/bookings/index',
@@ -253,13 +263,26 @@ class Booked extends Plugin
     {
         $item = parent::getCpNavItem();
         $item['icon'] = '@booked/icon.svg';
-        $item['url'] = 'booked/services';
+        // Use base URL so nav stays open for all subnav items
+        $item['url'] = 'booked';
         $item['subnav'] = [
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
             'schedules' => ['label' => Craft::t('booked', 'Schedules'), 'url' => 'booked/schedules'],
-            'settings' => ['label' => Craft::t('booked', 'Settings'), 'url' => 'booked/settings'],
+            'settings' => [
+                'label' => Craft::t('booked', 'Settings'),
+                'url' => 'booked/settings',
+                'subnav' => [
+                    'field-layouts' => ['label' => Craft::t('booked', 'Field Layouts'), 'url' => 'booked/settings/field-layouts'],
+                    'general' => ['label' => Craft::t('booked', 'General'), 'url' => 'booked/settings/general'],
+                    'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/settings/calendar'],
+                    'meetings' => ['label' => Craft::t('booked', 'Virtual Meetings'), 'url' => 'booked/settings/meetings'],
+                    'notifications' => ['label' => Craft::t('booked', 'Notifications'), 'url' => 'booked/settings/notifications'],
+                    'commerce' => ['label' => Craft::t('booked', 'Commerce'), 'url' => 'booked/settings/commerce'],
+                    'frontend' => ['label' => Craft::t('booked', 'Frontend'), 'url' => 'booked/settings/frontend'],
+                ],
+            ],
             // TODO: Phase 2 - Add bookings, availability to nav
             // 'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
             // 'availability' => ['label' => Craft::t('booked', 'Availability'), 'url' => 'booked/availability'],

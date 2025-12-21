@@ -1,0 +1,143 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'field-layouts' %}
+
+{# Define tabs for the page header #}
+{% set tabs = {
+    'employee-fields': { label: "Employee"|t('booked'), url: '#employee-fields' },
+    'service-fields': { label: "Service"|t('booked'), url: '#service-fields' },
+    'location-fields': { label: "Location"|t('booked'), url: '#location-fields' }
+} %}
+{% set selectedTab = 'employee-fields' %}
+
+{% set title = "Field Layouts"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'Field Layouts'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/field-layouts') }}
+
+        {# Employee Tab #}
+        <div id="employee-fields" class="field-layout-section">
+            <h2>{{ 'Employee Field Layout'|t('booked') }}</h2>
+            <p class="light">{{ 'Configure custom fields for Employee elements.'|t('booked') }}</p>
+            
+            {{ forms.fieldLayoutDesignerField({
+                label: 'Employee Fields'|t('booked'),
+                id: 'employeeFieldLayout',
+                name: 'employeeFieldLayout',
+                fieldLayout: employeeFieldLayout,
+                elementType: 'fabian\\booked\\elements\\Employee',
+                instructions: 'Drag and drop fields to configure the Employee edit form.'|t('booked')
+            }) }}
+        </div>
+
+        {# Service Tab #}
+        <div id="service-fields" class="field-layout-section hidden">
+            <h2>{{ 'Service Field Layout'|t('booked') }}</h2>
+            <p class="light">{{ 'Configure custom fields for Service elements.'|t('booked') }}</p>
+            
+            {{ forms.fieldLayoutDesignerField({
+                label: 'Service Fields'|t('booked'),
+                id: 'serviceFieldLayout',
+                name: 'serviceFieldLayout',
+                fieldLayout: serviceFieldLayout,
+                elementType: 'fabian\\booked\\elements\\Service',
+                instructions: 'Drag and drop fields to configure the Service edit form.'|t('booked')
+            }) }}
+        </div>
+
+        {# Location Tab #}
+        <div id="location-fields" class="field-layout-section hidden">
+            <h2>{{ 'Location Field Layout'|t('booked') }}</h2>
+            <p class="light">{{ 'Configure custom fields for Location elements.'|t('booked') }}</p>
+            
+            {{ forms.fieldLayoutDesignerField({
+                label: 'Location Fields'|t('booked'),
+                id: 'locationFieldLayout',
+                name: 'locationFieldLayout',
+                fieldLayout: locationFieldLayout,
+                elementType: 'fabian\\booked\\elements\\Location',
+                instructions: 'Drag and drop fields to configure the Location edit form.'|t('booked')
+            }) }}
+        </div>
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+
+{% js %}
+    (function() {
+        const $tabs = $('#tabs ul li a');
+        const $sections = $('.field-layout-section');
+
+        $tabs.on('click', function(e) {
+            const href = $(this).attr('href');
+            if (href.indexOf('#') !== 0) {
+                return;
+            }
+
+            const targetId = href.substring(1);
+            if ($('#' + targetId).length === 0) {
+                return;
+            }
+
+            e.preventDefault();
+
+            // Update tabs
+            $tabs.removeClass('sel').attr('aria-selected', 'false');
+            $(this).addClass('sel').attr('aria-selected', 'true');
+
+            // Update sections
+            $sections.addClass('hidden');
+            $('#' + targetId).removeClass('hidden');
+
+            // Update URL hash
+            history.replaceState(null, null, '#' + targetId);
+        });
+
+        // Handle initial hash or default to first tab
+        const hash = window.location.hash;
+        if (hash) {
+            const $targetTab = $tabs.filter('[href="' + hash + '"]');
+            if ($targetTab.length) {
+                $targetTab.trigger('click');
+            }
+        }
+    })();
+{% endjs %}
+
+{% css %}
+.field-layout-section {
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+}
+
+.field-layout-section h2 {
+    margin-top: 0;
+}
+
+.field-layout-section.hidden {
+    display: none;
+}
+
+.buttons {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+{% endcss %}

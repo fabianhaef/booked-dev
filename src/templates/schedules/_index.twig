@@ -1,6 +1,7 @@
 {% extends "_layouts/elementindex" %}
 {% set elementType = 'fabian\\booked\\elements\\Schedule' %}
 {% set title = 'Schedules'|t('booked') %}
+{% set selectedSubnavItem = 'schedules' %}
 
 {% block actionButton %}
     <a class="btn submit add icon" href="{{ url('booked/schedules/new') }}">{{ 'New Schedule'|t('booked') }}</a>

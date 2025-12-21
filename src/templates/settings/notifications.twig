@@ -1,0 +1,162 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'notifications' %}
+{% set title = "Notifications"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'Notifications'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/notifications') }}
+
+        <h2>{{ 'Notifications'|t('booked') }}</h2>
+        <p class="light">{{ 'Configure email and SMS notifications for bookings.'|t('booked') }}</p>
+
+        <h3>{{ 'Email Notifications'|t('booked') }}</h3>
+        
+        {{ forms.lightswitchField({
+            label: 'Enable Owner Notifications'|t('booked'),
+            id: 'ownerNotificationEnabled',
+            name: 'settings[ownerNotificationEnabled]',
+            on: settings.ownerNotificationEnabled
+        }) }}
+
+        {{ forms.textField({
+            label: 'Owner Email'|t('booked'),
+            id: 'ownerEmail',
+            name: 'settings[ownerEmail]',
+            value: settings.ownerEmail,
+            type: 'email'
+        }) }}
+
+        {{ forms.textField({
+            label: 'Owner Name'|t('booked'),
+            id: 'ownerName',
+            name: 'settings[ownerName]',
+            value: settings.ownerName
+        }) }}
+
+        {{ forms.textField({
+            label: 'Owner Notification Subject'|t('booked'),
+            id: 'ownerNotificationSubject',
+            name: 'settings[ownerNotificationSubject]',
+            value: settings.ownerNotificationSubject
+        }) }}
+
+        {{ forms.textField({
+            label: 'Booking Confirmation Subject'|t('booked'),
+            id: 'bookingConfirmationSubject',
+            name: 'settings[bookingConfirmationSubject]',
+            value: settings.bookingConfirmationSubject
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Booking Confirmation Body'|t('booked'),
+            instructions: 'Twig template for booking confirmation emails. Available variables: booking, customer, service, employee, location.'|t('booked'),
+            id: 'bookingConfirmationBody',
+            name: 'settings[bookingConfirmationBody]',
+            value: settings.bookingConfirmationBody,
+            rows: 10
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enable Email Reminders'|t('booked'),
+            id: 'emailRemindersEnabled',
+            name: 'settings[emailRemindersEnabled]',
+            on: settings.emailRemindersEnabled
+        }) }}
+
+        {{ forms.textField({
+            label: 'Email Reminder Hours Before'|t('booked'),
+            instructions: 'Send reminder email this many hours before the appointment (default: 24).'|t('booked'),
+            id: 'emailReminderHoursBefore',
+            name: 'settings[emailReminderHoursBefore]',
+            value: settings.emailReminderHoursBefore,
+            type: 'number',
+            min: 0
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Send 1-Hour Reminder'|t('booked'),
+            id: 'emailReminderOneHourBefore',
+            name: 'settings[emailReminderOneHourBefore]',
+            on: settings.emailReminderOneHourBefore
+        }) }}
+
+        <hr>
+
+        <h3>{{ 'SMS Notifications'|t('booked') }}</h3>
+        
+        {{ forms.lightswitchField({
+            label: 'Enable SMS Notifications'|t('booked'),
+            id: 'smsEnabled',
+            name: 'settings[smsEnabled]',
+            on: settings.smsEnabled
+        }) }}
+
+        {{ forms.selectField({
+            label: 'SMS Provider'|t('booked'),
+            id: 'smsProvider',
+            name: 'settings[smsProvider]',
+            value: settings.smsProvider,
+            options: [
+                { label: 'Twilio'|t('booked'), value: 'twilio' }
+            ]
+        }) }}
+
+        {{ forms.textField({
+            label: 'Twilio API Key'|t('booked'),
+            id: 'twilioApiKey',
+            name: 'settings[twilioApiKey]',
+            value: settings.twilioApiKey
+        }) }}
+
+        {{ forms.passwordField({
+            label: 'Twilio API Secret'|t('booked'),
+            id: 'twilioApiSecret',
+            name: 'settings[twilioApiSecret]',
+            value: settings.twilioApiSecret
+        }) }}
+
+        {{ forms.textField({
+            label: 'Twilio Phone Number'|t('booked'),
+            instructions: 'Your Twilio phone number (e.g., +1234567890).'|t('booked'),
+            id: 'twilioPhoneNumber',
+            name: 'settings[twilioPhoneNumber]',
+            value: settings.twilioPhoneNumber
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enable SMS Reminders'|t('booked'),
+            id: 'smsRemindersEnabled',
+            name: 'settings[smsRemindersEnabled]',
+            on: settings.smsRemindersEnabled
+        }) }}
+
+        {{ forms.textField({
+            label: 'SMS Reminder Hours Before'|t('booked'),
+            instructions: 'Send reminder SMS this many hours before the appointment (default: 24).'|t('booked'),
+            id: 'smsReminderHoursBefore',
+            name: 'settings[smsReminderHoursBefore]',
+            value: settings.smsReminderHoursBefore,
+            type: 'number',
+            min: 0
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+

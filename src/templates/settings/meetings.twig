@@ -1,0 +1,81 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedSettingsSubnavItem = 'meetings' %}
+{% set title = "Virtual Meetings"|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked'), url: url('booked/settings') },
+    { label: 'Virtual Meetings'|t('booked') }
+] %}
+
+{% block sidebar %}
+    {% include 'booked/settings/_sidebar' %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="settings-form">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings/meetings') }}
+
+        <h2>{{ 'Virtual Meetings'|t('booked') }}</h2>
+        <p class="light">{{ 'Configure automatic virtual meeting creation for bookings.'|t('booked') }}</p>
+
+        <h3>{{ 'Zoom'|t('booked') }}</h3>
+        
+        {{ forms.lightswitchField({
+            label: 'Enable Zoom'|t('booked'),
+            id: 'zoomEnabled',
+            name: 'settings[zoomEnabled]',
+            on: settings.zoomEnabled
+        }) }}
+
+        {{ forms.textField({
+            label: 'Zoom API Key'|t('booked'),
+            id: 'zoomApiKey',
+            name: 'settings[zoomApiKey]',
+            value: settings.zoomApiKey
+        }) }}
+
+        {{ forms.passwordField({
+            label: 'Zoom API Secret'|t('booked'),
+            id: 'zoomApiSecret',
+            name: 'settings[zoomApiSecret]',
+            value: settings.zoomApiSecret
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Auto-create Zoom Meetings'|t('booked'),
+            instructions: 'Automatically create Zoom meetings when bookings are confirmed.'|t('booked'),
+            id: 'zoomAutoCreate',
+            name: 'settings[zoomAutoCreate]',
+            on: settings.zoomAutoCreate
+        }) }}
+
+        <hr>
+
+        <h3>{{ 'Google Meet'|t('booked') }}</h3>
+        
+        {{ forms.lightswitchField({
+            label: 'Enable Google Meet'|t('booked'),
+            id: 'googleMeetEnabled',
+            name: 'settings[googleMeetEnabled]',
+            on: settings.googleMeetEnabled
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Auto-create Google Meet Links'|t('booked'),
+            instructions: 'Automatically create Google Meet links when bookings are confirmed.'|t('booked'),
+            id: 'googleMeetAutoCreate',
+            name: 'settings[googleMeetAutoCreate]',
+            on: settings.googleMeetAutoCreate
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
+        </div>
+    </form>
+{% endblock %}
+
