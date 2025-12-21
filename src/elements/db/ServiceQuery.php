@@ -14,6 +14,11 @@ use craft\helpers\Db;
  */
 class ServiceQuery extends ElementQuery
 {
+    /**
+     * @var bool|null Whether to only return enabled services
+     */
+    public $enabled;
+
     public ?int $duration = null;
     public ?float $price = null;
 
@@ -36,10 +41,27 @@ class ServiceQuery extends ElementQuery
     }
 
     /**
+     * Narrows the query results to only enabled services
+     *
+     * @param bool|null $value The property value
+     * @return static self reference
+     */
+    public function enabled($value = true): static
+    {
+        $this->enabled = $value;
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     protected function beforePrepare(): bool
     {
+        // Call parent first to initialize the base query
+        if (!parent::beforePrepare()) {
+            return false;
+        }
+
         $this->joinElementTable('booked_services');
 
         $this->query->select([
@@ -57,7 +79,12 @@ class ServiceQuery extends ElementQuery
             $this->subQuery->andWhere(Db::parseParam('booked_services.price', $this->price));
         }
 
-        return parent::beforePrepare();
+        // Handle the 'enabled' parameter
+        if ($this->enabled !== null) {
+            $this->subQuery->andWhere(Db::parseParam('elements.enabled', (int)$this->enabled));
+        }
+
+        return true;
     }
 }
 

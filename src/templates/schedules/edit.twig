@@ -1,0 +1,79 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = schedule.id ? 'Edit Schedule'|t('booked') : 'New Schedule'|t('booked') %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked/schedules') },
+    { label: 'Schedules'|t('booked'), url: url('booked/schedules') },
+    { label: title }
+] %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="booked/cp/schedules/save">
+        {% if schedule.id %}
+            <input type="hidden" name="elementId" value="{{ schedule.id }}">
+        {% endif %}
+
+        <div class="fields">
+            {{ forms.elementSelectField({
+                label: 'Employee'|t('booked'),
+                id: 'employeeId',
+                name: 'employeeId',
+                elementType: 'fabian\\booked\\elements\\Employee',
+                elements: schedule.employeeId ? [schedule.getEmployee()] : [],
+                limit: 1,
+                required: true,
+                errors: schedule.getErrors('employeeId'),
+                instructions: 'Select the employee for this schedule'
+            }) }}
+
+            {{ forms.selectField({
+                label: 'Day of Week'|t('booked'),
+                id: 'dayOfWeek',
+                name: 'dayOfWeek',
+                options: [{ value: '', label: 'Select Day'|t('booked') }]|merge(daysOfWeek|map((label, value) => { value: value, label: label })),
+                value: schedule.dayOfWeek,
+                required: true,
+                errors: schedule.getErrors('dayOfWeek'),
+                instructions: 'Day of the week for this schedule'
+            }) }}
+
+            <div class="flex">
+                {{ forms.textField({
+                    label: 'Start Time'|t('booked'),
+                    id: 'startTime',
+                    name: 'startTime',
+                    type: 'time',
+                    value: schedule.startTime,
+                    errors: schedule.getErrors('startTime'),
+                    instructions: 'Start time for this schedule'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'End Time'|t('booked'),
+                    id: 'endTime',
+                    name: 'endTime',
+                    type: 'time',
+                    value: schedule.endTime,
+                    errors: schedule.getErrors('endTime'),
+                    instructions: 'End time for this schedule'
+                }) }}
+            </div>
+
+            {{ forms.lightswitchField({
+                label: 'Enabled'|t('app'),
+                id: 'enabled',
+                name: 'enabled',
+                on: schedule.enabled ?? true
+            }) }}
+        </div>
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ schedule.id ? 'Update'|t('app') : 'Create'|t('app') }}</button>
+            <a class="btn" href="{{ url('booked/schedules') }}">{{ 'Cancel'|t('app') }}</a>
+        </div>
+    </form>
+{% endblock %}
+

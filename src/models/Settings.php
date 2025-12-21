@@ -1,39 +1,218 @@
 <?php
 
-namespace modules\booking\models;
+namespace fabian\booked\models;
 
 use Craft;
 use craft\base\Model;
-use modules\booking\records\SettingsRecord;
+use craft\models\FieldLayout;
+use fabian\booked\records\SettingsRecord;
 
 /**
  * Settings Model
+ * 
+ * Comprehensive settings for the Booked plugin, organized by category:
+ * - Field Layouts
+ * - General Settings
+ * - Calendar Integration
+ * - Virtual Meetings
+ * - Notifications
+ * - Commerce Integration
+ * - Frontend Settings
  */
 class Settings extends Model
 {
     public ?int $id = null;
-    public ?string $ownerEmail = null; // Optional - uses Craft system email if empty
-    public ?string $ownerName = null;  // Optional - uses Craft site name if empty
-
-    // Owner notification settings
-    public bool $ownerNotificationEnabled = true; // Send notification to owner on new booking
-    public ?string $ownerNotificationSubject = null; // Custom subject for owner notification
-
-    // Payment QR code
-    public ?int $paymentQrAssetId = null; // Asset ID for payment QR code image
     
-    // Default values for backwards compatibility (not exposed in UI anymore)
-    private int $defaultBufferMinutes = 30;
-    private int $defaultSlotDurationMinutes = 60;
+    // ============================================================================
+    // Field Layouts
+    // ============================================================================
+    
+    public ?int $employeeFieldLayoutId = null;
+    public ?int $serviceFieldLayoutId = null;
+    public ?int $locationFieldLayoutId = null;
+    
+    // Field layout objects (loaded on demand)
+    private ?FieldLayout $_employeeFieldLayout = null;
+    private ?FieldLayout $_serviceFieldLayout = null;
+    private ?FieldLayout $_locationFieldLayout = null;
 
-    // Spam protection settings
-    public int $maxBookingsPerEmail = 50; // Max bookings per email per day
-    public int $maxBookingsPerIP = 100; // Max bookings per IP per day
-    public int $rateLimitMinutes = 0; // Minimum minutes between bookings from same email/IP (0 = disabled)
+    // ============================================================================
+    // General Settings
+    // ============================================================================
+    
+    /** @var int Soft lock duration in minutes (default: 15) */
+    public int $softLockDurationMinutes = 15;
+    
+    /** @var int Availability cache TTL in seconds (default: 3600 = 1 hour) */
+    public int $availabilityCacheTtl = 3600;
+    
+    /** @var string Default timezone (e.g., 'America/New_York') */
+    public ?string $defaultTimezone = null;
+    
+    /** @var bool Enable rate limiting for booking submissions */
+    public bool $enableRateLimiting = true;
+    
+    /** @var int Rate limit: max bookings per email per hour */
+    public int $rateLimitPerEmail = 5;
+    
+    /** @var int Rate limit: max bookings per IP per hour */
+    public int $rateLimitPerIp = 10;
 
-    // Cancellation policy
-    public int $cancellationPolicyHours = 24; // Hours before appointment when cancellation is allowed
-    public int $minimumAdvanceBookingHours = 2; // Minimum hours in advance for bookings
+    // ============================================================================
+    // Calendar Integration - Google Calendar
+    // ============================================================================
+    
+    /** @var bool Enable Google Calendar integration */
+    public bool $googleCalendarEnabled = false;
+    
+    /** @var string Google Calendar OAuth Client ID */
+    public ?string $googleCalendarClientId = null;
+    
+    /** @var string Google Calendar OAuth Client Secret */
+    public ?string $googleCalendarClientSecret = null;
+    
+    /** @var string Google Calendar Webhook URL (auto-generated) */
+    public ?string $googleCalendarWebhookUrl = null;
+
+    // ============================================================================
+    // Calendar Integration - Microsoft Outlook
+    // ============================================================================
+    
+    /** @var bool Enable Microsoft Outlook integration */
+    public bool $outlookCalendarEnabled = false;
+    
+    /** @var string Microsoft Outlook OAuth Client ID */
+    public ?string $outlookCalendarClientId = null;
+    
+    /** @var string Microsoft Outlook OAuth Client Secret */
+    public ?string $outlookCalendarClientSecret = null;
+    
+    /** @var string Microsoft Outlook Webhook URL (auto-generated) */
+    public ?string $outlookCalendarWebhookUrl = null;
+
+    // ============================================================================
+    // Virtual Meetings - Zoom
+    // ============================================================================
+    
+    /** @var bool Enable Zoom integration */
+    public bool $zoomEnabled = false;
+    
+    /** @var string Zoom API Key */
+    public ?string $zoomApiKey = null;
+    
+    /** @var string Zoom API Secret */
+    public ?string $zoomApiSecret = null;
+    
+    /** @var bool Auto-create Zoom meetings for bookings */
+    public bool $zoomAutoCreate = true;
+
+    // ============================================================================
+    // Virtual Meetings - Google Meet
+    // ============================================================================
+    
+    /** @var bool Enable Google Meet integration */
+    public bool $googleMeetEnabled = false;
+    
+    /** @var bool Auto-create Google Meet links for bookings */
+    public bool $googleMeetAutoCreate = true;
+
+    // ============================================================================
+    // Notifications - Email
+    // ============================================================================
+    
+    /** @var bool Enable owner notification emails */
+    public bool $ownerNotificationEnabled = true;
+    
+    /** @var string Owner notification email subject */
+    public ?string $ownerNotificationSubject = null;
+    
+    /** @var string Owner email address */
+    public ?string $ownerEmail = null;
+    
+    /** @var string Owner name */
+    public ?string $ownerName = null;
+    
+    /** @var string Booking confirmation email subject */
+    public ?string $bookingConfirmationSubject = null;
+    
+    /** @var string Booking confirmation email body (Twig template) */
+    public ?string $bookingConfirmationBody = null;
+    
+    /** @var bool Send email reminders */
+    public bool $emailRemindersEnabled = true;
+    
+    /** @var int Reminder time: hours before appointment (default: 24) */
+    public int $emailReminderHoursBefore = 24;
+    
+    /** @var bool Send second reminder 1 hour before */
+    public bool $emailReminderOneHourBefore = true;
+
+    // ============================================================================
+    // Notifications - SMS
+    // ============================================================================
+    
+    /** @var bool Enable SMS notifications */
+    public bool $smsEnabled = false;
+    
+    /** @var string SMS provider (e.g., 'twilio') */
+    public ?string $smsProvider = null;
+    
+    /** @var string Twilio API Key */
+    public ?string $twilioApiKey = null;
+    
+    /** @var string Twilio API Secret */
+    public ?string $twilioApiSecret = null;
+    
+    /** @var string Twilio Phone Number */
+    public ?string $twilioPhoneNumber = null;
+    
+    /** @var bool Send SMS reminders */
+    public bool $smsRemindersEnabled = false;
+    
+    /** @var int SMS reminder time: hours before appointment (default: 24) */
+    public int $smsReminderHoursBefore = 24;
+
+    // ============================================================================
+    // Commerce Integration
+    // ============================================================================
+    
+    /** @var bool Enable Craft Commerce integration */
+    public bool $commerceEnabled = false;
+    
+    /** @var string Default payment gateway handle (if Commerce enabled) */
+    public ?string $defaultPaymentGateway = null;
+    
+    /** @var bool Require payment before booking confirmation */
+    public bool $requirePaymentBeforeConfirmation = true;
+
+    // ============================================================================
+    // Frontend Settings
+    // ============================================================================
+    
+    /** @var string Default booking view mode ('wizard', 'catalog', 'search') */
+    public string $defaultViewMode = 'wizard';
+    
+    /** @var bool Enable real-time availability updates (AJAX) */
+    public bool $enableRealTimeAvailability = true;
+    
+    /** @var bool Show employee selection in booking form */
+    public bool $showEmployeeSelection = true;
+    
+    /** @var bool Show location selection in booking form */
+    public bool $showLocationSelection = true;
+
+    // ============================================================================
+    // Legacy/Deprecated Settings (for backward compatibility)
+    // ============================================================================
+    
+    /** @var int Buffer minutes (deprecated - now per service) */
+    public ?int $bufferMinutes = null;
+    
+    /** @var int Slot duration minutes (deprecated - now per service) */
+    public ?int $slotDurationMinutes = null;
+    
+    /** @var int|null Payment QR asset ID (legacy) */
+    public ?int $paymentQrAssetId = null;
 
     /**
      * @inheritdoc
@@ -41,57 +220,45 @@ class Settings extends Model
     public function rules(): array
     {
         return [
-            [['maxBookingsPerEmail', 'maxBookingsPerIP', 'rateLimitMinutes', 'cancellationPolicyHours', 'minimumAdvanceBookingHours', 'paymentQrAssetId'], 'integer', 'min' => 0],
-            [['ownerEmail'], 'email', 'skipOnEmpty' => true],
-            [['ownerName', 'ownerEmail', 'ownerNotificationSubject'], 'string', 'max' => 255],
-            [['ownerNotificationEnabled'], 'boolean'],
+            // Field layouts
+            [['employeeFieldLayoutId', 'serviceFieldLayoutId', 'locationFieldLayoutId'], 'integer'],
+            
+            // General settings
+            [['softLockDurationMinutes', 'availabilityCacheTtl', 'rateLimitPerEmail', 'rateLimitPerIp'], 'integer', 'min' => 1],
+            [['softLockDurationMinutes'], 'default', 'value' => 15],
+            [['availabilityCacheTtl'], 'default', 'value' => 3600],
+            [['rateLimitPerEmail'], 'default', 'value' => 5],
+            [['rateLimitPerIp'], 'default', 'value' => 10],
+            [['defaultTimezone'], 'string'],
+            [['enableRateLimiting'], 'boolean'],
+            
+            // Calendar integration
+            [['googleCalendarEnabled', 'outlookCalendarEnabled'], 'boolean'],
+            [['googleCalendarClientId', 'googleCalendarClientSecret', 'outlookCalendarClientId', 'outlookCalendarClientSecret'], 'string'],
+            
+            // Virtual meetings
+            [['zoomEnabled', 'zoomAutoCreate', 'googleMeetEnabled', 'googleMeetAutoCreate'], 'boolean'],
+            [['zoomApiKey', 'zoomApiSecret'], 'string'],
+            
+            // Notifications
+            [['ownerNotificationEnabled', 'emailRemindersEnabled', 'emailReminderOneHourBefore', 'smsEnabled', 'smsRemindersEnabled'], 'boolean'],
+            [['emailReminderHoursBefore', 'smsReminderHoursBefore'], 'integer', 'min' => 0],
+            [['ownerEmail'], 'email'],
+            [['ownerName', 'ownerNotificationSubject', 'bookingConfirmationSubject'], 'string'],
+            [['bookingConfirmationBody'], 'string'],
+            [['smsProvider', 'twilioApiKey', 'twilioApiSecret', 'twilioPhoneNumber'], 'string'],
+            
+            // Commerce
+            [['commerceEnabled', 'requirePaymentBeforeConfirmation'], 'boolean'],
+            [['defaultPaymentGateway'], 'string'],
+            
+            // Frontend
+            [['defaultViewMode'], 'in', 'range' => ['wizard', 'catalog', 'search']],
+            [['enableRealTimeAvailability', 'showEmployeeSelection', 'showLocationSelection'], 'boolean'],
+            
+            // Legacy
+            [['bufferMinutes', 'slotDurationMinutes', 'paymentQrAssetId'], 'integer'],
         ];
-    }
-
-    /**
-     * Get the effective email address (custom or Craft default)
-     */
-    public function getEffectiveEmail(): string
-    {
-        if (!empty($this->ownerEmail)) {
-            return $this->ownerEmail;
-        }
-        
-        // Use Craft system email
-        return Craft::$app->projectConfig->get('email.fromEmail') 
-            ?? Craft::$app->systemSettings->getEmailSettings()->fromEmail 
-            ?? '';
-    }
-
-    /**
-     * Get the effective name (custom or Craft site name)
-     */
-    public function getEffectiveName(): string
-    {
-        if (!empty($this->ownerName)) {
-            return $this->ownerName;
-        }
-        
-        // Use Craft site name
-        return Craft::$app->sites->getCurrentSite()->name ?? 'Booking System';
-    }
-
-    /**
-     * Get the Craft default email for display in settings
-     */
-    public static function getCraftDefaultEmail(): string
-    {
-        return Craft::$app->projectConfig->get('email.fromEmail') 
-            ?? Craft::$app->systemSettings->getEmailSettings()->fromEmail 
-            ?? '';
-    }
-
-    /**
-     * Get the Craft default site name for display in settings
-     */
-    public static function getCraftDefaultName(): string
-    {
-        return Craft::$app->sites->getCurrentSite()->name ?? '';
     }
 
     /**
@@ -100,15 +267,63 @@ class Settings extends Model
     public function attributeLabels(): array
     {
         return [
-            'ownerEmail' => 'Owner Email',
-            'ownerName' => 'Owner Name',
-            'ownerNotificationEnabled' => 'Send Owner Notification',
-            'ownerNotificationSubject' => 'Owner Notification Subject',
-            'maxBookingsPerEmail' => 'Max Bookings Per Email (per day)',
-            'maxBookingsPerIP' => 'Max Bookings Per IP (per day)',
-            'rateLimitMinutes' => 'Rate Limit (minutes between bookings)',
-            'cancellationPolicyHours' => 'Cancellation Policy (hours before appointment)',
-            'minimumAdvanceBookingHours' => 'Minimum Advance Booking (hours)',
+            // Field layouts
+            'employeeFieldLayoutId' => Craft::t('booked', 'Employee Field Layout'),
+            'serviceFieldLayoutId' => Craft::t('booked', 'Service Field Layout'),
+            'locationFieldLayoutId' => Craft::t('booked', 'Location Field Layout'),
+            
+            // General
+            'softLockDurationMinutes' => Craft::t('booked', 'Soft Lock Duration (minutes)'),
+            'availabilityCacheTtl' => Craft::t('booked', 'Availability Cache TTL (seconds)'),
+            'defaultTimezone' => Craft::t('booked', 'Default Timezone'),
+            'enableRateLimiting' => Craft::t('booked', 'Enable Rate Limiting'),
+            'rateLimitPerEmail' => Craft::t('booked', 'Rate Limit: Bookings per Email per Hour'),
+            'rateLimitPerIp' => Craft::t('booked', 'Rate Limit: Bookings per IP per Hour'),
+            
+            // Calendar
+            'googleCalendarEnabled' => Craft::t('booked', 'Enable Google Calendar'),
+            'googleCalendarClientId' => Craft::t('booked', 'Google Calendar Client ID'),
+            'googleCalendarClientSecret' => Craft::t('booked', 'Google Calendar Client Secret'),
+            'outlookCalendarEnabled' => Craft::t('booked', 'Enable Microsoft Outlook'),
+            'outlookCalendarClientId' => Craft::t('booked', 'Outlook Client ID'),
+            'outlookCalendarClientSecret' => Craft::t('booked', 'Outlook Client Secret'),
+            
+            // Virtual meetings
+            'zoomEnabled' => Craft::t('booked', 'Enable Zoom'),
+            'zoomApiKey' => Craft::t('booked', 'Zoom API Key'),
+            'zoomApiSecret' => Craft::t('booked', 'Zoom API Secret'),
+            'zoomAutoCreate' => Craft::t('booked', 'Auto-create Zoom Meetings'),
+            'googleMeetEnabled' => Craft::t('booked', 'Enable Google Meet'),
+            'googleMeetAutoCreate' => Craft::t('booked', 'Auto-create Google Meet Links'),
+            
+            // Notifications
+            'ownerNotificationEnabled' => Craft::t('booked', 'Enable Owner Notifications'),
+            'ownerNotificationSubject' => Craft::t('booked', 'Owner Notification Subject'),
+            'ownerEmail' => Craft::t('booked', 'Owner Email'),
+            'ownerName' => Craft::t('booked', 'Owner Name'),
+            'bookingConfirmationSubject' => Craft::t('booked', 'Booking Confirmation Subject'),
+            'bookingConfirmationBody' => Craft::t('booked', 'Booking Confirmation Body'),
+            'emailRemindersEnabled' => Craft::t('booked', 'Enable Email Reminders'),
+            'emailReminderHoursBefore' => Craft::t('booked', 'Email Reminder Hours Before'),
+            'emailReminderOneHourBefore' => Craft::t('booked', 'Send 1-Hour Reminder'),
+            'smsEnabled' => Craft::t('booked', 'Enable SMS Notifications'),
+            'smsProvider' => Craft::t('booked', 'SMS Provider'),
+            'twilioApiKey' => Craft::t('booked', 'Twilio API Key'),
+            'twilioApiSecret' => Craft::t('booked', 'Twilio API Secret'),
+            'twilioPhoneNumber' => Craft::t('booked', 'Twilio Phone Number'),
+            'smsRemindersEnabled' => Craft::t('booked', 'Enable SMS Reminders'),
+            'smsReminderHoursBefore' => Craft::t('booked', 'SMS Reminder Hours Before'),
+            
+            // Commerce
+            'commerceEnabled' => Craft::t('booked', 'Enable Commerce Integration'),
+            'defaultPaymentGateway' => Craft::t('booked', 'Default Payment Gateway'),
+            'requirePaymentBeforeConfirmation' => Craft::t('booked', 'Require Payment Before Confirmation'),
+            
+            // Frontend
+            'defaultViewMode' => Craft::t('booked', 'Default View Mode'),
+            'enableRealTimeAvailability' => Craft::t('booked', 'Enable Real-Time Availability'),
+            'showEmployeeSelection' => Craft::t('booked', 'Show Employee Selection'),
+            'showLocationSelection' => Craft::t('booked', 'Show Location Selection'),
         ];
     }
 
@@ -126,11 +341,12 @@ class Settings extends Model
             $record = new SettingsRecord();
         }
 
-        $record->ownerEmail = $this->ownerEmail;
-        $record->ownerName = $this->ownerName;
-        $record->ownerNotificationEnabled = $this->ownerNotificationEnabled;
-        $record->ownerNotificationSubject = $this->ownerNotificationSubject;
-        $record->paymentQrAssetId = $this->paymentQrAssetId;
+        // Save all properties
+        foreach ($this->attributes() as $attribute => $value) {
+            if (property_exists($record, $attribute)) {
+                $record->$attribute = $value;
+            }
+        }
 
         if ($record->save()) {
             $this->id = $record->id;
@@ -148,130 +364,100 @@ class Settings extends Model
     {
         $record = SettingsRecord::find()->one();
         $model = new self();
-        
-        // Get Craft defaults
-        $craftName = Craft::$app->sites->getCurrentSite()->name ?? '';
-        $craftEmail = Craft::$app->projectConfig->get('email.fromEmail') ?? '';
 
         if ($record) {
+            // Load all properties from record
+            foreach ($model->attributes() as $attribute => $value) {
+                if (property_exists($record, $attribute) && isset($record->$attribute)) {
+                    $model->$attribute = $record->$attribute;
+                }
+            }
             $model->id = $record->id;
-
-            // Owner notification settings
-            $model->ownerNotificationEnabled = (bool)($record->ownerNotificationEnabled ?? true);
-            $model->ownerNotificationSubject = $record->ownerNotificationSubject;
-
-            // Payment QR code
-            $model->paymentQrAssetId = $record->paymentQrAssetId;
-            
-            // Use DB value only if it's a real custom value (not empty and not a known placeholder)
-            $dbName = trim($record->ownerName ?? '');
-            $dbEmail = trim($record->ownerEmail ?? '');
-            
-            // Check if DB values are meaningful custom values
-            $isPlaceholderName = empty($dbName) || strtolower($dbName) === 'site owner' || strtolower($dbName) === 'owner';
-            $isPlaceholderEmail = empty($dbEmail) || strpos($dbEmail, 'example.com') !== false;
-            
-            $model->ownerName = $isPlaceholderName ? $craftName : $dbName;
-            $model->ownerEmail = $isPlaceholderEmail ? $craftEmail : $dbEmail;
-        } else {
-            // No record - use Craft defaults
-            $model->ownerName = $craftName;
-            $model->ownerEmail = $craftEmail;
         }
 
         return $model;
     }
 
     /**
-     * Get default buffer minutes (for backwards compatibility)
+     * Get the field layout for Employee elements
      */
-    public function getDefaultBufferMinutes(): int
+    public function getEmployeeFieldLayout(): ?FieldLayout
     {
-        return $this->defaultBufferMinutes;
-    }
-
-    /**
-     * Get default slot duration minutes (for backwards compatibility)
-     */
-    public function getDefaultSlotDurationMinutes(): int
-    {
-        return $this->defaultSlotDurationMinutes;
-    }
-
-    /**
-     * Get the effective owner notification subject
-     */
-    public function getEffectiveOwnerNotificationSubject(): string
-    {
-        if (!empty($this->ownerNotificationSubject)) {
-            return $this->ownerNotificationSubject;
+        if ($this->_employeeFieldLayout === null && $this->employeeFieldLayoutId) {
+            $this->_employeeFieldLayout = Craft::$app->fields->getLayoutById($this->employeeFieldLayoutId);
         }
-        
-        return 'Neue Buchung eingegangen';
+        return $this->_employeeFieldLayout;
     }
 
     /**
-     * Get the payment QR code asset
-     *
-     * @return \craft\elements\Asset|null
+     * Get the field layout for Service elements
      */
-    public function getPaymentQrAsset(): ?\craft\elements\Asset
+    public function getServiceFieldLayout(): ?FieldLayout
     {
-        if (!$this->paymentQrAssetId) {
-            return null;
+        if ($this->_serviceFieldLayout === null && $this->serviceFieldLayoutId) {
+            $this->_serviceFieldLayout = Craft::$app->fields->getLayoutById($this->serviceFieldLayoutId);
         }
-
-        return Craft::$app->assets->getAssetById($this->paymentQrAssetId);
+        return $this->_serviceFieldLayout;
     }
 
     /**
-     * Get the payment QR code file path
-     *
-     * First checks if an asset is uploaded via the settings.
-     * Falls back to checking for a file at web/media/payment-qr.png (or .jpg, .gif, .webp)
-     * If found, it will be attached to client confirmation emails.
-     *
-     * @return string|null Full path to the file, or null if not found
+     * Get the field layout for Location elements
      */
-    public function getPaymentQrFilePath(): ?string
+    public function getLocationFieldLayout(): ?FieldLayout
     {
-        // First, check if we have an uploaded asset
-        $asset = $this->getPaymentQrAsset();
-        if ($asset) {
-            // Get the volume and file system path
-            $volume = $asset->getVolume();
-            if ($volume && $volume->fs) {
-                try {
-                    // Get the file system path to the asset
-                    $path = $asset->getCopyOfFile();
-                    if ($path && file_exists($path)) {
-                        return $path;
-                    }
-                } catch (\Throwable $e) {
-                    Craft::error("Failed to get asset file path: " . $e->getMessage(), __METHOD__);
-                }
-            }
+        if ($this->_locationFieldLayout === null && $this->locationFieldLayoutId) {
+            $this->_locationFieldLayout = Craft::$app->fields->getLayoutById($this->locationFieldLayoutId);
         }
-
-        // Fall back to checking the old location
-        $webPath = Craft::getAlias('@webroot');
-        $extensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-
-        foreach ($extensions as $ext) {
-            $path = $webPath . '/media/payment-qr.' . $ext;
-            if (file_exists($path)) {
-                return $path;
-            }
-        }
-
-        return null;
+        return $this->_locationFieldLayout;
     }
 
     /**
-     * Check if a payment QR code exists (either uploaded asset or file)
+     * Check if Commerce is installed and enabled
      */
-    public function hasPaymentQr(): bool
+    public function isCommerceEnabled(): bool
     {
-        return $this->getPaymentQrFilePath() !== null;
+        return $this->commerceEnabled && Craft::$app->plugins->isPluginEnabled('commerce');
+    }
+
+    /**
+     * Check if Google Calendar is configured
+     */
+    public function isGoogleCalendarConfigured(): bool
+    {
+        return $this->googleCalendarEnabled && 
+               !empty($this->googleCalendarClientId) && 
+               !empty($this->googleCalendarClientSecret);
+    }
+
+    /**
+     * Check if Outlook Calendar is configured
+     */
+    public function isOutlookCalendarConfigured(): bool
+    {
+        return $this->outlookCalendarEnabled && 
+               !empty($this->outlookCalendarClientId) && 
+               !empty($this->outlookCalendarClientSecret);
+    }
+
+    /**
+     * Check if Zoom is configured
+     */
+    public function isZoomConfigured(): bool
+    {
+        return $this->zoomEnabled && 
+               !empty($this->zoomApiKey) && 
+               !empty($this->zoomApiSecret);
+    }
+
+    /**
+     * Check if SMS is configured
+     */
+    public function isSmsConfigured(): bool
+    {
+        return $this->smsEnabled && 
+               $this->smsProvider === 'twilio' &&
+               !empty($this->twilioApiKey) && 
+               !empty($this->twilioApiSecret) &&
+               !empty($this->twilioPhoneNumber);
     }
 }

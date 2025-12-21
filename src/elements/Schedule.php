@@ -150,6 +150,61 @@ class Schedule extends Element
     /**
      * @inheritdoc
      */
+    protected static function defineSortOptions(): array
+    {
+        return [
+            [
+                'label' => Craft::t('booked', 'Day of Week'),
+                'orderBy' => 'booked_schedules.dayOfWeek',
+                'attribute' => 'dayOfWeek',
+            ],
+            [
+                'label' => Craft::t('booked', 'Start Time'),
+                'orderBy' => 'booked_schedules.startTime',
+                'attribute' => 'startTime',
+            ],
+            [
+                'label' => Craft::t('app', 'Date Created'),
+                'orderBy' => 'elements.dateCreated',
+                'attribute' => 'dateCreated',
+            ],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function eagerLoadingMap(array $sourceElements, string $handle): array|null|false
+    {
+        if ($handle === 'employee') {
+            // Get all employee IDs
+            $employeeIds = array_filter(array_map(fn($element) => $element->employeeId, $sourceElements));
+            
+            if (empty($employeeIds)) {
+                return [];
+            }
+
+            // Load all employees
+            $employees = Employee::find()
+                ->id($employeeIds)
+                ->indexBy('id')
+                ->all();
+
+            // Map elements to their employees
+            $map = [];
+            foreach ($sourceElements as $element) {
+                $map[$element->id] = $employees[$element->employeeId] ?? null;
+            }
+
+            return $map;
+        }
+
+        return parent::eagerLoadingMap($sourceElements, $handle);
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
@@ -179,6 +234,38 @@ class Schedule extends Element
     public function getCpEditUrl(): ?string
     {
         return UrlHelper::cpUrl('booked/schedules/' . $this->id);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getIsEditable(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canView(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canSave(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDelete(?\craft\elements\User $user = null): bool
+    {
+        return true;
     }
 
     /**
@@ -237,6 +324,12 @@ class Schedule extends Element
      */
     public function getEmployee(): ?Employee
     {
+        // Check if eager loaded
+        $eagerLoaded = $this->getEagerLoadedElements('employee');
+        if ($eagerLoaded !== null) {
+            return $eagerLoaded;
+        }
+
         if ($this->_employee === null && $this->employeeId) {
             $this->_employee = Employee::findOne($this->employeeId);
         }

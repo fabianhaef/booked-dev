@@ -37,6 +37,15 @@ class m241201_100000_add_payment_qr_settings extends Migration
             );
         }
 
+        // Add payment QR code asset ID
+        if (!$this->db->columnExists('{{%bookings_settings}}', 'paymentQrAssetId')) {
+            $this->addColumn(
+                '{{%bookings_settings}}',
+                'paymentQrAssetId',
+                $this->integer()->null()->after('ownerNotificationSubject')
+            );
+        }
+
         return true;
     }
 
@@ -51,6 +60,10 @@ class m241201_100000_add_payment_qr_settings extends Migration
 
         if ($this->db->columnExists('{{%bookings_settings}}', 'ownerNotificationSubject')) {
             $this->dropColumn('{{%bookings_settings}}', 'ownerNotificationSubject');
+        }
+
+        if ($this->db->columnExists('{{%bookings_settings}}', 'paymentQrAssetId')) {
+            $this->dropColumn('{{%bookings_settings}}', 'paymentQrAssetId');
         }
 
         return true;

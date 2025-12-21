@@ -14,6 +14,11 @@ use craft\helpers\Db;
  */
 class LocationQuery extends ElementQuery
 {
+    /**
+     * @var bool|null Whether to only return enabled locations
+     */
+    public $enabled;
+
     public ?string $timezone = null;
 
     /**
@@ -26,10 +31,27 @@ class LocationQuery extends ElementQuery
     }
 
     /**
+     * Narrows the query results to only enabled locations
+     *
+     * @param bool|null $value The property value
+     * @return static self reference
+     */
+    public function enabled($value = true): static
+    {
+        $this->enabled = $value;
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     protected function beforePrepare(): bool
     {
+        // Call parent first to initialize the base query
+        if (!parent::beforePrepare()) {
+            return false;
+        }
+
         $this->joinElementTable('booked_locations');
 
         $this->query->select([
@@ -42,7 +64,12 @@ class LocationQuery extends ElementQuery
             $this->subQuery->andWhere(Db::parseParam('booked_locations.timezone', $this->timezone));
         }
 
-        return parent::beforePrepare();
+        // Handle the 'enabled' parameter
+        if ($this->enabled !== null) {
+            $this->subQuery->andWhere(Db::parseParam('elements.enabled', (int)$this->enabled));
+        }
+
+        return true;
     }
 }
 

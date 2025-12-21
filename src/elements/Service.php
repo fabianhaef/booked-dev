@@ -7,6 +7,7 @@ use craft\base\Element;
 use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\Html;
+use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\ServiceQuery;
 use fabian\booked\records\ServiceRecord;
@@ -66,6 +67,16 @@ class Service extends Element
     public static function hasContent(): bool
     {
         return true; // Support field layouts
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getFieldLayout(): ?\craft\models\FieldLayout
+    {
+        // Get field layout from plugin settings
+        $settings = \fabian\booked\models\Settings::loadSettings();
+        return $settings->getServiceFieldLayout() ?? parent::getFieldLayout();
     }
 
     /**
@@ -149,6 +160,35 @@ class Service extends Element
     /**
      * @inheritdoc
      */
+    protected static function defineSortOptions(): array
+    {
+        return [
+            [
+                'label' => Craft::t('app', 'Title'),
+                'orderBy' => 'elements_sites.title',
+                'attribute' => 'title',
+            ],
+            [
+                'label' => Craft::t('booked', 'Duration'),
+                'orderBy' => 'booked_services.duration',
+                'attribute' => 'duration',
+            ],
+            [
+                'label' => Craft::t('booked', 'Price'),
+                'orderBy' => 'booked_services.price',
+                'attribute' => 'price',
+            ],
+            [
+                'label' => Craft::t('app', 'Date Created'),
+                'orderBy' => 'elements.dateCreated',
+                'attribute' => 'dateCreated',
+            ],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
@@ -179,12 +219,98 @@ class Service extends Element
     /**
      * @inheritdoc
      */
+    public function getIsEditable(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canView(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canSave(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDelete(?\craft\elements\User $user = null): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
             [['duration', 'bufferBefore', 'bufferAfter'], 'integer', 'min' => 0],
             [['price'], 'number', 'min' => 0],
         ]);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function beforeSave(bool $isNew): bool
+    {
+        // Auto-generate slug from title if not provided
+        if (!$this->slug && $this->title) {
+            $this->slug = $this->generateSlugFromTitle($this->title);
+        }
+
+        return parent::beforeSave($isNew);
+    }
+
+    /**
+     * Generate a unique slug from the title
+     *
+     * @param string $title
+     * @return string
+     */
+    private function generateSlugFromTitle(string $title): string
+    {
+        $slug = StringHelper::toSlug($title);
+        
+        // Ensure uniqueness
+        $baseSlug = $slug;
+        $increment = 1;
+        
+        while ($this->slugExists($slug)) {
+            $slug = $baseSlug . '-' . $increment;
+            $increment++;
+        }
+        
+        return $slug;
+    }
+
+    /**
+     * Check if a slug already exists
+     *
+     * @param string $slug
+     * @return bool
+     */
+    private function slugExists(string $slug): bool
+    {
+        $query = static::find()
+            ->slug($slug)
+            ->siteId($this->siteId);
+        
+        if ($this->id) {
+            $query->andWhere(['!=', 'elements.id', $this->id]);
+        }
+        
+        return $query->exists();
     }
 
     /**

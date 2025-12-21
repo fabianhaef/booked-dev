@@ -1,0 +1,8 @@
+{% extends "_layouts/elementindex" %}
+{% set elementType = 'fabian\\booked\\elements\\Service' %}
+{% set title = 'Services'|t('booked') %}
+
+{% block actionButton %}
+    <a class="btn submit add icon" href="{{ url('booked/services/new') }}">{{ 'New Service'|t('booked') }}</a>
+{% endblock %}
+

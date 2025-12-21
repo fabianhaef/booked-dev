@@ -13,7 +13,9 @@ namespace fabian\booked;
 
 use Craft;
 use craft\base\Plugin;
+use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterTemplateRootsEvent;
+use craft\events\RegisterUrlRulesEvent;
 use craft\web\View;
 use yii\base\Event;
 
@@ -37,7 +39,7 @@ class Booked extends Plugin
     /**
      * @var bool
      */
-    public bool $hasCpSection = false; // Set to true when we add CP functionality
+    public bool $hasCpSection = true; // Enable CP section for element management
 
     /**
      * Initialize plugin
@@ -55,10 +57,10 @@ class Booked extends Plugin
         // Register template roots
         $this->registerTemplateRoots();
 
-        // TODO: Uncomment as we build features
-        // $this->registerServices();
-        // $this->registerElementTypes();
-        // $this->registerRoutes();
+        // Register services
+        $this->registerServices();
+        $this->registerElementTypes();
+        $this->registerCpRoutes();
         // $this->registerTemplateVariable();
     }
 
@@ -114,19 +116,17 @@ class Booked extends Plugin
         );
     }
 
-    // ============================================================================
-    // COMMENTED OUT - TO BE IMPLEMENTED
-    // ============================================================================
-
-    /*
+    /**
      * Register services
-     *
+     */
     private function registerServices(): void
     {
         $this->setComponents([
             'availability' => \fabian\booked\services\AvailabilityService::class,
-            'booking' => \fabian\booked\services\BookingService::class,
-            'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
+            'availabilityCache' => \fabian\booked\services\AvailabilityCacheService::class,
+            // TODO: Phase 2 - Add more services
+            // 'booking' => \fabian\booked\services\BookingService::class,
+            // 'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
         ]);
     }
 
@@ -135,45 +135,49 @@ class Booked extends Plugin
         return $this->get('availability');
     }
 
-    public function getBooking(): \fabian\booked\services\BookingService
+    public function getAvailabilityCache(): \fabian\booked\services\AvailabilityCacheService
     {
-        return $this->get('booking');
+        return $this->get('availabilityCache');
     }
 
-    public function getBlackoutDate(): \fabian\booked\services\BlackoutDateService
-    {
-        return $this->get('blackoutDate');
-    }
-    */
+    // TODO: Phase 2 - Add more service getters
+    // public function getBooking(): \fabian\booked\services\BookingService
+    // {
+    //     return $this->get('booking');
+    // }
+    //
+    // public function getBlackoutDate(): \fabian\booked\services\BlackoutDateService
+    // {
+    //     return $this->get('blackoutDate');
+    // }
 
-    /*
+    /**
      * Register element types
-     *
+     */
     private function registerElementTypes(): void
     {
         Event::on(
             \craft\services\Elements::class,
             \craft\services\Elements::EVENT_REGISTER_ELEMENT_TYPES,
             function(\craft\events\RegisterComponentTypesEvent $event) {
-                // Core elements
+                // Phase 1.2 - Core element types
+                $event->types[] = \fabian\booked\elements\Service::class;
+                $event->types[] = \fabian\booked\elements\Employee::class;
+                $event->types[] = \fabian\booked\elements\Location::class;
+                $event->types[] = \fabian\booked\elements\Schedule::class;
+
+                // TODO: Phase 2 - Add Reservation, Availability, BookingVariation, BlackoutDate elements
                 // $event->types[] = \fabian\booked\elements\Reservation::class;
                 // $event->types[] = \fabian\booked\elements\Availability::class;
                 // $event->types[] = \fabian\booked\elements\BookingVariation::class;
                 // $event->types[] = \fabian\booked\elements\BlackoutDate::class;
-
-                // TODO: Phase 1 - Add Service, Employee, Location, Schedule elements
-                // $event->types[] = \fabian\booked\elements\Service::class;
-                // $event->types[] = \fabian\booked\elements\Employee::class;
-                // $event->types[] = \fabian\booked\elements\Location::class;
-                // $event->types[] = \fabian\booked\elements\Schedule::class;
             }
         );
     }
-    */
 
-    /*
+    /**
      * Register CP routes
-     *
+     */
     private function registerCpRoutes(): void
     {
         Event::on(
@@ -181,14 +185,33 @@ class Booked extends Plugin
             \craft\web\UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function(\craft\events\RegisterUrlRulesEvent $event) {
                 $event->rules = array_merge($event->rules, [
-                    'booked' => 'booked/bookings/index',
-                    'booked/bookings' => 'booked/bookings/index',
-                    // ... more routes
+                    // Phase 1.3 - Core element management
+                    'booked/services' => 'booked/cp/services/index',
+                    'booked/services/new' => 'booked/cp/services/edit',
+                    'booked/services/<id:\d+>' => 'booked/cp/services/edit',
+                    
+                    'booked/employees' => 'booked/cp/employees/index',
+                    'booked/employees/new' => 'booked/cp/employees/edit',
+                    'booked/employees/<id:\d+>' => 'booked/cp/employees/edit',
+                    
+                    'booked/locations' => 'booked/cp/locations/index',
+                    'booked/locations/new' => 'booked/cp/locations/edit',
+                    'booked/locations/<id:\d+>' => 'booked/cp/locations/edit',
+                    
+                    'booked/schedules' => 'booked/cp/schedules/index',
+                    'booked/schedules/new' => 'booked/cp/schedules/edit',
+                    'booked/schedules/<id:\d+>' => 'booked/cp/schedules/edit',
+                    
+                    // Settings
+                    'booked/settings' => 'booked/cp/settings/index',
+                    
+                    // TODO: Phase 2 - Add bookings, availability routes
+                    // 'booked/bookings' => 'booked/cp/bookings/index',
+                    // 'booked/availability' => 'booked/cp/availability/index',
                 ]);
             }
         );
     }
-    */
 
     /*
      * Register site routes
@@ -223,36 +246,44 @@ class Booked extends Plugin
     }
     */
 
-    /*
+    /**
      * Get CP nav item
-     *
+     */
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
         $item['icon'] = '@booked/icon.svg';
-        $item['url'] = 'booked/bookings';
+        $item['url'] = 'booked/services';
         $item['subnav'] = [
-            'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
-            // ... more nav items
+            'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
+            'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
+            'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
+            'schedules' => ['label' => Craft::t('booked', 'Schedules'), 'url' => 'booked/schedules'],
+            'settings' => ['label' => Craft::t('booked', 'Settings'), 'url' => 'booked/settings'],
+            // TODO: Phase 2 - Add bookings, availability to nav
+            // 'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
+            // 'availability' => ['label' => Craft::t('booked', 'Availability'), 'url' => 'booked/availability'],
         ];
         return $item;
     }
-    */
 
-    /*
+    /**
      * Settings model
-     *
+     */
     protected function createSettingsModel(): ?\craft\base\Model
     {
         return new \fabian\booked\models\Settings();
     }
 
+    /**
+     * Settings HTML - redirect to custom settings page
+     */
     protected function settingsHtml(): string
     {
+        // Redirect to our custom settings page instead of using default
         return Craft::$app->getView()->renderTemplate(
             'booked/settings/index',
             ['settings' => $this->getSettings()]
         );
     }
-    */
 }

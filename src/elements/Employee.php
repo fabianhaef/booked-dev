@@ -8,8 +8,10 @@ use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\User;
 use craft\helpers\Html;
+use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\EmployeeQuery;
+use fabian\booked\elements\Location;
 use fabian\booked\records\EmployeeRecord;
 
 /**
@@ -17,15 +19,11 @@ use fabian\booked\records\EmployeeRecord;
  *
  * @property int|null $userId Foreign key to User element
  * @property int|null $locationId Foreign key to Location element
- * @property string|null $bio Employee biography
- * @property string|null $specialties Employee specialties
  */
 class Employee extends Element
 {
     public ?int $userId = null;
     public ?int $locationId = null;
-    public ?string $bio = null;
-    public ?string $specialties = null;
 
     private ?User $_user = null;
     private ?Location $_location = null;
@@ -70,6 +68,16 @@ class Employee extends Element
     public static function hasContent(): bool
     {
         return true; // Support field layouts
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getFieldLayout(): ?\craft\models\FieldLayout
+    {
+        // Get field layout from plugin settings
+        $settings = \fabian\booked\models\Settings::loadSettings();
+        return $settings->getEmployeeFieldLayout() ?? parent::getFieldLayout();
     }
 
     /**
@@ -153,6 +161,79 @@ class Employee extends Element
     /**
      * @inheritdoc
      */
+    protected static function defineSortOptions(): array
+    {
+        return [
+            [
+                'label' => Craft::t('app', 'Title'),
+                'orderBy' => 'elements_sites.title',
+                'attribute' => 'title',
+            ],
+            [
+                'label' => Craft::t('app', 'Date Created'),
+                'orderBy' => 'elements.dateCreated',
+                'attribute' => 'dateCreated',
+            ],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function eagerLoadingMap(array $sourceElements, string $handle): array|null|false
+    {
+        if ($handle === 'user') {
+            // Get all user IDs
+            $userIds = array_filter(array_map(fn($element) => $element->userId, $sourceElements));
+            
+            if (empty($userIds)) {
+                return [];
+            }
+
+            // Load all users
+            $users = \craft\elements\User::find()
+                ->id($userIds)
+                ->indexBy('id')
+                ->all();
+
+            // Map elements to their users
+            $map = [];
+            foreach ($sourceElements as $element) {
+                $map[$element->id] = $users[$element->userId] ?? null;
+            }
+
+            return $map;
+        }
+
+        if ($handle === 'location') {
+            // Get all location IDs
+            $locationIds = array_filter(array_map(fn($element) => $element->locationId, $sourceElements));
+            
+            if (empty($locationIds)) {
+                return [];
+            }
+
+            // Load all locations
+            $locations = Location::find()
+                ->id($locationIds)
+                ->indexBy('id')
+                ->all();
+
+            // Map elements to their locations
+            $map = [];
+            foreach ($sourceElements as $element) {
+                $map[$element->id] = $locations[$element->locationId] ?? null;
+            }
+
+            return $map;
+        }
+
+        return parent::eagerLoadingMap($sourceElements, $handle);
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
@@ -185,12 +266,97 @@ class Employee extends Element
     /**
      * @inheritdoc
      */
+    public function getIsEditable(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canView(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canSave(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDelete(?\craft\elements\User $user = null): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
             [['userId', 'locationId'], 'integer'],
-            [['bio', 'specialties'], 'string'],
         ]);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function beforeSave(bool $isNew): bool
+    {
+        // Auto-generate slug from title if not provided
+        if (!$this->slug && $this->title) {
+            $this->slug = $this->generateSlugFromTitle($this->title);
+        }
+
+        return parent::beforeSave($isNew);
+    }
+
+    /**
+     * Generate a unique slug from the title
+     *
+     * @param string $title
+     * @return string
+     */
+    private function generateSlugFromTitle(string $title): string
+    {
+        $slug = StringHelper::toSlug($title);
+        
+        // Ensure uniqueness
+        $baseSlug = $slug;
+        $increment = 1;
+        
+        while ($this->slugExists($slug)) {
+            $slug = $baseSlug . '-' . $increment;
+            $increment++;
+        }
+        
+        return $slug;
+    }
+
+    /**
+     * Check if a slug already exists
+     *
+     * @param string $slug
+     * @return bool
+     */
+    private function slugExists(string $slug): bool
+    {
+        $query = static::find()
+            ->slug($slug)
+            ->siteId($this->siteId);
+        
+        if ($this->id) {
+            $query->andWhere(['!=', 'elements.id', $this->id]);
+        }
+        
+        return $query->exists();
     }
 
     /**
@@ -210,8 +376,6 @@ class Employee extends Element
 
         $record->userId = $this->userId;
         $record->locationId = $this->locationId;
-        $record->bio = $this->bio;
-        $record->specialties = $this->specialties;
 
         $record->save(false);
 
@@ -236,6 +400,12 @@ class Employee extends Element
      */
     public function getUser(): ?User
     {
+        // Check if eager loaded
+        $eagerLoaded = $this->getEagerLoadedElements('user');
+        if ($eagerLoaded !== null) {
+            return $eagerLoaded;
+        }
+
         if ($this->_user === null && $this->userId) {
             $this->_user = Craft::$app->users->getUserById($this->userId);
         }
@@ -247,6 +417,12 @@ class Employee extends Element
      */
     public function getLocation(): ?Location
     {
+        // Check if eager loaded
+        $eagerLoaded = $this->getEagerLoadedElements('location');
+        if ($eagerLoaded !== null) {
+            return $eagerLoaded;
+        }
+
         if ($this->_location === null && $this->locationId) {
             $this->_location = Location::findOne($this->locationId);
         }

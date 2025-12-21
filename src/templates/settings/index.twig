@@ -1,143 +1,501 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
-{% set title = "Buchungseinstellungen" %}
+{% set title = "Settings"|t('booked') %}
 {% set crumbs = [
-    { label: "Buchungen", url: url('booking') },
-    { label: "Einstellungen" }
+    { label: 'Booked'|t('booked'), url: url('booked/services') },
+    { label: 'Settings'|t('booked') }
 ] %}
 
-{% block actionButton %}
-    <form method="post" style="display: inline;">
-        {{ csrfInput() }}
-        <input type="hidden" name="action" value="booking/settings/test-email">
-        <button type="submit" class="btn">Test-E-Mail</button>
-    </form>
-{% endblock %}
+{% set selectedTab = craft.app.request.getParam('tab', 'field-layouts') %}
 
 {% block content %}
-    <form method="post" accept-charset="UTF-8">
+    <form method="post" accept-charset="UTF-8" id="settings-form">
         {{ csrfInput() }}
-        <input type="hidden" name="action" value="booking/settings/save">
+        <input type="hidden" name="action" value="booked/cp/settings/save">
+        {{ redirectInput('booked/settings?tab=' ~ selectedTab) }}
+
+        <div id="settings-tabs" class="pane">
+            <nav id="tabs" class="tabs" role="tablist">
+                <ul>
+                    <li><a id="tab-field-layouts" class="tab{% if selectedTab == 'field-layouts' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'field-layouts'}) }}" role="tab" aria-controls="field-layouts" aria-selected="{{ selectedTab == 'field-layouts' ? 'true' : 'false' }}">{{ 'Field Layouts'|t('booked') }}</a></li>
+                    <li><a id="tab-general" class="tab{% if selectedTab == 'general' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'general'}) }}" role="tab" aria-controls="general" aria-selected="{{ selectedTab == 'general' ? 'true' : 'false' }}">{{ 'General'|t('booked') }}</a></li>
+                    <li><a id="tab-calendar" class="tab{% if selectedTab == 'calendar' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'calendar'}) }}" role="tab" aria-controls="calendar" aria-selected="{{ selectedTab == 'calendar' ? 'true' : 'false' }}">{{ 'Calendar'|t('booked') }}</a></li>
+                    <li><a id="tab-meetings" class="tab{% if selectedTab == 'meetings' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'meetings'}) }}" role="tab" aria-controls="meetings" aria-selected="{{ selectedTab == 'meetings' ? 'true' : 'false' }}">{{ 'Virtual Meetings'|t('booked') }}</a></li>
+                    <li><a id="tab-notifications" class="tab{% if selectedTab == 'notifications' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'notifications'}) }}" role="tab" aria-controls="notifications" aria-selected="{{ selectedTab == 'notifications' ? 'true' : 'false' }}">{{ 'Notifications'|t('booked') }}</a></li>
+                    <li><a id="tab-commerce" class="tab{% if selectedTab == 'commerce' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'commerce'}) }}" role="tab" aria-controls="commerce" aria-selected="{{ selectedTab == 'commerce' ? 'true' : 'false' }}">{{ 'Commerce'|t('booked') }}</a></li>
+                    <li><a id="tab-frontend" class="tab{% if selectedTab == 'frontend' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'frontend'}) }}" role="tab" aria-controls="frontend" aria-selected="{{ selectedTab == 'frontend' ? 'true' : 'false' }}">{{ 'Frontend'|t('booked') }}</a></li>
+                </ul>
+            </nav>
+        </div>
 
         <div class="fields">
-            <h2>Kontaktinformationen</h2>
+            {% if selectedTab == 'field-layouts' %}
+                {# Field Layouts Tab #}
+                <div id="field-layouts" class="pane{% if selectedTab != 'field-layouts' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-field-layouts">
+                    <h2>{{ 'Field Layouts'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure which custom fields appear when editing elements.'|t('booked') }}</p>
 
-            <div class="field" id="ownerName-field">
-                <div class="heading">
-                    <label id="ownerName-label" for="ownerName">Name</label>
-                </div>
-                <div class="input">
-                    <input class="text fullwidth" type="text" id="ownerName" name="ownerName"
-                           value="{{ settings.ownerName }}">
-                </div>
-                <div class="instructions">
-                    <p>Name oder Firmenname für Buchungs-E-Mails.</p>
-                </div>
-                {% if settings.hasErrors('ownerName') %}
-                    <ul class="errors">
-                        {% for error in settings.getErrors('ownerName') %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                    {# Employee Field Layout #}
+                    <div class="field-layout-section">
+                        <h3>{{ 'Employee Field Layout'|t('booked') }}</h3>
+                        <p class="light">{{ 'Configure custom fields for Employee elements.'|t('booked') }}</p>
+                        
+                        {{ forms.fieldLayoutDesignerField({
+                            label: 'Employee Fields'|t('booked'),
+                            id: 'employeeFieldLayout',
+                            name: 'employeeFieldLayout',
+                            fieldLayout: employeeFieldLayout,
+                            elementType: 'fabian\\booked\\elements\\Employee',
+                            instructions: 'Drag and drop fields to configure the Employee edit form.'|t('booked')
+                        }) }}
+                    </div>
 
-            <div class="field" id="ownerEmail-field">
-                <div class="heading">
-                    <label id="ownerEmail-label" for="ownerEmail">E-Mail</label>
-                </div>
-                <div class="input">
-                    <input class="text fullwidth" type="email" id="ownerEmail" name="ownerEmail"
-                           value="{{ settings.ownerEmail }}">
-                </div>
-                <div class="instructions">
-                    <p>E-Mail-Adresse für Buchungsbenachrichtigungen.</p>
-                </div>
-                {% if settings.hasErrors('ownerEmail') %}
-                    <ul class="errors">
-                        {% for error in settings.getErrors('ownerEmail') %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                    <hr>
 
-            <hr>
+                    {# Service Field Layout #}
+                    <div class="field-layout-section">
+                        <h3>{{ 'Service Field Layout'|t('booked') }}</h3>
+                        <p class="light">{{ 'Configure custom fields for Service elements.'|t('booked') }}</p>
+                        
+                        {{ forms.fieldLayoutDesignerField({
+                            label: 'Service Fields'|t('booked'),
+                            id: 'serviceFieldLayout',
+                            name: 'serviceFieldLayout',
+                            fieldLayout: serviceFieldLayout,
+                            elementType: 'fabian\\booked\\elements\\Service',
+                            instructions: 'Drag and drop fields to configure the Service edit form.'|t('booked')
+                        }) }}
+                    </div>
 
-            <h2>Inhaber-Benachrichtigung</h2>
-            <p class="light">Erhalten Sie eine E-Mail wenn eine neue Buchung eingeht.</p>
+                    <hr>
 
-            <div class="field" id="ownerNotificationEnabled-field">
-                <div class="heading">
-                    <label id="ownerNotificationEnabled-label" for="ownerNotificationEnabled">Benachrichtigung aktivieren</label>
+                    {# Location Field Layout #}
+                    <div class="field-layout-section">
+                        <h3>{{ 'Location Field Layout'|t('booked') }}</h3>
+                        <p class="light">{{ 'Configure custom fields for Location elements.'|t('booked') }}</p>
+                        
+                        {{ forms.fieldLayoutDesignerField({
+                            label: 'Location Fields'|t('booked'),
+                            id: 'locationFieldLayout',
+                            name: 'locationFieldLayout',
+                            fieldLayout: locationFieldLayout,
+                            elementType: 'fabian\\booked\\elements\\Location',
+                            instructions: 'Drag and drop fields to configure the Location edit form.'|t('booked')
+                        }) }}
+                    </div>
                 </div>
-                <div class="input">
-                    {{ forms.lightswitch({
-                        id: 'ownerNotificationEnabled',
-                        name: 'ownerNotificationEnabled',
-                        on: settings.ownerNotificationEnabled,
-                        small: true
+
+            {% elseif selectedTab == 'general' %}
+                {# General Settings Tab #}
+                <div id="general" class="pane{% if selectedTab != 'general' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-general">
+                    <h2>{{ 'General Settings'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure general plugin settings.'|t('booked') }}</p>
+
+                    {{ forms.textField({
+                        label: 'Soft Lock Duration (minutes)'|t('booked'),
+                        instructions: 'How long to hold a time slot when a user starts booking (default: 15 minutes).'|t('booked'),
+                        id: 'softLockDurationMinutes',
+                        name: 'settings[softLockDurationMinutes]',
+                        value: settings.softLockDurationMinutes,
+                        type: 'number',
+                        min: 1
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Availability Cache TTL (seconds)'|t('booked'),
+                        instructions: 'How long to cache availability calculations (default: 3600 = 1 hour).'|t('booked'),
+                        id: 'availabilityCacheTtl',
+                        name: 'settings[availabilityCacheTtl]',
+                        value: settings.availabilityCacheTtl,
+                        type: 'number',
+                        min: 1
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Default Timezone'|t('booked'),
+                        instructions: 'Default timezone for bookings (e.g., America/New_York). Leave empty to use site timezone.'|t('booked'),
+                        id: 'defaultTimezone',
+                        name: 'settings[defaultTimezone]',
+                        value: settings.defaultTimezone
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Enable Rate Limiting'|t('booked'),
+                        instructions: 'Prevent abuse by limiting booking submissions per email/IP.'|t('booked'),
+                        id: 'enableRateLimiting',
+                        name: 'settings[enableRateLimiting]',
+                        on: settings.enableRateLimiting
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Rate Limit: Bookings per Email per Hour'|t('booked'),
+                        instructions: 'Maximum bookings allowed per email address per hour.'|t('booked'),
+                        id: 'rateLimitPerEmail',
+                        name: 'settings[rateLimitPerEmail]',
+                        value: settings.rateLimitPerEmail,
+                        type: 'number',
+                        min: 1
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Rate Limit: Bookings per IP per Hour'|t('booked'),
+                        instructions: 'Maximum bookings allowed per IP address per hour.'|t('booked'),
+                        id: 'rateLimitPerIp',
+                        name: 'settings[rateLimitPerIp]',
+                        value: settings.rateLimitPerIp,
+                        type: 'number',
+                        min: 1
                     }) }}
                 </div>
-                <div class="instructions">
-                    <p>Bei neuen Buchungen eine E-Mail an die oben angegebene Adresse senden.</p>
-                </div>
-            </div>
 
-            <div class="field" id="ownerNotificationSubject-field">
-                <div class="heading">
-                    <label id="ownerNotificationSubject-label" for="ownerNotificationSubject">Betreffzeile der Inhaber-Benachrichtigung</label>
-                </div>
-                <div class="input">
-                    <input class="text fullwidth" type="text" id="ownerNotificationSubject" name="ownerNotificationSubject"
-                           value="{{ settings.ownerNotificationSubject }}" placeholder="Neue Buchung eingegangen">
-                </div>
-                <div class="instructions">
-                    <p>Betreffzeile für die Benachrichtigungs-E-Mail. Leer lassen für Standard.</p>
-                </div>
-            </div>
+            {% elseif selectedTab == 'calendar' %}
+                {# Calendar Integration Tab #}
+                <div id="calendar" class="pane{% if selectedTab != 'calendar' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-calendar">
+                    <h2>{{ 'Calendar Integration'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure two-way calendar synchronization with Google Calendar and Microsoft Outlook.'|t('booked') }}</p>
 
-            <hr>
+                    <h3>{{ 'Google Calendar'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable Google Calendar'|t('booked'),
+                        id: 'googleCalendarEnabled',
+                        name: 'settings[googleCalendarEnabled]',
+                        on: settings.googleCalendarEnabled
+                    }) }}
 
-            <h2>Zahlungs-QR-Code</h2>
-            <p class="light">Laden Sie einen QR-Code hoch, der an Buchungsbestätigungs-E-Mails angehängt wird.</p>
+                    {{ forms.textField({
+                        label: 'Google Calendar Client ID'|t('booked'),
+                        instructions: 'OAuth 2.0 Client ID from Google Cloud Console.'|t('booked'),
+                        id: 'googleCalendarClientId',
+                        name: 'settings[googleCalendarClientId]',
+                        value: settings.googleCalendarClientId
+                    }) }}
 
-            {{ forms.elementSelectField({
-                label: 'QR-Code Bild',
-                id: 'paymentQrAssetId',
-                name: 'paymentQrAssetId',
-                elementType: 'craft\\elements\\Asset',
-                elements: settings.paymentQrAsset ? [settings.paymentQrAsset] : null,
-                limit: 1,
-                criteria: {
-                    kind: 'image'
-                },
-                instructions: 'Wählen Sie ein Bild aus, das als Zahlungs-QR-Code verwendet werden soll.'
-            }) }}
+                    {{ forms.passwordField({
+                        label: 'Google Calendar Client Secret'|t('booked'),
+                        instructions: 'OAuth 2.0 Client Secret from Google Cloud Console.'|t('booked'),
+                        id: 'googleCalendarClientSecret',
+                        name: 'settings[googleCalendarClientSecret]',
+                        value: settings.googleCalendarClientSecret
+                    }) }}
+
+                    <hr>
+
+                    <h3>{{ 'Microsoft Outlook'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable Microsoft Outlook'|t('booked'),
+                        id: 'outlookCalendarEnabled',
+                        name: 'settings[outlookCalendarEnabled]',
+                        on: settings.outlookCalendarEnabled
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Outlook Client ID'|t('booked'),
+                        instructions: 'OAuth 2.0 Client ID from Azure Portal.'|t('booked'),
+                        id: 'outlookCalendarClientId',
+                        name: 'settings[outlookCalendarClientId]',
+                        value: settings.outlookCalendarClientId
+                    }) }}
+
+                    {{ forms.passwordField({
+                        label: 'Outlook Client Secret'|t('booked'),
+                        instructions: 'OAuth 2.0 Client Secret from Azure Portal.'|t('booked'),
+                        id: 'outlookCalendarClientSecret',
+                        name: 'settings[outlookCalendarClientSecret]',
+                        value: settings.outlookCalendarClientSecret
+                    }) }}
+                </div>
+
+            {% elseif selectedTab == 'meetings' %}
+                {# Virtual Meetings Tab #}
+                <div id="meetings" class="pane{% if selectedTab != 'meetings' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-meetings">
+                    <h2>{{ 'Virtual Meetings'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure automatic virtual meeting creation for bookings.'|t('booked') }}</p>
+
+                    <h3>{{ 'Zoom'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable Zoom'|t('booked'),
+                        id: 'zoomEnabled',
+                        name: 'settings[zoomEnabled]',
+                        on: settings.zoomEnabled
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Zoom API Key'|t('booked'),
+                        id: 'zoomApiKey',
+                        name: 'settings[zoomApiKey]',
+                        value: settings.zoomApiKey
+                    }) }}
+
+                    {{ forms.passwordField({
+                        label: 'Zoom API Secret'|t('booked'),
+                        id: 'zoomApiSecret',
+                        name: 'settings[zoomApiSecret]',
+                        value: settings.zoomApiSecret
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Auto-create Zoom Meetings'|t('booked'),
+                        instructions: 'Automatically create Zoom meetings when bookings are confirmed.'|t('booked'),
+                        id: 'zoomAutoCreate',
+                        name: 'settings[zoomAutoCreate]',
+                        on: settings.zoomAutoCreate
+                    }) }}
+
+                    <hr>
+
+                    <h3>{{ 'Google Meet'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable Google Meet'|t('booked'),
+                        id: 'googleMeetEnabled',
+                        name: 'settings[googleMeetEnabled]',
+                        on: settings.googleMeetEnabled
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Auto-create Google Meet Links'|t('booked'),
+                        instructions: 'Automatically create Google Meet links when bookings are confirmed.'|t('booked'),
+                        id: 'googleMeetAutoCreate',
+                        name: 'settings[googleMeetAutoCreate]',
+                        on: settings.googleMeetAutoCreate
+                    }) }}
+                </div>
+
+            {% elseif selectedTab == 'notifications' %}
+                {# Notifications Tab #}
+                <div id="notifications" class="pane{% if selectedTab != 'notifications' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-notifications">
+                    <h2>{{ 'Notifications'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure email and SMS notifications for bookings.'|t('booked') }}</p>
+
+                    <h3>{{ 'Email Notifications'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable Owner Notifications'|t('booked'),
+                        id: 'ownerNotificationEnabled',
+                        name: 'settings[ownerNotificationEnabled]',
+                        on: settings.ownerNotificationEnabled
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Owner Email'|t('booked'),
+                        id: 'ownerEmail',
+                        name: 'settings[ownerEmail]',
+                        value: settings.ownerEmail,
+                        type: 'email'
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Owner Name'|t('booked'),
+                        id: 'ownerName',
+                        name: 'settings[ownerName]',
+                        value: settings.ownerName
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Owner Notification Subject'|t('booked'),
+                        id: 'ownerNotificationSubject',
+                        name: 'settings[ownerNotificationSubject]',
+                        value: settings.ownerNotificationSubject
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Booking Confirmation Subject'|t('booked'),
+                        id: 'bookingConfirmationSubject',
+                        name: 'settings[bookingConfirmationSubject]',
+                        value: settings.bookingConfirmationSubject
+                    }) }}
+
+                    {{ forms.textareaField({
+                        label: 'Booking Confirmation Body'|t('booked'),
+                        instructions: 'Twig template for booking confirmation emails. Available variables: booking, customer, service, employee, location.'|t('booked'),
+                        id: 'bookingConfirmationBody',
+                        name: 'settings[bookingConfirmationBody]',
+                        value: settings.bookingConfirmationBody,
+                        rows: 10
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Enable Email Reminders'|t('booked'),
+                        id: 'emailRemindersEnabled',
+                        name: 'settings[emailRemindersEnabled]',
+                        on: settings.emailRemindersEnabled
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Email Reminder Hours Before'|t('booked'),
+                        instructions: 'Send reminder email this many hours before the appointment (default: 24).'|t('booked'),
+                        id: 'emailReminderHoursBefore',
+                        name: 'settings[emailReminderHoursBefore]',
+                        value: settings.emailReminderHoursBefore,
+                        type: 'number',
+                        min: 0
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Send 1-Hour Reminder'|t('booked'),
+                        id: 'emailReminderOneHourBefore',
+                        name: 'settings[emailReminderOneHourBefore]',
+                        on: settings.emailReminderOneHourBefore
+                    }) }}
+
+                    <hr>
+
+                    <h3>{{ 'SMS Notifications'|t('booked') }}</h3>
+                    
+                    {{ forms.lightswitchField({
+                        label: 'Enable SMS Notifications'|t('booked'),
+                        id: 'smsEnabled',
+                        name: 'settings[smsEnabled]',
+                        on: settings.smsEnabled
+                    }) }}
+
+                    {{ forms.selectField({
+                        label: 'SMS Provider'|t('booked'),
+                        id: 'smsProvider',
+                        name: 'settings[smsProvider]',
+                        value: settings.smsProvider,
+                        options: [
+                            { label: 'Twilio'|t('booked'), value: 'twilio' }
+                        ]
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Twilio API Key'|t('booked'),
+                        id: 'twilioApiKey',
+                        name: 'settings[twilioApiKey]',
+                        value: settings.twilioApiKey
+                    }) }}
+
+                    {{ forms.passwordField({
+                        label: 'Twilio API Secret'|t('booked'),
+                        id: 'twilioApiSecret',
+                        name: 'settings[twilioApiSecret]',
+                        value: settings.twilioApiSecret
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'Twilio Phone Number'|t('booked'),
+                        instructions: 'Your Twilio phone number (e.g., +1234567890).'|t('booked'),
+                        id: 'twilioPhoneNumber',
+                        name: 'settings[twilioPhoneNumber]',
+                        value: settings.twilioPhoneNumber
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Enable SMS Reminders'|t('booked'),
+                        id: 'smsRemindersEnabled',
+                        name: 'settings[smsRemindersEnabled]',
+                        on: settings.smsRemindersEnabled
+                    }) }}
+
+                    {{ forms.textField({
+                        label: 'SMS Reminder Hours Before'|t('booked'),
+                        instructions: 'Send reminder SMS this many hours before the appointment (default: 24).'|t('booked'),
+                        id: 'smsReminderHoursBefore',
+                        name: 'settings[smsReminderHoursBefore]',
+                        value: settings.smsReminderHoursBefore,
+                        type: 'number',
+                        min: 0
+                    }) }}
+                </div>
+
+            {% elseif selectedTab == 'commerce' %}
+                {# Commerce Integration Tab #}
+                <div id="commerce" class="pane{% if selectedTab != 'commerce' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-commerce">
+                    <h2>{{ 'Commerce Integration'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure Craft Commerce integration for payment processing.'|t('booked') }}</p>
+
+                    {% if craft.app.plugins.isPluginEnabled('commerce') %}
+                        {{ forms.lightswitchField({
+                            label: 'Enable Commerce Integration'|t('booked'),
+                            id: 'commerceEnabled',
+                            name: 'settings[commerceEnabled]',
+                            on: settings.commerceEnabled
+                        }) }}
+
+                        {{ forms.textField({
+                            label: 'Default Payment Gateway'|t('booked'),
+                            instructions: 'Handle of the default payment gateway to use.'|t('booked'),
+                            id: 'defaultPaymentGateway',
+                            name: 'settings[defaultPaymentGateway]',
+                            value: settings.defaultPaymentGateway
+                        }) }}
+
+                        {{ forms.lightswitchField({
+                            label: 'Require Payment Before Confirmation'|t('booked'),
+                            instructions: 'Bookings will only be confirmed after payment is received.'|t('booked'),
+                            id: 'requirePaymentBeforeConfirmation',
+                            name: 'settings[requirePaymentBeforeConfirmation]',
+                            on: settings.requirePaymentBeforeConfirmation
+                        }) }}
+                    {% else %}
+                        <p class="warning">{{ 'Craft Commerce is not installed. Install and enable it to use payment features.'|t('booked') }}</p>
+                    {% endif %}
+                </div>
+
+            {% elseif selectedTab == 'frontend' %}
+                {# Frontend Settings Tab #}
+                <div id="frontend" class="pane{% if selectedTab != 'frontend' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-frontend">
+                    <h2>{{ 'Frontend Settings'|t('booked') }}</h2>
+                    <p class="light">{{ 'Configure the booking form and frontend display options.'|t('booked') }}</p>
+
+                    {{ forms.selectField({
+                        label: 'Default View Mode'|t('booked'),
+                        instructions: 'Default booking interface view mode.'|t('booked'),
+                        id: 'defaultViewMode',
+                        name: 'settings[defaultViewMode]',
+                        value: settings.defaultViewMode,
+                        options: [
+                            { label: 'Wizard'|t('booked'), value: 'wizard' },
+                            { label: 'Catalog'|t('booked'), value: 'catalog' },
+                            { label: 'Search'|t('booked'), value: 'search' }
+                        ]
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Enable Real-Time Availability'|t('booked'),
+                        instructions: 'Update available time slots without page reload using AJAX.'|t('booked'),
+                        id: 'enableRealTimeAvailability',
+                        name: 'settings[enableRealTimeAvailability]',
+                        on: settings.enableRealTimeAvailability
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Show Employee Selection'|t('booked'),
+                        instructions: 'Allow customers to select a specific employee when booking.'|t('booked'),
+                        id: 'showEmployeeSelection',
+                        name: 'settings[showEmployeeSelection]',
+                        on: settings.showEmployeeSelection
+                    }) }}
+
+                    {{ forms.lightswitchField({
+                        label: 'Show Location Selection'|t('booked'),
+                        instructions: 'Allow customers to select a specific location when booking.'|t('booked'),
+                        id: 'showLocationSelection',
+                        name: 'settings[showLocationSelection]',
+                        on: settings.showLocationSelection
+                    }) }}
+                </div>
+            {% endif %}
         </div>
 
         <div class="buttons">
-            <button type="submit" class="btn submit">Einstellungen speichern</button>
+            <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
         </div>
     </form>
 {% endblock %}
 
 {% css %}
-.instructions ul {
-    margin: 8px 0 0 0;
-    padding-left: 20px;
+.field-layout-section {
+    margin-bottom: 2rem;
 }
 
-.instructions li {
-    margin-bottom: 4px;
-}
-
-.instructions code {
-    background: #f5f5f5;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 12px;
+.field-layout-section h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
 }
 {% endcss %}

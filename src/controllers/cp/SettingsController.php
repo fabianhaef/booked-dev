@@ -1,11 +1,12 @@
 <?php
 
-namespace modules\booking\controllers\cp;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
+use craft\models\FieldLayout;
 use craft\web\Controller;
 use craft\web\Response;
-use modules\booking\models\Settings;
+use fabian\booked\models\Settings;
 
 /**
  * CP Settings Controller - Handles Control Panel settings management
@@ -18,9 +19,29 @@ class SettingsController extends Controller
     public function actionIndex(): Response
     {
         $settings = Settings::loadSettings();
+        $fieldsService = Craft::$app->getFields();
 
-        return $this->renderTemplate('booking/settings/index', [
+        // Get or create field layouts for each element type
+        $employeeFieldLayout = $settings->getEmployeeFieldLayout();
+        if (!$employeeFieldLayout) {
+            $employeeFieldLayout = new FieldLayout(['type' => \fabian\booked\elements\Employee::class]);
+        }
+
+        $serviceFieldLayout = $settings->getServiceFieldLayout();
+        if (!$serviceFieldLayout) {
+            $serviceFieldLayout = new FieldLayout(['type' => \fabian\booked\elements\Service::class]);
+        }
+
+        $locationFieldLayout = $settings->getLocationFieldLayout();
+        if (!$locationFieldLayout) {
+            $locationFieldLayout = new FieldLayout(['type' => \fabian\booked\elements\Location::class]);
+        }
+
+        return $this->renderTemplate('booked/settings/index', [
             'settings' => $settings,
+            'employeeFieldLayout' => $employeeFieldLayout,
+            'serviceFieldLayout' => $serviceFieldLayout,
+            'locationFieldLayout' => $locationFieldLayout,
         ]);
     }
 
@@ -34,56 +55,92 @@ class SettingsController extends Controller
         $request = Craft::$app->request;
         $settings = Settings::loadSettings();
 
-        // Basic contact settings
-        $settings->ownerEmail = $request->getRequiredBodyParam('ownerEmail');
-        $settings->ownerName = $request->getRequiredBodyParam('ownerName');
-
-        // Owner notification settings
-        $settings->ownerNotificationEnabled = (bool)$request->getBodyParam('ownerNotificationEnabled');
-        $settings->ownerNotificationSubject = $request->getBodyParam('ownerNotificationSubject');
-
-        // Payment QR code asset
-        $paymentQrAssetId = $request->getBodyParam('paymentQrAssetId');
-        $settings->paymentQrAssetId = is_array($paymentQrAssetId) ? ($paymentQrAssetId[0] ?? null) : $paymentQrAssetId;
-
-        if ($settings->save()) {
-            Craft::$app->session->setNotice('Einstellungen wurden gespeichert.');
-        } else {
-            Craft::$app->session->setError('Einstellungen konnten nicht gespeichert werden.');
-        }
-
-        return $this->renderTemplate('booking/settings/index', [
-            'settings' => $settings,
-        ]);
-    }
-
-    /**
-     * Test email settings
-     */
-    public function actionTestEmail(): Response
-    {
-        $this->requirePostRequest();
-
-        $settings = Settings::loadSettings();
+        // Handle field layout saving
+        $fieldsService = Craft::$app->getFields();
         
-        try {
-            $message = Craft::$app->mailer->compose()
-                ->setTo($settings->ownerEmail)
-                ->setFrom([Craft::$app->systemSettings->getSetting('email', 'fromEmail') => $settings->ownerName])
-                ->setSubject('Booking System Test Email')
-                ->setTextBody('This is a test email from your booking system. Email settings are working correctly.');
+        // Save Employee field layout
+        $employeeFieldLayout = $this->saveFieldLayout(
+            $request->getBodyParam('employeeFieldLayout'),
+            $settings->employeeFieldLayoutId,
+            'Employee'
+        );
+        $settings->employeeFieldLayoutId = $employeeFieldLayout?->id;
 
-            $sent = $message->send();
+        // Save Service field layout
+        $serviceFieldLayout = $this->saveFieldLayout(
+            $request->getBodyParam('serviceFieldLayout'),
+            $settings->serviceFieldLayoutId,
+            'Service'
+        );
+        $settings->serviceFieldLayoutId = $serviceFieldLayout?->id;
 
-            if ($sent) {
-                Craft::$app->session->setNotice('Test email sent successfully.');
-            } else {
-                Craft::$app->session->setError('Failed to send test email.');
+        // Save Location field layout
+        $locationFieldLayout = $this->saveFieldLayout(
+            $request->getBodyParam('locationFieldLayout'),
+            $settings->locationFieldLayoutId,
+            'Location'
+        );
+        $settings->locationFieldLayoutId = $locationFieldLayout?->id;
+
+        // Load all settings from POST data
+        $postedSettings = $request->getBodyParam('settings', []);
+        
+        // Set all attributes from POST data
+        $settings->setAttributes($postedSettings, false);
+
+        // Validate and save
+        if ($settings->validate() && $settings->save()) {
+            Craft::$app->session->setNotice(Craft::t('booked', 'Settings saved.'));
+        } else {
+            Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save settings.'));
+            if ($settings->hasErrors()) {
+                Craft::$app->session->setError(Craft::t('booked', 'Validation errors: {errors}', [
+                    'errors' => implode(', ', $settings->getFirstErrors())
+                ]));
             }
-        } catch (\Exception $e) {
-            Craft::$app->session->setError('Email error: ' . $e->getMessage());
         }
 
         return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Save a field layout from POST data
+     *
+     * @param array|null $fieldLayoutData
+     * @param int|null $existingLayoutId
+     * @param string $type
+     * @return FieldLayout|null
+     */
+    private function saveFieldLayout(?array $fieldLayoutData, ?int $existingLayoutId, string $type): ?FieldLayout
+    {
+        $fieldsService = Craft::$app->getFields();
+        
+        // Get or create field layout
+        if ($existingLayoutId) {
+            $fieldLayout = $fieldsService->getLayoutById($existingLayoutId);
+            if (!$fieldLayout) {
+                $fieldLayout = new FieldLayout(['type' => "fabian\\booked\\elements\\{$type}"]);
+            }
+        } else {
+            $fieldLayout = new FieldLayout(['type' => "fabian\\booked\\elements\\{$type}"]);
+        }
+
+        // If field layout data is provided, set it
+        if ($fieldLayoutData !== null) {
+            $fieldLayout->setTabs($fieldLayoutData);
+        }
+
+        // Save the field layout (even if empty, to allow clearing)
+        if (!$fieldsService->saveLayout($fieldLayout)) {
+            Craft::error("Failed to save {$type} field layout: " . implode(', ', $fieldLayout->getFirstErrors()), __METHOD__);
+            return null;
+        }
+
+        // If layout is empty, return null (but layout is saved for future use)
+        if (empty($fieldLayout->getTabs())) {
+            return $fieldLayout; // Return it anyway so we have the ID
+        }
+
+        return $fieldLayout;
     }
 }
