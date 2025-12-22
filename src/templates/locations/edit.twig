@@ -50,19 +50,59 @@
                 }) }}
 
                 <div class="address-fields">
-                    {{ craft.app.cp.addressFieldsHtml(address)|raw }}
+                    {{ forms.textField({
+                        label: "Address Line 1"|t('app'),
+                        id: 'addressLine1',
+                        name: 'addressLine1',
+                        value: address.addressLine1,
+                        errors: address.getErrors('addressLine1'),
+                        required: true
+                    }) }}
+
+                    {{ forms.textField({
+                        label: "Address Line 2"|t('app'),
+                        id: 'addressLine2',
+                        name: 'addressLine2',
+                        value: address.addressLine2,
+                        errors: address.getErrors('addressLine2')
+                    }) }}
+
+                    {{ forms.textField({
+                        label: "City"|t('app'),
+                        id: 'locality',
+                        name: 'locality',
+                        value: address.locality,
+                        errors: address.getErrors('locality'),
+                        required: true
+                    }) }}
+
+                    {{ forms.textField({
+                        label: "State/Province"|t('app'),
+                        id: 'administrativeArea',
+                        name: 'administrativeArea',
+                        value: address.administrativeArea,
+                        errors: address.getErrors('administrativeArea')
+                    }) }}
+
+                    {{ forms.textField({
+                        label: "Zip Code"|t('app'),
+                        id: 'postalCode',
+                        name: 'postalCode',
+                        value: address.postalCode,
+                        errors: address.getErrors('postalCode'),
+                        required: true
+                    }) }}
                 </div>
             {% endnamespace %}
         </div>
 
-        {{ forms.selectField({
+        {{ forms.timeZoneField({
             label: 'Timezone'|t('booked'),
             id: 'timezone',
             name: 'timezone',
-            options: craft.app.timeZones.getAllTimeZones()|map((label, value) => { value: value, label: label }),
             value: location.timezone ?? craft.app.timeZone,
             errors: location.getErrors('timezone'),
-            instructions: 'Timezone for this location'
+            instructions: 'Timezone for this location'|t('booked')
         }) }}
 
         {{ forms.textareaField({

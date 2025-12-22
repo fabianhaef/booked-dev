@@ -8,6 +8,7 @@ use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Location;
+use fabian\booked\elements\Service;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
@@ -58,6 +59,7 @@ class EmployeesController extends Controller
         // Get available users and locations for dropdowns
         $users = User::find()->all();
         $locations = Location::find()->enabled()->all();
+        $services = Service::find()->enabled()->all();
 
         // Check for active calendar connections
         $googleConnected = false;
@@ -78,6 +80,7 @@ class EmployeesController extends Controller
             'employee' => $employee,
             'users' => $users,
             'locations' => $locations,
+            'services' => $services,
             'googleConnected' => $googleConnected,
             'outlookConnected' => $outlookConnected,
         ]);
@@ -117,6 +120,8 @@ class EmployeesController extends Controller
         
         $locationId = $request->getBodyParam('locationId');
         $employee->locationId = $locationId === '' || $locationId === null ? null : (int)$locationId;
+
+        $employee->setServiceIds($request->getBodyParam('services', []));
 
         if (!Craft::$app->elements->saveElement($employee)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save employee.'));

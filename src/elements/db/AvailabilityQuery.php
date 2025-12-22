@@ -19,6 +19,7 @@ class AvailabilityQuery extends ElementQuery
     public ?string $sourceType = null;
     public ?int $sourceId = null;
     public ?bool $isActive = null;
+    public $serviceId = null;
 
     /**
      * Filter by day of week
@@ -26,6 +27,15 @@ class AvailabilityQuery extends ElementQuery
     public function dayOfWeek(?int $value): static
     {
         $this->dayOfWeek = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by service ID
+     */
+    public function serviceId($value): static
+    {
+        $this->serviceId = $value;
         return $this;
     }
 
@@ -105,6 +115,11 @@ class AvailabilityQuery extends ElementQuery
 
         if ($this->isActive !== null) {
             $this->subQuery->andWhere(Db::parseParam('bookings_availability.isActive', $this->isActive));
+        }
+
+        if ($this->serviceId !== null) {
+            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[bookings_availability.sourceId]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
         }
 
         return parent::beforePrepare();

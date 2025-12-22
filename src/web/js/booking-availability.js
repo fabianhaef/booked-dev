@@ -31,10 +31,13 @@ window.BookedAvailability = {
      * Fetch available time slots for a specific date
      */
     async getSlots(date, options = {}) {
+        const csrfTokenName = window.csrfTokenName || 'CRAFT_CSRF_TOKEN';
+        const csrfTokenValue = window.csrfTokenValue || '';
+
         const body = {
             date,
             ...options,
-            [window.csrfTokenName]: window.csrfTokenValue
+            [csrfTokenName]: csrfTokenValue
         };
 
         try {
@@ -57,9 +60,12 @@ window.BookedAvailability = {
      * Create a new booking
      */
     async createBooking(data) {
+        const csrfTokenName = window.csrfTokenName || 'CRAFT_CSRF_TOKEN';
+        const csrfTokenValue = window.csrfTokenValue || '';
+
         const body = {
             ...data,
-            [window.csrfTokenName]: window.csrfTokenValue
+            [csrfTokenName]: csrfTokenValue
         };
 
         try {

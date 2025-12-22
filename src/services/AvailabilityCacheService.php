@@ -38,7 +38,8 @@ class AvailabilityCacheService extends Component
     public function getCachedAvailability(string $date, ?int $employeeId = null, ?int $serviceId = null): ?array
     {
         $cacheKey = $this->buildCacheKey($date, $employeeId, $serviceId);
-        return Craft::$app->cache->get($cacheKey);
+        $cached = Craft::$app->cache->get($cacheKey);
+        return is_array($cached) ? $cached : null;
     }
 
     /**

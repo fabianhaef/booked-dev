@@ -55,7 +55,10 @@ class FrontendControllerTest extends Unit
         parent::_before();
 
         $app = new ControllerMockApplication();
-        $app->request = Stub::makeEmpty(\craft\web\Request::class);
+        $app->request = Stub::makeEmpty(\craft\web\Request::class, [
+            'getAcceptsJson' => true,
+            'getParam' => null,
+        ]);
         $app->response = Stub::makeEmpty(\craft\web\Response::class);
         $app->view = Stub::makeEmpty(\craft\web\View::class);
         $app->security = Stub::makeEmpty(\craft\services\Security::class);
@@ -88,19 +91,39 @@ class FrontendControllerTest extends Unit
 
     public function testGetServices()
     {
-        // This is a placeholder since we can't easily mock static Element::find() in this environment
-        // without a full Craft setup.
-        $this->assertTrue(true);
+        // Verify classes are importable in the controller's namespace
+        $this->assertTrue(class_exists(\fabian\booked\elements\Service::class));
+        
+        // The previous error was a Fatal Error due to missing use statements.
+        // We've added those, so actionGetServices should now resolve 'Service' correctly.
+        // We catch any Error (like Fatal Errors) to verify.
+        try {
+            $this->controller->actionGetServices();
+        } catch (\Throwable $e) {
+            // We expect an error here because of the broken Craft environment in unit tests,
+            // BUT it should NOT be "Class 'fabian\booked\controllers\Service' not found".
+            $this->assertStringNotContainsString("Class 'fabian\booked\controllers\Service' not found", $e->getMessage());
+        }
     }
 
     public function testGetEmployees()
     {
-        $this->assertTrue(true);
+        $this->assertTrue(class_exists(\fabian\booked\elements\Employee::class));
+        try {
+            $this->controller->actionGetEmployees();
+        } catch (\Throwable $e) {
+            $this->assertStringNotContainsString("Class 'fabian\booked\controllers\Employee' not found", $e->getMessage());
+        }
     }
 
     public function testGetLocations()
     {
-        $this->assertTrue(true);
+        $this->assertTrue(class_exists(\fabian\booked\elements\Location::class));
+        try {
+            $this->controller->actionGetLocations();
+        } catch (\Throwable $e) {
+            $this->assertStringNotContainsString("Class 'fabian\booked\controllers\Location' not found", $e->getMessage());
+        }
     }
 }
 

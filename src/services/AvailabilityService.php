@@ -69,10 +69,10 @@ class AvailabilityService extends Component
         $dayOfWeek = (int)$dateObj->format('w'); // 0 = Sunday, 6 = Saturday
 
         // Step 1: Get base working hours (Schedule) for the date
-        $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId);
+        $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId, $serviceId);
         
         // Step 2: Get additional availability elements
-        $availabilities = $this->getAvailabilities($employeeId, $locationId);
+        $availabilities = $this->getAvailabilities($employeeId, $locationId, $serviceId);
         $expandedAvailabilities = $this->expandAvailabilities($availabilities, $date);
 
         if (empty($schedules) && empty($expandedAvailabilities)) {
@@ -83,7 +83,7 @@ class AvailabilityService extends Component
         // Step 3: Get service details if specified
         $service = null;
         if ($serviceId) {
-            $service = Service::findOne($serviceId);
+            $service = $this->getService($serviceId);
             if (!$service || !$service->enabled) {
                 return [];
             }
@@ -234,14 +234,33 @@ class AvailabilityService extends Component
     /**
      * Get availability elements
      */
-    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null): array
+    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
         $query = \fabian\booked\elements\Availability::find()
             ->status('active');
 
-        // TODO: Filter by employee/location once relationships are established
-        // For now, return all active ones
-        return $query->all();
+        if ($employeeId !== null) {
+            $query->sourceId($employeeId);
+        }
+
+        if ($serviceId !== null) {
+            $query->serviceId($serviceId);
+        }
+
+        $availabilities = $query->all();
+
+        // Filter by location if specified
+        if ($locationId !== null) {
+            $availabilities = array_filter($availabilities, function($avail) use ($locationId) {
+                if ($avail->sourceType === 'employee') {
+                    $employee = Employee::findOne($avail->sourceId);
+                    return $employee && $employee->locationId === $locationId;
+                }
+                return true;
+            });
+        }
+
+        return array_values($availabilities);
     }
 
     /**
@@ -289,9 +308,10 @@ class AvailabilityService extends Component
      * @param int $dayOfWeek Day of week (0 = Sunday, 6 = Saturday)
      * @param int|null $employeeId Optional employee ID to filter by
      * @param int|null $locationId Optional location ID to filter by
+     * @param int|null $serviceId Optional service ID to filter by
      * @return Schedule[] Array of Schedule elements
      */
-    protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
+    protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
         $query = Schedule::find()
             ->enabled()
@@ -299,6 +319,10 @@ class AvailabilityService extends Component
 
         if ($employeeId !== null) {
             $query->employeeId($employeeId);
+        }
+
+        if ($serviceId !== null) {
+            $query->serviceId($serviceId);
         }
 
         $schedules = $query->all();
@@ -564,6 +588,14 @@ class AvailabilityService extends Component
         return array_filter($slots, function($slot) use ($currentTime) {
             return $slot['time'] >= $currentTime;
         });
+    }
+
+    /**
+     * Get service by ID
+     */
+    protected function getService(int $serviceId): ?Service
+    {
+        return Service::findOne($serviceId);
     }
 
     /**

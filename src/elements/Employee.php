@@ -4,9 +4,11 @@ namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
+use craft\db\Query;
 use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\User;
+use craft\helpers\Db;
 use craft\helpers\ElementHelper;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
@@ -24,6 +26,11 @@ class Employee extends Element
 {
     public ?int $userId = null;
     public ?int $locationId = null;
+
+    /**
+     * @var int[]|null The service IDs assigned to this employee
+     */
+    private ?array $_serviceIds = null;
 
     private ?User $_user = null;
     private ?Location $_location = null;
@@ -377,7 +384,63 @@ class Employee extends Element
 
         $record->save(false);
 
+        // Save service assignments
+        if ($this->_serviceIds !== null) {
+            $db = Craft::$app->getDb();
+            
+            // Delete existing
+            $db->createCommand()
+                ->delete('{{%booked_employees_services}}', ['employeeId' => $this->id])
+                ->execute();
+
+            // Insert new
+            if (!empty($this->_serviceIds)) {
+                $rows = [];
+                foreach ($this->_serviceIds as $serviceId) {
+                    $rows[] = [
+                        $this->id,
+                        $serviceId,
+                        Db::prepareDateForDb(new \DateTime()),
+                        Db::prepareDateForDb(new \DateTime()),
+                        \craft\helpers\StringHelper::randomString(12),
+                    ];
+                }
+
+                $db->createCommand()
+                    ->batchInsert('{{%booked_employees_services}}', ['employeeId', 'serviceId', 'dateCreated', 'dateUpdated', 'uid'], $rows)
+                    ->execute();
+            }
+        }
+
         parent::afterSave($isNew);
+    }
+
+    /**
+     * Set service IDs
+     *
+     * @param int[] $value
+     */
+    public function setServiceIds(array $value): void
+    {
+        $this->_serviceIds = $value;
+    }
+
+    /**
+     * Get service IDs
+     *
+     * @return int[]
+     */
+    public function getServiceIds(): array
+    {
+        if ($this->_serviceIds === null && $this->id) {
+            $this->_serviceIds = (new \craft\db\Query())
+                ->select(['serviceId'])
+                ->from(['{{%booked_employees_services}}'])
+                ->where(['employeeId' => $this->id])
+                ->column();
+        }
+
+        return $this->_serviceIds ?? [];
     }
 
     /**

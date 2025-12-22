@@ -21,6 +21,7 @@ class EmployeeQuery extends ElementQuery
 
     public ?int $userId = null;
     public ?int $locationId = null;
+    public $serviceId = null;
 
     /**
      * Filter by user ID
@@ -37,6 +38,15 @@ class EmployeeQuery extends ElementQuery
     public function locationId(?int $value): static
     {
         $this->locationId = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by service ID
+     */
+    public function serviceId($value): static
+    {
+        $this->serviceId = $value;
         return $this;
     }
 
@@ -75,6 +85,11 @@ class EmployeeQuery extends ElementQuery
 
         if ($this->locationId !== null) {
             $this->subQuery->andWhere(Db::parseParam('booked_employees.locationId', $this->locationId));
+        }
+
+        if ($this->serviceId !== null) {
+            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[elements.id]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
         }
 
         // Handle the 'enabled' parameter

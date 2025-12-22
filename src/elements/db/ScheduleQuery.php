@@ -21,6 +21,7 @@ class ScheduleQuery extends ElementQuery
 
     public ?int $employeeId = null;
     public ?int $dayOfWeek = null;
+    public $serviceId = null;
 
     /**
      * Filter by employee ID
@@ -28,6 +29,15 @@ class ScheduleQuery extends ElementQuery
     public function employeeId(?int $value): static
     {
         $this->employeeId = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by service ID
+     */
+    public function serviceId($value): static
+    {
+        $this->serviceId = $value;
         return $this;
     }
 
@@ -77,6 +87,11 @@ class ScheduleQuery extends ElementQuery
 
         if ($this->dayOfWeek !== null) {
             $this->subQuery->andWhere(Db::parseParam('booked_schedules.dayOfWeek', $this->dayOfWeek));
+        }
+
+        if ($this->serviceId !== null) {
+            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[booked_schedules.employeeId]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
         }
 
         // Handle the 'enabled' parameter

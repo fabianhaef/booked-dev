@@ -57,6 +57,15 @@
             instructions: 'Primary location for this employee'
         }) }}
 
+        {{ forms.checkboxGroupField({
+            label: 'Services'|t('booked'),
+            id: 'services',
+            name: 'services',
+            options: services|map(s => { value: s.id, label: s.title }),
+            values: employee.getServiceIds(),
+            instructions: 'Select which services this employee can perform'
+        }) }}
+
         {{ forms.lightswitchField({
             label: 'Enabled'|t('app'),
             id: 'enabled',
