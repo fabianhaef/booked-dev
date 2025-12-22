@@ -35,7 +35,8 @@ class AvailabilityService extends Component
         ?int $employeeId = null,
         ?int $locationId = null,
         ?int $serviceId = null,
-        int $requestedQuantity = 1
+        int $requestedQuantity = 1,
+        ?string $userTimezone = null
     ): array {
         // Check cache first
         $cacheService = Booked::getInstance()->availabilityCache;
@@ -113,20 +114,22 @@ class AvailabilityService extends Component
             // Step 5: Subtract this employee's bookings
             $timeWindows = $this->subtractBookings($timeWindows, $date, $empId, $serviceId);
 
-            // Step 5: Subtract buffer times (if service specified)
+            // Step 6: Subtract buffer times (if service specified)
             if ($service) {
                 $timeWindows = $this->subtractBuffers($timeWindows, $service);
             }
 
-            // Step 6: Subtract blackout dates
+            // Step 7: Subtract blackout dates
             $timeWindows = $this->subtractBlackouts($timeWindows, $date);
 
-            // Step 7: Generate slots for this employee
+            // Step 8: Generate slots for this employee
             $empSlots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId);
             
-            // Add employee ID to each slot
+            // Add employee ID and timezone to each slot
+            $empTimezone = $this->getEmployeeTimezone($empId);
             foreach ($empSlots as &$slot) {
                 $slot['employeeId'] = $empId;
+                $slot['timezone'] = $empTimezone;
             }
             
             $allSlots = array_merge($allSlots, $empSlots);
@@ -143,7 +146,63 @@ class AvailabilityService extends Component
             $allSlots = $this->filterByQuantity($allSlots, $requestedQuantity);
         }
 
+        // Step 11: Shift to user timezone if specified
+        if ($userTimezone) {
+            $timezoneService = new TimezoneService();
+            $allSlots = $this->shiftAllSlots($allSlots, $date, $userTimezone, $timezoneService);
+        }
+
         return array_values($allSlots);
+    }
+
+    /**
+     * Shift all slots to user timezone
+     */
+    protected function shiftAllSlots(array $slots, string $date, string $userTimezone, TimezoneService $timezoneService): array
+    {
+        // Group slots by their source timezone (location timezone)
+        $slotsByTimezone = [];
+        foreach ($slots as $slot) {
+            $tz = $this->getSlotTimezone($slot);
+            $slotsByTimezone[$tz][] = $slot;
+        }
+
+        $allShifted = [];
+        foreach ($slotsByTimezone as $sourceTz => $tzSlots) {
+            $shifted = $timezoneService->shiftSlots($tzSlots, $date, $sourceTz, $userTimezone);
+            $allShifted = array_merge($allShifted, $shifted);
+        }
+
+        return $allShifted;
+    }
+
+    /**
+     * Get the source timezone for a slot
+     */
+    protected function getSlotTimezone(array $slot): string
+    {
+        // In a real scenario, we'd look up the employee -> location -> timezone
+        // For now, we'll try to get it from the slot or return system default
+        return $slot['timezone'] ?? \Craft::$app->getTimezone();
+    }
+
+    /**
+     * Get employee timezone
+     */
+    protected function getEmployeeTimezone(int $employeeId): string
+    {
+        // Default to system timezone
+        $timezone = \Craft::$app->getTimezone();
+
+        $employee = \fabian\booked\elements\Employee::findOne($employeeId);
+        if ($employee && $employee->locationId) {
+            $location = \fabian\booked\elements\Location::findOne($employee->locationId);
+            if ($location && $location->timezone) {
+                $timezone = $location->timezone;
+            }
+        }
+
+        return $timezone;
     }
 
     /**

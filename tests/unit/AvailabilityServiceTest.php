@@ -19,8 +19,9 @@ class TestableAvailabilityService extends AvailabilityService
 {
     public $mockWorkingHours = [];
     public $mockReservations = [];
-    public $mockAvailabilities = []; // New mock property
+    public $mockAvailabilities = [];
     public $mockNow = null;
+    public $mockEmployeeTimezone = 'Europe/Zurich'; // Default mock TZ
 
     protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
     {
@@ -31,6 +32,11 @@ class TestableAvailabilityService extends AvailabilityService
             });
         }
         return array_values($filtered);
+    }
+
+    protected function getEmployeeTimezone(int $employeeId): string
+    {
+        return $this->mockEmployeeTimezone;
     }
 
     protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null): array
@@ -361,5 +367,27 @@ class AvailabilityServiceTest extends Unit
         
         $this->assertNotEmpty($slots);
         $this->assertEquals('09:00', $slots[0]['time']);
+    }
+
+    public function testGetAvailableSlotsWithTimezoneShift()
+    {
+        $today = '2026-01-01';
+        $s1 = new \stdClass();
+        $s1->startTime = '09:00';
+        $s1->endTime = '12:00';
+        $s1->employeeId = 1;
+        $this->service->mockWorkingHours = [$s1];
+        
+        // Mock the employee's location timezone
+        // For now, we assume Location TZ is Europe/Zurich (UTC+1)
+        // And user is in America/New_York (UTC-5)
+        // Shift is -6 hours
+        
+        $userTz = 'America/New_York';
+        $slots = $this->service->getAvailableSlots($today, null, null, null, 1, $userTz);
+        
+        $this->assertNotEmpty($slots);
+        // 09:00 Zurich -> 03:00 New York
+        $this->assertEquals('03:00', $slots[0]['time']);
     }
 }
