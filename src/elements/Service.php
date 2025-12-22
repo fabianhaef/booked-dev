@@ -256,6 +256,7 @@ class Service extends Element
         return array_merge(parent::defineRules(), [
             [['duration', 'bufferBefore', 'bufferAfter'], 'integer', 'min' => 0],
             [['price'], 'number', 'min' => 0],
+            [['virtualMeetingProvider'], 'string'],
         ]);
     }
 

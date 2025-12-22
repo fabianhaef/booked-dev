@@ -69,6 +69,7 @@ class ServiceQuery extends ElementQuery
             'booked_services.bufferBefore',
             'booked_services.bufferAfter',
             'booked_services.price',
+            'booked_services.virtualMeetingProvider',
         ]);
 
         if ($this->duration !== null) {

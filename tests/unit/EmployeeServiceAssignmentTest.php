@@ -12,9 +12,9 @@ use Codeception\Stub;
 use Craft;
 
 /**
- * Mock Cache Service
+ * Mock Cache Service for assignment tests
  */
-class MockCacheService extends \fabian\booked\services\AvailabilityCacheService {
+class AssignmentMockCacheService extends \fabian\booked\services\AvailabilityCacheService {
     public function getCachedAvailability(string $date, ?int $employeeId = null, ?int $serviceId = null): ?array {
         return null;
     }
@@ -24,9 +24,9 @@ class MockCacheService extends \fabian\booked\services\AvailabilityCacheService 
 }
 
 /**
- * Mock Blackout Service
+ * Mock Blackout Service for assignment tests
  */
-class MockBlackoutService extends \fabian\booked\services\BlackoutDateService {
+class AssignmentMockBlackoutService extends \fabian\booked\services\BlackoutDateService {
     public $isBlackedOut = false;
     public function isDateBlackedOut(string $date): bool {
         return $this->isBlackedOut;
@@ -34,9 +34,9 @@ class MockBlackoutService extends \fabian\booked\services\BlackoutDateService {
 }
 
 /**
- * A testable version of AvailabilityService that allows us to bypass Craft/DB dependencies
+ * A testable version of AvailabilityService for assignment tests
  */
-class TestableAvailabilityService extends AvailabilityService 
+class AssignmentBaseTestableAvailabilityService extends AvailabilityService 
 {
     public $mockWorkingHours = [];
     public $mockReservations = [];
@@ -91,7 +91,7 @@ class TestableAvailabilityService extends AvailabilityService
 /**
  * Enhanced testable availability service for assignment tests
  */
-class AssignmentTestableAvailabilityService extends TestableAvailabilityService
+class AssignmentTestableAvailabilityService extends AssignmentBaseTestableAvailabilityService
 {
     public $mockEmployeeServices = []; // employeeId => [serviceId, ...]
 
@@ -133,8 +133,8 @@ class EmployeeServiceAssignmentTest extends Unit
             ->onlyMethods(['getAvailabilityCache', 'getBlackoutDate'])
             ->getMock();
             
-        $pluginMock->method('getAvailabilityCache')->willReturn(new MockCacheService());
-        $pluginMock->method('getBlackoutDate')->willReturn(new MockBlackoutService());
+        $pluginMock->method('getAvailabilityCache')->willReturn(new AssignmentMockCacheService());
+        $pluginMock->method('getBlackoutDate')->willReturn(new AssignmentMockBlackoutService());
         
         $reflection = new \ReflectionClass(Booked::class);
         $property = $reflection->getProperty('plugin');

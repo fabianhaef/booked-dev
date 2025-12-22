@@ -23,7 +23,7 @@ class TestableAvailabilityService extends AvailabilityService
     public $mockNow = null;
     public $mockEmployeeTimezone = 'Europe/Zurich'; // Default mock TZ
 
-    protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
+    protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
         $filtered = $this->mockWorkingHours;
         if ($employeeId !== null) {
@@ -39,7 +39,7 @@ class TestableAvailabilityService extends AvailabilityService
         return $this->mockEmployeeTimezone;
     }
 
-    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null): array
+    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
         // Simple mock for now
         return $this->mockAvailabilities;

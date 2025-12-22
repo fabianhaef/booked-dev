@@ -12,6 +12,7 @@ use craft\db\ActiveRecord;
  * @property int|null $bufferBefore Buffer time before service in minutes
  * @property int|null $bufferAfter Buffer time after service in minutes
  * @property float|null $price Service price
+ * @property string|null $virtualMeetingProvider Virtual meeting provider
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid

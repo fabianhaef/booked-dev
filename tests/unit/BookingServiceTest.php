@@ -160,7 +160,7 @@ class MockReservationElement extends Reservation {
  */
 class MockAvailabilityService extends AvailabilityService {
     public $slots = [];
-    public function getAvailableSlots($date, $empId = null, $locId = null, $servId = null, $qty = 1, $tz = null): array {
+    public function getAvailableSlots(string $date, ?int $empId = null, ?int $locId = null, ?int $servId = null, int $qty = 1, ?string $tz = null): array {
         return $this->slots;
     }
 }

@@ -93,21 +93,24 @@
             on: service.enabled ?? true
         }) }}
 
-        <hr>
+        {% set settings = craft.booked.getSettings() %}
+        {% if settings.enableVirtualMeetings %}
+            <hr>
 
-        {{ forms.selectField({
-            label: 'Virtual Meeting Provider'|t('booked'),
-            id: 'virtualMeetingProvider',
-            name: 'virtualMeetingProvider',
-            options: [
-                { label: 'None'|t('booked'), value: '' },
-                { label: 'Zoom'|t('booked'), value: 'zoom' },
-                { label: 'Google Meet'|t('booked'), value: 'google_meet' }
-            ],
-            value: service.virtualMeetingProvider,
-            errors: service.getErrors('virtualMeetingProvider'),
-            instructions: 'Select the virtual meeting provider for this service.'|t('booked')
-        }) }}
+            {{ forms.selectField({
+                label: 'Virtual Meeting Provider'|t('booked'),
+                id: 'virtualMeetingProvider',
+                name: 'virtualMeetingProvider',
+                options: [
+                    { label: 'None'|t('booked'), value: '' },
+                    { label: 'Zoom'|t('booked'), value: 'zoom' },
+                    { label: 'Google Meet'|t('booked'), value: 'google_meet' }
+                ],
+                value: service.virtualMeetingProvider,
+                errors: service.getErrors('virtualMeetingProvider'),
+                instructions: 'Select the virtual meeting provider for this service.'|t('booked')
+            }) }}
+        {% endif %}
     </div>
 {% endblock %}
 

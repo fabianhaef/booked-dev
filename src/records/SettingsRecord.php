@@ -12,6 +12,7 @@ use craft\db\ActiveRecord;
  * @property int $availabilityCacheTtl
  * @property string|null $defaultTimezone
  * @property bool $enableRateLimiting
+ * @property bool $enableVirtualMeetings
  * @property int $rateLimitPerEmail
  * @property int $rateLimitPerIp
  * @property bool $googleCalendarEnabled

@@ -43,6 +43,9 @@ class Settings extends Model
     /** @var int Rate limit: max bookings per IP per hour */
     public int $rateLimitPerIp = 10;
 
+    /** @var bool Enable virtual meeting functionality globally */
+    public bool $enableVirtualMeetings = false;
+
     // ============================================================================
     // Calendar Integration - Google Calendar
     // ============================================================================
@@ -223,7 +226,7 @@ class Settings extends Model
             [['rateLimitPerEmail'], 'default', 'value' => 5],
             [['rateLimitPerIp'], 'default', 'value' => 10],
             [['defaultTimezone'], 'string'],
-            [['enableRateLimiting'], 'boolean'],
+            [['enableRateLimiting', 'enableVirtualMeetings'], 'boolean'],
             
             // Calendar integration
             [['googleCalendarEnabled', 'outlookCalendarEnabled'], 'boolean'],
@@ -267,6 +270,7 @@ class Settings extends Model
             'enableRateLimiting' => Craft::t('booked', 'Enable Rate Limiting'),
             'rateLimitPerEmail' => Craft::t('booked', 'Rate Limit: Bookings per Email per Hour'),
             'rateLimitPerIp' => Craft::t('booked', 'Rate Limit: Bookings per IP per Hour'),
+            'enableVirtualMeetings' => Craft::t('booked', 'Enable Virtual Meetings'),
             
             // Calendar
             'googleCalendarEnabled' => Craft::t('booked', 'Enable Google Calendar'),

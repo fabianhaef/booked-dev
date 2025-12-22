@@ -23,36 +23,55 @@
         <h2>{{ 'Virtual Meetings'|t('booked') }}</h2>
         <p class="light">{{ 'Configure automatic virtual meeting creation for bookings.'|t('booked') }}</p>
 
-        <h3>{{ 'Zoom'|t('booked') }}</h3>
-        
         {{ forms.lightswitchField({
-            label: 'Enable Zoom'|t('booked'),
-            id: 'zoomEnabled',
-            name: 'settings[zoomEnabled]',
-            on: settings.zoomEnabled
+            label: 'Enable Virtual Meetings'|t('booked'),
+            instructions: 'Enable virtual meeting functionality for services.'|t('booked'),
+            id: 'enableVirtualMeetings',
+            name: 'settings[enableVirtualMeetings]',
+            on: settings.enableVirtualMeetings,
+            toggle: '#virtual-meeting-settings'
         }) }}
 
-        {{ forms.textField({
-            label: 'Zoom API Key'|t('booked'),
-            id: 'zoomApiKey',
-            name: 'settings[zoomApiKey]',
-            value: settings.zoomApiKey
-        }) }}
+        <div id="virtual-meeting-settings" class="{% if not settings.enableVirtualMeetings %}hidden{% endif %}">
+            <hr>
+            <h3>{{ 'Zoom'|t('booked') }}</h3>
+            
+            {{ forms.lightswitchField({
+                label: 'Enable Zoom'|t('booked'),
+                id: 'zoomEnabled',
+                name: 'settings[zoomEnabled]',
+                on: settings.zoomEnabled
+            }) }}
 
-        {{ forms.passwordField({
-            label: 'Zoom API Secret'|t('booked'),
-            id: 'zoomApiSecret',
-            name: 'settings[zoomApiSecret]',
-            value: settings.zoomApiSecret
-        }) }}
+            {{ forms.textField({
+                label: 'Zoom Account ID'|t('booked'),
+                id: 'zoomAccountId',
+                name: 'settings[zoomAccountId]',
+                value: settings.zoomAccountId,
+                instructions: 'Required for Server-to-Server OAuth'|t('booked')
+            }) }}
 
-        {{ forms.lightswitchField({
-            label: 'Auto-create Zoom Meetings'|t('booked'),
-            instructions: 'Automatically create Zoom meetings when bookings are confirmed.'|t('booked'),
-            id: 'zoomAutoCreate',
-            name: 'settings[zoomAutoCreate]',
-            on: settings.zoomAutoCreate
-        }) }}
+            {{ forms.textField({
+                label: 'Zoom Client ID'|t('booked'),
+                id: 'zoomClientId',
+                name: 'settings[zoomClientId]',
+                value: settings.zoomClientId
+            }) }}
+
+            {{ forms.passwordField({
+                label: 'Zoom Client Secret'|t('booked'),
+                id: 'zoomClientSecret',
+                name: 'settings[zoomClientSecret]',
+                value: settings.zoomClientSecret
+            }) }}
+
+            {{ forms.lightswitchField({
+                label: 'Auto-create Zoom Meetings'|t('booked'),
+                instructions: 'Automatically create Zoom meetings when bookings are confirmed.'|t('booked'),
+                id: 'zoomAutoCreate',
+                name: 'settings[zoomAutoCreate]',
+                on: settings.zoomAutoCreate
+            }) }}
 
         <hr>
 
@@ -65,13 +84,14 @@
             on: settings.googleMeetEnabled
         }) }}
 
-        {{ forms.lightswitchField({
-            label: 'Auto-create Google Meet Links'|t('booked'),
-            instructions: 'Automatically create Google Meet links when bookings are confirmed.'|t('booked'),
-            id: 'googleMeetAutoCreate',
-            name: 'settings[googleMeetAutoCreate]',
-            on: settings.googleMeetAutoCreate
-        }) }}
+            {{ forms.lightswitchField({
+                label: 'Auto-create Google Meet Links'|t('booked'),
+                instructions: 'Automatically create Google Meet links when bookings are confirmed.'|t('booked'),
+                id: 'googleMeetAutoCreate',
+                name: 'settings[googleMeetAutoCreate]',
+                on: settings.googleMeetAutoCreate
+            }) }}
+        </div>
 
         <div class="buttons">
             <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
