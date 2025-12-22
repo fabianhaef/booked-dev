@@ -50,7 +50,7 @@ class TestableCalendarSyncService extends CalendarSyncService
         return false;
     }
 
-    protected function getGoogleClient(): \Google\Client
+    public function getGoogleClient(): \Google\Client
     {
         $client = \Codeception\Stub::make(\Google\Client::class, [
             'createAuthUrl' => 'https://accounts.google.com/o/oauth2/auth?state=mocked',
@@ -67,7 +67,7 @@ class TestableCalendarSyncService extends CalendarSyncService
         return $client;
     }
 
-    protected function getOutlookClient(): \League\OAuth2\Client\Provider\GenericProvider
+    public function getOutlookClient(): \League\OAuth2\Client\Provider\GenericProvider
     {
         $client = \Codeception\Stub::make(\League\OAuth2\Client\Provider\GenericProvider::class, [
             'getAuthorizationUrl' => 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state=mocked',

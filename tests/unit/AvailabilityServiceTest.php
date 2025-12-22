@@ -60,6 +60,11 @@ class TestableAvailabilityService extends AvailabilityService
     {
         return $this->mockNow ?? new DateTime();
     }
+
+    protected function subtractExternalEvents(array $windows, string $date, int $employeeId): array
+    {
+        return $windows; // Mock: don't subtract anything by default
+    }
 }
 
 /**

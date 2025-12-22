@@ -9,6 +9,7 @@ use fabian\booked\elements\Reservation;
 use fabian\booked\Booked;
 use UnitTester;
 use DateTime;
+use Craft;
 
 /**
  * Mock Service
@@ -137,6 +138,15 @@ class TestableBookingService extends BookingService {
  */
 class MockReservationElement extends Reservation {
     public function __construct() {}
+    public function getService(): ?\fabian\booked\elements\Service {
+        return null;
+    }
+    public function getEmployee(): ?\fabian\booked\elements\Employee {
+        return null;
+    }
+    public function getFieldLayout(): ?\craft\models\FieldLayout {
+        return null;
+    }
     protected function getRecord(): ?\fabian\booked\records\ReservationRecord {
         return new \fabian\booked\records\ReservationRecord();
     }
@@ -155,6 +165,32 @@ class MockAvailabilityService extends AvailabilityService {
     }
 }
 
+/**
+ * Simple mock application to avoid Codeception Stub issues with Craft's Application class
+ */
+class BookingMockApplication {
+    public $fields;
+    public $elements;
+    public $view;
+    public $sites;
+    public $request;
+    public $cache;
+    public $queue;
+    public $projectConfig;
+    public function getIsInstalled() { return true; }
+    public function getIsUpdating() { return false; }
+    public function getTimeZone() { return 'Europe/Zurich'; }
+    public function getFields() { return $this->fields; }
+    public function getElements() { return $this->elements; }
+    public function getView() { return $this->view; }
+    public function getRequest() { return $this->request; }
+    public function getCache() { return $this->cache; }
+    public function getQueue() { return $this->queue; }
+    public function getProjectConfig() { return $this->projectConfig; }
+    public function set($id, $service) { $this->$id = $service; }
+    public function get($id) { return $this->$id; }
+}
+
 class BookingServiceTest extends Unit
 {
     /**
@@ -171,13 +207,34 @@ class BookingServiceTest extends Unit
     {
         parent::_before();
         
+        // Mock Craft::$app
+        $app = new BookingMockApplication();
+        $app->fields = \Codeception\Stub::makeEmpty(\craft\services\Fields::class);
+        $app->elements = \Codeception\Stub::makeEmpty(\craft\services\Elements::class);
+        $app->view = \Codeception\Stub::makeEmpty(\craft\web\View::class);
+        $app->projectConfig = \Codeception\Stub::makeEmpty(\craft\services\ProjectConfig::class);
+        $app->sites = new class {
+            public function getCurrentSite() {
+                return new class { public int $id = 1; };
+            }
+        };
+        Craft::$app = $app;
+
         // Mock the Booked plugin singleton
         $pluginMock = $this->getMockBuilder(Booked::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getAvailability'])
+            ->onlyMethods(['getAvailability', 'getSoftLock', 'getCalendarSync', 'getVirtualMeeting', 'getReminder'])
             ->getMock();
             
         $pluginMock->method('getAvailability')->willReturn(new AvailabilityService());
+        $pluginMock->method('getSoftLock')->willReturn(\Codeception\Stub::makeEmpty(\fabian\booked\services\SoftLockService::class, [
+            'isLocked' => false,
+            'createLock' => 'mock-token',
+            'releaseLock' => true,
+        ]));
+        $pluginMock->method('getCalendarSync')->willReturn(\Codeception\Stub::makeEmpty(\fabian\booked\services\CalendarSyncService::class));
+        $pluginMock->method('getVirtualMeeting')->willReturn(\Codeception\Stub::makeEmpty(\fabian\booked\services\VirtualMeetingService::class));
+        $pluginMock->method('getReminder')->willReturn(\Codeception\Stub::makeEmpty(\fabian\booked\services\ReminderService::class));
             
         // Force the mock into the private static property
         $reflection = new \ReflectionClass(Booked::class);
