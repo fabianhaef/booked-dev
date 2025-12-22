@@ -63,12 +63,6 @@
             name: 'enabled',
             on: employee.enabled ?? true
         }) }}
-
-        {% if employee.getFieldLayout() %}
-            <hr>
-            {% set fieldsLocation = 'fields' %}
-            {{ employee.getFieldLayout().createForm(employee, fieldsLocation).render()|raw }}
-        {% endif %}
     </div>
 {% endblock %}
 

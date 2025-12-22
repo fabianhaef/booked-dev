@@ -6,6 +6,7 @@ use Craft;
 use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Service;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -13,6 +14,20 @@ use yii\web\NotFoundHttpException;
  */
 class ServicesController extends Controller
 {
+    /**
+     * @inheritdoc
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+
+        $this->requirePermission('booked-manageServices');
+
+        return true;
+    }
+
     /**
      * Services index page - using element index
      */
@@ -84,10 +99,6 @@ class ServicesController extends Controller
         $price = $request->getBodyParam('price');
         $service->price = $price === '' || $price === null ? null : (float)$price;
 
-        // Set field layout content
-        $fieldsLocation = $request->getBodyParam('fieldsLocation', 'fields');
-        $service->setFieldValuesFromRequest($fieldsLocation);
-
         if (!Craft::$app->elements->saveElement($service)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save service.'));
             Craft::$app->urlManager->setRouteParams([
@@ -100,4 +111,3 @@ class ServicesController extends Controller
         return $this->redirectToPostedUrl($service);
     }
 }
-

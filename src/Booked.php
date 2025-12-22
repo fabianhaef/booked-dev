@@ -13,9 +13,9 @@ namespace fabian\booked;
 
 use Craft;
 use craft\base\Plugin;
-use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterTemplateRootsEvent;
-use craft\events\RegisterUrlRulesEvent;
+use craft\events\RegisterUserPermissionsEvent;
+use craft\services\UserPermissions;
 use craft\web\View;
 use yii\base\Event;
 
@@ -61,6 +61,7 @@ class Booked extends Plugin
         $this->registerServices();
         $this->registerElementTypes();
         $this->registerCpRoutes();
+        $this->registerPermissions();
         // $this->registerTemplateVariable();
     }
 
@@ -169,12 +170,6 @@ class Booked extends Plugin
                 $event->types[] = \fabian\booked\elements\Employee::class;
                 $event->types[] = \fabian\booked\elements\Location::class;
                 $event->types[] = \fabian\booked\elements\Schedule::class;
-
-                // TODO: Phase 2 - Add Reservation, Availability, BookingVariation, BlackoutDate elements
-                // $event->types[] = \fabian\booked\elements\Reservation::class;
-                // $event->types[] = \fabian\booked\elements\Availability::class;
-                // $event->types[] = \fabian\booked\elements\BookingVariation::class;
-                // $event->types[] = \fabian\booked\elements\BlackoutDate::class;
             }
         );
     }
@@ -210,55 +205,41 @@ class Booked extends Plugin
                     'booked/schedules/<id:\d+>' => 'booked/cp/schedules/edit',
                     
                     // Settings - with sidebar navigation
-                    'booked/settings' => 'booked/cp/settings/field-layouts',
-                    'booked/settings/field-layouts' => 'booked/cp/settings/field-layouts',
+                    'booked/settings' => 'booked/cp/settings/general',
                     'booked/settings/general' => 'booked/cp/settings/general',
                     'booked/settings/calendar' => 'booked/cp/settings/calendar',
                     'booked/settings/meetings' => 'booked/cp/settings/meetings',
                     'booked/settings/notifications' => 'booked/cp/settings/notifications',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
-                    
-                    // TODO: Phase 2 - Add bookings, availability routes
-                    // 'booked/bookings' => 'booked/cp/bookings/index',
-                    // 'booked/availability' => 'booked/cp/availability/index',
                 ]);
             }
         );
     }
 
-    /*
-     * Register site routes
-     *
-    private function registerSiteRoutes(): void
+    /**
+     * Register custom user permissions
+     */
+    private function registerPermissions(): void
     {
         Event::on(
-            \craft\web\UrlManager::class,
-            \craft\web\UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function(\craft\events\RegisterUrlRulesEvent $event) {
-                $event->rules['POST booked/create-booking'] = 'booked/booking/create-booking';
-                // ... more routes
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
+            function(RegisterUserPermissionsEvent $event) {
+                $event->permissions[] = [
+                    'heading' => Craft::t('booked', 'Booked'),
+                    'permissions' => [
+                        'booked-manageSettings' => ['label' => Craft::t('booked', 'Manage Settings')],
+                        'booked-manageServices' => ['label' => Craft::t('booked', 'Manage Services')],
+                        'booked-manageEmployees' => ['label' => Craft::t('booked', 'Manage Employees')],
+                        'booked-manageLocations' => ['label' => Craft::t('booked', 'Manage Locations')],
+                        'booked-manageBookings' => ['label' => Craft::t('booked', 'Manage Bookings')],
+                        'booked-manageAvailability' => ['label' => Craft::t('booked', 'Manage Availability')],
+                    ],
+                ];
             }
         );
     }
-    */
-
-    /*
-     * Register template variable
-     *
-    private function registerTemplateVariable(): void
-    {
-        Event::on(
-            \craft\web\twig\variables\CraftVariable::class,
-            \craft\web\twig\variables\CraftVariable::EVENT_INIT,
-            function(\yii\base\Event $event) {
-                $variable = $event->sender;
-                $variable->set('booked', \fabian\booked\variables\BookingVariable::class);
-                $variable->set('booking', \fabian\booked\variables\BookingVariable::class); // backward compat
-            }
-        );
-    }
-    */
 
     /**
      * Get CP nav item
@@ -278,7 +259,6 @@ class Booked extends Plugin
                 'label' => Craft::t('booked', 'Settings'),
                 'url' => 'booked/settings',
                 'subnav' => [
-                    'field-layouts' => ['label' => Craft::t('booked', 'Field Layouts'), 'url' => 'booked/settings/field-layouts'],
                     'general' => ['label' => Craft::t('booked', 'General'), 'url' => 'booked/settings/general'],
                     'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/settings/calendar'],
                     'meetings' => ['label' => Craft::t('booked', 'Virtual Meetings'), 'url' => 'booked/settings/meetings'],
@@ -287,9 +267,6 @@ class Booked extends Plugin
                     'frontend' => ['label' => Craft::t('booked', 'Frontend'), 'url' => 'booked/settings/frontend'],
                 ],
             ],
-            // TODO: Phase 2 - Add bookings, availability to nav
-            // 'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
-            // 'availability' => ['label' => Craft::t('booked', 'Availability'), 'url' => 'booked/availability'],
         ];
         return $item;
     }

@@ -4,14 +4,12 @@ namespace fabian\booked\models;
 
 use Craft;
 use craft\base\Model;
-use craft\models\FieldLayout;
 use fabian\booked\records\SettingsRecord;
 
 /**
  * Settings Model
  * 
  * Comprehensive settings for the Booked plugin, organized by category:
- * - Field Layouts
  * - General Settings
  * - Calendar Integration
  * - Virtual Meetings
@@ -23,19 +21,6 @@ class Settings extends Model
 {
     public ?int $id = null;
     
-    // ============================================================================
-    // Field Layouts
-    // ============================================================================
-    
-    public ?int $employeeFieldLayoutId = null;
-    public ?int $serviceFieldLayoutId = null;
-    public ?int $locationFieldLayoutId = null;
-    
-    // Field layout objects (loaded on demand)
-    private ?FieldLayout $_employeeFieldLayout = null;
-    private ?FieldLayout $_serviceFieldLayout = null;
-    private ?FieldLayout $_locationFieldLayout = null;
-
     // ============================================================================
     // General Settings
     // ============================================================================
@@ -228,9 +213,6 @@ class Settings extends Model
     public function rules(): array
     {
         return [
-            // Field layouts
-            [['employeeFieldLayoutId', 'serviceFieldLayoutId', 'locationFieldLayoutId'], 'integer'],
-            
             // General settings
             [['softLockDurationMinutes', 'availabilityCacheTtl', 'rateLimitPerEmail', 'rateLimitPerIp'], 'integer', 'min' => 1],
             [['softLockDurationMinutes'], 'default', 'value' => 15],
@@ -275,11 +257,6 @@ class Settings extends Model
     public function attributeLabels(): array
     {
         return [
-            // Field layouts
-            'employeeFieldLayoutId' => Craft::t('booked', 'Employee Field Layout'),
-            'serviceFieldLayoutId' => Craft::t('booked', 'Service Field Layout'),
-            'locationFieldLayoutId' => Craft::t('booked', 'Location Field Layout'),
-            
             // General
             'softLockDurationMinutes' => Craft::t('booked', 'Soft Lock Duration (minutes)'),
             'availabilityCacheTtl' => Craft::t('booked', 'Availability Cache TTL (seconds)'),
@@ -385,39 +362,6 @@ class Settings extends Model
         }
 
         return $model;
-    }
-
-    /**
-     * Get the field layout for Employee elements
-     */
-    public function getEmployeeFieldLayout(): ?FieldLayout
-    {
-        if ($this->_employeeFieldLayout === null && $this->employeeFieldLayoutId) {
-            $this->_employeeFieldLayout = Craft::$app->fields->getLayoutById($this->employeeFieldLayoutId);
-        }
-        return $this->_employeeFieldLayout;
-    }
-
-    /**
-     * Get the field layout for Service elements
-     */
-    public function getServiceFieldLayout(): ?FieldLayout
-    {
-        if ($this->_serviceFieldLayout === null && $this->serviceFieldLayoutId) {
-            $this->_serviceFieldLayout = Craft::$app->fields->getLayoutById($this->serviceFieldLayoutId);
-        }
-        return $this->_serviceFieldLayout;
-    }
-
-    /**
-     * Get the field layout for Location elements
-     */
-    public function getLocationFieldLayout(): ?FieldLayout
-    {
-        if ($this->_locationFieldLayout === null && $this->locationFieldLayoutId) {
-            $this->_locationFieldLayout = Craft::$app->fields->getLayoutById($this->locationFieldLayoutId);
-        }
-        return $this->_locationFieldLayout;
     }
 
     /**

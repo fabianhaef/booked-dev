@@ -22,10 +22,6 @@ class Install extends Migration
         if (!$this->db->tableExists('{{%bookings_settings}}')) {
             $this->createTable('{{%bookings_settings}}', [
                 'id' => $this->primaryKey(),
-                // Field Layouts
-                'employeeFieldLayoutId' => $this->integer()->null(),
-                'serviceFieldLayoutId' => $this->integer()->null(),
-                'locationFieldLayoutId' => $this->integer()->null(),
                 // General Settings
                 'softLockDurationMinutes' => $this->integer()->notNull()->defaultValue(15),
                 'availabilityCacheTtl' => $this->integer()->notNull()->defaultValue(3600),
@@ -84,11 +80,6 @@ class Install extends Migration
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),
             ]);
-
-            // Add foreign keys for field layouts
-            $this->addForeignKey(null, '{{%bookings_settings}}', 'employeeFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
-            $this->addForeignKey(null, '{{%bookings_settings}}', 'serviceFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
-            $this->addForeignKey(null, '{{%bookings_settings}}', 'locationFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
 
             // Insert default settings
             $this->insert('{{%bookings_settings}}', [

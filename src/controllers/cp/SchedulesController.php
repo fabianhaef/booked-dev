@@ -7,6 +7,7 @@ use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Schedule;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -14,6 +15,20 @@ use yii\web\NotFoundHttpException;
  */
 class SchedulesController extends Controller
 {
+    /**
+     * @inheritdoc
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+
+        $this->requirePermission('booked-manageAvailability');
+
+        return true;
+    }
+
     /**
      * Schedules index page - using element index
      */
@@ -106,4 +121,3 @@ class SchedulesController extends Controller
         return $this->redirectToPostedUrl($schedule);
     }
 }
-

@@ -29,7 +29,7 @@ class m250101_000004_add_comprehensive_settings extends Migration
         // ============================================================================
         
         if (!$this->db->columnExists($table, 'softLockDurationMinutes')) {
-            $this->addColumn($table, 'softLockDurationMinutes', $this->integer()->notNull()->defaultValue(15)->after('locationFieldLayoutId'));
+            $this->addColumn($table, 'softLockDurationMinutes', $this->integer()->notNull()->defaultValue(15)->after('id'));
         }
         
         if (!$this->db->columnExists($table, 'availabilityCacheTtl')) {

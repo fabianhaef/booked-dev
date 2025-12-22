@@ -64,7 +64,7 @@ class Location extends Element
      */
     public static function hasContent(): bool
     {
-        return true; // Support field layouts
+        return false; // No field layouts
     }
 
     /**
@@ -72,9 +72,7 @@ class Location extends Element
      */
     public function getFieldLayout(): ?\craft\models\FieldLayout
     {
-        // Get field layout from plugin settings
-        $settings = \fabian\booked\models\Settings::loadSettings();
-        return $settings->getLocationFieldLayout() ?? parent::getFieldLayout();
+        return null;
     }
 
     /**

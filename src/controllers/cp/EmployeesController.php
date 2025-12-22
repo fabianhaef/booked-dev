@@ -8,6 +8,7 @@ use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Location;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -15,6 +16,20 @@ use yii\web\NotFoundHttpException;
  */
 class EmployeesController extends Controller
 {
+    /**
+     * @inheritdoc
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+
+        $this->requirePermission('booked-manageEmployees');
+
+        return true;
+    }
+
     /**
      * Employees index page - using element index
      */
@@ -86,10 +101,6 @@ class EmployeesController extends Controller
         $locationId = $request->getBodyParam('locationId');
         $employee->locationId = $locationId === '' || $locationId === null ? null : (int)$locationId;
 
-        // Set field layout content
-        $fieldsLocation = $request->getBodyParam('fieldsLocation', 'fields');
-        $employee->setFieldValuesFromRequest($fieldsLocation);
-
         if (!Craft::$app->elements->saveElement($employee)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save employee.'));
             Craft::$app->urlManager->setRouteParams([
@@ -102,4 +113,3 @@ class EmployeesController extends Controller
         return $this->redirectToPostedUrl($employee);
     }
 }
-

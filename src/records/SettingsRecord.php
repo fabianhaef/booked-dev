@@ -8,9 +8,6 @@ use craft\db\ActiveRecord;
  * Settings Active Record
  *
  * @property int $id
- * @property int|null $employeeFieldLayoutId
- * @property int|null $serviceFieldLayoutId
- * @property int|null $locationFieldLayoutId
  * @property int $softLockDurationMinutes
  * @property int $availabilityCacheTtl
  * @property string|null $defaultTimezone

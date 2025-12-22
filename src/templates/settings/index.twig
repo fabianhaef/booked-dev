@@ -8,7 +8,7 @@
     { label: 'Settings'|t('booked') }
 ] %}
 
-{% set selectedTab = craft.app.request.getParam('tab', 'field-layouts') %}
+{% set selectedTab = craft.app.request.getParam('tab', 'general') %}
 
 {% block content %}
     <form method="post" accept-charset="UTF-8" id="settings-form">
@@ -19,7 +19,6 @@
         <div id="settings-tabs" class="pane">
             <nav id="tabs" class="tabs" role="tablist">
                 <ul>
-                    <li><a id="tab-field-layouts" class="tab{% if selectedTab == 'field-layouts' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'field-layouts'}) }}" role="tab" aria-controls="field-layouts" aria-selected="{{ selectedTab == 'field-layouts' ? 'true' : 'false' }}">{{ 'Field Layouts'|t('booked') }}</a></li>
                     <li><a id="tab-general" class="tab{% if selectedTab == 'general' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'general'}) }}" role="tab" aria-controls="general" aria-selected="{{ selectedTab == 'general' ? 'true' : 'false' }}">{{ 'General'|t('booked') }}</a></li>
                     <li><a id="tab-calendar" class="tab{% if selectedTab == 'calendar' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'calendar'}) }}" role="tab" aria-controls="calendar" aria-selected="{{ selectedTab == 'calendar' ? 'true' : 'false' }}">{{ 'Calendar'|t('booked') }}</a></li>
                     <li><a id="tab-meetings" class="tab{% if selectedTab == 'meetings' %} sel{% endif %}" href="{{ url('booked/settings', {tab: 'meetings'}) }}" role="tab" aria-controls="meetings" aria-selected="{{ selectedTab == 'meetings' ? 'true' : 'false' }}">{{ 'Virtual Meetings'|t('booked') }}</a></li>
@@ -31,90 +30,7 @@
         </div>
 
         <div class="fields">
-            {% if selectedTab == 'field-layouts' %}
-                {# Field Layouts Tab #}
-                <div id="field-layouts" class="pane{% if selectedTab != 'field-layouts' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-field-layouts">
-                    <h2>{{ 'Field Layouts'|t('booked') }}</h2>
-                    <p class="light">{{ 'Configure which custom fields appear when editing elements.'|t('booked') }}</p>
-
-                    {# Employee Field Layout #}
-                    <div id="employee-fld-container" class="field-layout-section">
-                        <h3>{{ 'Employee Field Layout'|t('booked') }}</h3>
-                        <p class="light">{{ 'Configure custom fields for Employee elements.'|t('booked') }}</p>
-                        
-                        {% namespace 'employeeFieldLayout' %}
-                            {{ forms.fieldLayoutDesignerField({
-                                label: 'Employee Fields'|t('booked'),
-                                id: 'designer',
-                                fieldLayout: employeeFieldLayout,
-                                elementType: 'fabian\\booked\\elements\\Employee'
-                            }) }}
-                        {% endnamespace %}
-                        <script>
-                            (function() {
-                                var container = document.getElementById('employee-fld-container');
-                                var fld = container.querySelector('.layoutdesigner');
-                                if (fld) {
-                                    fld.id = 'employeeFieldLayout-designer';
-                                }
-                            })();
-                        </script>
-                    </div>
-
-                    <hr>
-
-                    {# Service Field Layout #}
-                    <div id="service-fld-container" class="field-layout-section">
-                        <h3>{{ 'Service Field Layout'|t('booked') }}</h3>
-                        <p class="light">{{ 'Configure custom fields for Service elements.'|t('booked') }}</p>
-                        
-                        {% namespace 'serviceFieldLayout' %}
-                            {{ forms.fieldLayoutDesignerField({
-                                label: 'Service Fields'|t('booked'),
-                                id: 'designer',
-                                fieldLayout: serviceFieldLayout,
-                                elementType: 'fabian\\booked\\elements\\Service'
-                            }) }}
-                        {% endnamespace %}
-                        <script>
-                            (function() {
-                                var container = document.getElementById('service-fld-container');
-                                var fld = container.querySelector('.layoutdesigner');
-                                if (fld) {
-                                    fld.id = 'serviceFieldLayout-designer';
-                                }
-                            })();
-                        </script>
-                    </div>
-
-                    <hr>
-
-                    {# Location Field Layout #}
-                    <div id="location-fld-container" class="field-layout-section">
-                        <h3>{{ 'Location Field Layout'|t('booked') }}</h3>
-                        <p class="light">{{ 'Configure custom fields for Location elements.'|t('booked') }}</p>
-                        
-                        {% namespace 'locationFieldLayout' %}
-                            {{ forms.fieldLayoutDesignerField({
-                                label: 'Location Fields'|t('booked'),
-                                id: 'designer',
-                                fieldLayout: locationFieldLayout,
-                                elementType: 'fabian\\booked\\elements\\Location'
-                            }) }}
-                        {% endnamespace %}
-                        <script>
-                            (function() {
-                                var container = document.getElementById('location-fld-container');
-                                var fld = container.querySelector('.layoutdesigner');
-                                if (fld) {
-                                    fld.id = 'locationFieldLayout-designer';
-                                }
-                            })();
-                        </script>
-                    </div>
-                </div>
-
-            {% elseif selectedTab == 'general' %}
+            {% if selectedTab == 'general' %}
                 {# General Settings Tab #}
                 <div id="general" class="pane{% if selectedTab != 'general' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-general">
                     <h2>{{ 'General Settings'|t('booked') }}</h2>

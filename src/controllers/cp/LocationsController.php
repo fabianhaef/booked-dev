@@ -6,6 +6,7 @@ use Craft;
 use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Location;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -13,6 +14,20 @@ use yii\web\NotFoundHttpException;
  */
 class LocationsController extends Controller
 {
+    /**
+     * @inheritdoc
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+
+        $this->requirePermission('booked-manageLocations');
+
+        return true;
+    }
+
     /**
      * Locations index page - using element index
      */
@@ -76,10 +91,6 @@ class LocationsController extends Controller
         $location->timezone = $request->getBodyParam('timezone');
         $location->contactInfo = $request->getBodyParam('contactInfo');
 
-        // Set field layout content
-        $fieldsLocation = $request->getBodyParam('fieldsLocation', 'fields');
-        $location->setFieldValuesFromRequest($fieldsLocation);
-
         if (!Craft::$app->elements->saveElement($location)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save location.'));
             Craft::$app->urlManager->setRouteParams([
@@ -92,4 +103,3 @@ class LocationsController extends Controller
         return $this->redirectToPostedUrl($location);
     }
 }
-

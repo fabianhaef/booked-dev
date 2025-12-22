@@ -67,7 +67,7 @@ class Employee extends Element
      */
     public static function hasContent(): bool
     {
-        return true; // Support field layouts
+        return false; // No field layouts
     }
 
     /**
@@ -75,9 +75,7 @@ class Employee extends Element
      */
     public function getFieldLayout(): ?\craft\models\FieldLayout
     {
-        // Get field layout from plugin settings
-        $settings = \fabian\booked\models\Settings::loadSettings();
-        return $settings->getEmployeeFieldLayout() ?? parent::getFieldLayout();
+        return null;
     }
 
     /**
