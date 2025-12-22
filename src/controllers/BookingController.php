@@ -22,7 +22,18 @@ use yii\web\NotFoundHttpException;
  */
 class BookingController extends Controller
 {
-    protected array|bool|int $allowAnonymous = ['get-available-slots', 'get-available-variations', 'get-event-dates', 'get-availability-calendar', 'create-booking', 'manage-booking', 'cancel-booking-by-token'];
+    protected array|bool|int $allowAnonymous = [
+        'get-available-slots', 
+        'get-available-variations', 
+        'get-event-dates', 
+        'get-availability-calendar', 
+        'create-booking', 
+        'manage-booking', 
+        'cancel-booking-by-token',
+        'get-services',
+        'get-employees',
+        'get-locations'
+    ];
 
     private AvailabilityService $availabilityService;
     private BookingService $bookingService;
@@ -503,6 +514,95 @@ class BookingController extends Controller
         return $this->asJson([
             'success' => false,
             'message' => 'Verschieben der Buchung fehlgeschlagen'
+        ]);
+    }
+
+    /**
+     * Get all enabled services
+     */
+    public function actionGetServices(): Response
+    {
+        $this->requireAcceptsJson();
+
+        $services = Service::find()
+            ->all();
+
+        $data = [];
+        foreach ($services as $service) {
+            $data[] = [
+                'id' => $service->id,
+                'title' => $service->title,
+                'description' => $service->description ?? '',
+                'duration' => $service->duration,
+                'price' => $service->price,
+                'imageUrl' => null, // Placeholder for now
+            ];
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'services' => $data
+        ]);
+    }
+
+    /**
+     * Get all employees
+     */
+    public function actionGetEmployees(): Response
+    {
+        $this->requireAcceptsJson();
+
+        $locationId = Craft::$app->request->getParam('locationId');
+        $serviceId = Craft::$app->request->getParam('serviceId');
+
+        $query = Employee::find();
+
+        if ($locationId) {
+            $query->locationId($locationId);
+        }
+
+        // TODO: Filter by service once the relationship is implemented
+        
+        $employees = $query->all();
+
+        $data = [];
+        foreach ($employees as $employee) {
+            $data[] = [
+                'id' => $employee->id,
+                'name' => $employee->title,
+                'bio' => '', // Placeholder
+                'imageUrl' => null, // Placeholder
+            ];
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'employees' => $data
+        ]);
+    }
+
+    /**
+     * Get all locations
+     */
+    public function actionGetLocations(): Response
+    {
+        $this->requireAcceptsJson();
+
+        $locations = Location::find()->all();
+
+        $data = [];
+        foreach ($locations as $location) {
+            $data[] = [
+                'id' => $location->id,
+                'name' => $location->title,
+                'address' => $location->getPrimaryAddress() ? Craft::$app->addresses->formatAddress($location->getPrimaryAddress()) : '',
+                'timezone' => $location->timezone,
+            ];
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'locations' => $data
         ]);
     }
 

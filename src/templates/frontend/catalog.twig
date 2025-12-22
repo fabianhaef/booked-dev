@@ -1,0 +1,21 @@
+{#
+/**
+ * Booked Catalog Template
+ */
+#}
+{% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+{% do view.registerJsFile("https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js", { defer: true }) %}
+
+<div class="booked-catalog" x-data="bookingCatalog()" :class="{ 'booked-loading': loading }">
+    <div class="booked-grid">
+        <template x-for="service in services" :key="service.id">
+            <div class="booked-card" @click="openWizard(service.id)">
+                <h4 x-text="service.title"></h4>
+                <p x-text="service.description"></p>
+                <div class="light" x-text="service.duration + ' min | ' + service.price + ' CHF'"></div>
+                <button class="btn btn-primary btn-sm mt-4">Jetzt buchen</button>
+            </div>
+        </template>
+    </div>
+</div>
+

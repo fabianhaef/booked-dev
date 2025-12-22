@@ -17,6 +17,7 @@ use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
 use craft\web\View;
+use craft\web\twig\variables\CraftVariable;
 use yii\base\Event;
 
 /**
@@ -62,7 +63,7 @@ class Booked extends Plugin
         $this->registerElementTypes();
         $this->registerCpRoutes();
         $this->registerPermissions();
-        // $this->registerTemplateVariable();
+        $this->registerTemplateVariable();
     }
 
     /**
@@ -315,6 +316,22 @@ class Booked extends Plugin
         return Craft::$app->getView()->renderTemplate(
             'booked/settings/index',
             ['settings' => $this->getSettings()]
+        );
+    }
+
+    /**
+     * Register template variables
+     */
+    private function registerTemplateVariable(): void
+    {
+        Event::on(
+            CraftVariable::class,
+            CraftVariable::EVENT_INIT,
+            function(Event $event) {
+                /** @var CraftVariable $variable */
+                $variable = $event->sender;
+                $variable->set('booked', \fabian\booked\variables\BookingVariable::class);
+            }
         );
     }
 }

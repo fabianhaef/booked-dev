@@ -3,10 +3,12 @@
 namespace fabian\booked\variables;
 
 use Craft;
+use craft\helpers\Template;
 use fabian\booked\Booked;
 use fabian\booked\services\AvailabilityService;
 use fabian\booked\services\BookingService;
 use fabian\booked\models\Settings;
+use Twig\Markup;
 
 /**
  * Booking Variable
@@ -32,10 +34,11 @@ class BookingVariable
      *   - title: Form title
      *   - text: Form description text
      *   - entry: Entry element or entry ID to filter availabilities (optional - will auto-detect current entry if not provided)
-     * @return string
+     * @return Markup
      */
-    public function getForm(array $options = []): string
+    public function getForm(array $options = []): Markup
     {
+        $viewMode = $options['viewMode'] ?? Booked::getInstance()->getSettings()->defaultViewMode ?? 'wizard';
         $title = $options['title'] ?? '';
         $text = $options['text'] ?? '';
         $entry = $options['entry'] ?? null;
@@ -48,19 +51,58 @@ class BookingVariable
             } elseif (is_numeric($entry)) {
                 $entryId = (int)$entry;
             }
-        } else {
-            // Auto-detect current entry from template variables if not explicitly provided
-            $templateVariables = Craft::$app->view->getTwig()->getGlobals();
-            if (isset($templateVariables['entry']) && is_object($templateVariables['entry']) && isset($templateVariables['entry']->id)) {
-                $entryId = $templateVariables['entry']->id;
-            }
         }
 
-        return Craft::$app->view->renderTemplate('booked/booking-form', [
+        $template = 'booked/frontend/' . $viewMode;
+        
+        // Fallback to legacy form if requested specifically or template not found
+        if ($viewMode === 'legacy' || !Craft::$app->view->doesTemplateExist($template)) {
+            return Template::raw(Craft::$app->view->renderTemplate('booked/booking-form', [
+                'title' => $title,
+                'text' => $text,
+                'entryId' => $entryId,
+            ]));
+        }
+
+        return Template::raw(Craft::$app->view->renderTemplate($template, [
             'title' => $title,
             'text' => $text,
             'entryId' => $entryId,
-        ]);
+            'options' => $options
+        ]));
+    }
+
+    /**
+     * Get the booking wizard HTML
+     * @return Markup
+     */
+    public function getWizard(array $options = []): Markup
+    {
+        return Template::raw(Craft::$app->view->renderTemplate('booked/frontend/wizard', [
+            'options' => $options
+        ]));
+    }
+
+    /**
+     * Get the booking catalog HTML
+     * @return Markup
+     */
+    public function getCatalog(array $options = []): Markup
+    {
+        return Template::raw(Craft::$app->view->renderTemplate('booked/frontend/catalog', [
+            'options' => $options
+        ]));
+    }
+
+    /**
+     * Get the booking search HTML
+     * @return Markup
+     */
+    public function getSearch(array $options = []): Markup
+    {
+        return Template::raw(Craft::$app->view->renderTemplate('booked/frontend/search', [
+            'options' => $options
+        ]));
     }
 
     /**

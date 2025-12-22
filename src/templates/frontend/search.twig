@@ -1,0 +1,28 @@
+{#
+/**
+ * Booked Search Template
+ */
+#}
+{% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+{% do view.registerJsFile("https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js", { defer: true }) %}
+
+<div class="booked-search" x-data="bookingSearch()" :class="{ 'booked-loading': loading }">
+    <div class="flex gap-4 mb-8">
+        <input type="date" x-model="date" class="text-input w-48">
+        <button class="btn btn-primary" @click="search()">Suchen</button>
+    </div>
+
+    <div class="booked-grid">
+        <template x-for="slot in results" :key="slot.time + slot.employeeId">
+            <div class="booked-card" @click="window.location.href='/booking?date=' + date + '&time=' + slot.time + '&employeeId=' + slot.employeeId">
+                <div class="font-bold text-xl mb-2" x-text="slot.time"></div>
+                <div class="text-sm light" x-text="'Mitarbeiter ID: ' + slot.employeeId"></div>
+                <button class="btn btn-primary btn-sm mt-4">Buchen</button>
+            </div>
+        </template>
+        <template x-if="results.length === 0 && !loading">
+            <p class="light">Keine Termine für dieses Datum gefunden.</p>
+        </template>
+    </div>
+</div>
+

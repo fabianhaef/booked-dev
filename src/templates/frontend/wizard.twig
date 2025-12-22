@@ -1,0 +1,136 @@
+{#
+/**
+ * Booked Wizard Template
+ */
+#}
+{% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+{% do view.registerJsFile("https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js", { defer: true }) %}
+
+<div class="booked-wizard" x-data="bookingWizard()" :class="{ 'booked-loading': loading }">
+    <!-- Step Indicator -->
+    <div class="booked-step-indicator">
+        <div class="booked-step" :class="{ 'active': step >= 1 }">1. Service</div>
+        <div class="booked-step" :class="{ 'active': step >= 2 }">2. Ort</div>
+        <div class="booked-step" :class="{ 'active': step >= 3 }">3. Mitarbeiter</div>
+        <div class="booked-step" :class="{ 'active': step >= 4 }">4. Datum & Zeit</div>
+        <div class="booked-step" :class="{ 'active': step >= 5 }">5. Info</div>
+        <div class="booked-step" :class="{ 'active': step >= 6 }">6. Bestätigung</div>
+    </div>
+
+    <!-- Step 1: Service Selection -->
+    <div x-show="step === 1">
+        <h3>Wählen Sie eine Dienstleistung</h3>
+        <div class="booked-grid">
+            <template x-for="service in services" :key="service.id">
+                <div class="booked-card" @click="selectService(service)">
+                    <h4 x-text="service.title"></h4>
+                    <p x-text="service.description"></p>
+                    <div class="light" x-text="service.duration + ' min | ' + service.price + ' CHF'"></div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Step 2: Location Selection -->
+    <div x-show="step === 2">
+        <h3>Wählen Sie einen Standort</h3>
+        <div class="booked-grid">
+            <template x-for="location in locations" :key="location.id">
+                <div class="booked-card" @click="selectLocation(location)">
+                    <h4 x-text="location.name"></h4>
+                    <p x-text="location.address"></p>
+                </div>
+            </template>
+        </div>
+        <button class="btn mt-4" @click="prevStep()">Zurück</button>
+    </div>
+
+    <!-- Step 3: Employee Selection -->
+    <div x-show="step === 3">
+        <h3>Wählen Sie einen Mitarbeiter (optional)</h3>
+        <div class="booked-grid">
+            <div class="booked-card" @click="employeeId = null; nextStep()">
+                <h4>Beliebig</h4>
+                <p>Nächster verfügbarer Mitarbeiter</p>
+            </div>
+            <template x-for="employee in employees" :key="employee.id">
+                <div class="booked-card" @click="selectEmployee(employee)">
+                    <h4 x-text="employee.name"></h4>
+                    <p x-text="employee.bio"></p>
+                </div>
+            </template>
+        </div>
+        <button class="btn mt-4" @click="prevStep()">Zurück</button>
+    </div>
+
+    <!-- Step 4: Date & Time Selection -->
+    <div x-show="step === 4">
+        <h3>Wählen Sie Datum und Zeit</h3>
+        <div class="flex gap-8">
+            <div class="w-1/2">
+                <input type="date" x-model="date" @change="selectDate($event.target.value)" class="text-input">
+            </div>
+            <div class="w-1/2">
+                <div class="booked-slots">
+                    <template x-for="slot in availableSlots" :key="slot.time">
+                        <div class="booked-slot" @click="selectSlot(slot)" x-text="slot.time"></div>
+                    </template>
+                    <template x-if="availableSlots.length === 0 && date">
+                        <p class="light">Keine freien Termine an diesem Tag.</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+        <button class="btn mt-4" @click="prevStep()">Zurück</button>
+    </div>
+
+    <!-- Step 5: Customer Information -->
+    <div x-show="step === 5">
+        <h3>Ihre Informationen</h3>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" x-model="customerName" class="text-input" required>
+        </div>
+        <div class="form-group">
+            <label>E-Mail</label>
+            <input type="email" x-model="customerEmail" class="text-input" required>
+        </div>
+        <div class="form-group">
+            <label>Telefon</label>
+            <input type="tel" x-model="customerPhone" class="text-input">
+        </div>
+        <div class="form-group">
+            <label>Notizen</label>
+            <textarea x-model="notes" class="text-input"></textarea>
+        </div>
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Zurück</button>
+            <button class="btn btn-primary" @click="nextStep()" :disabled="!customerName || !customerEmail">Weiter</button>
+        </div>
+    </div>
+
+    <!-- Step 6: Review and Confirm -->
+    <div x-show="step === 6">
+        <h3>Buchung bestätigen</h3>
+        <div class="booked-summary p-4 bg-gray-50 rounded">
+            <p><strong>Dienstleistung:</strong> <span x-text="selectedService?.title"></span></p>
+            <p><strong>Ort:</strong> <span x-text="selectedLocation?.name"></span></p>
+            <p x-if="selectedEmployee"><strong>Mitarbeiter:</strong> <span x-text="selectedEmployee?.name"></span></p>
+            <p><strong>Datum:</strong> <span x-text="date"></span></p>
+            <p><strong>Zeit:</strong> <span x-text="time"></span></p>
+            <hr class="my-2">
+            <p><strong>Name:</strong> <span x-text="customerName"></span></p>
+            <p><strong>E-Mail:</strong> <span x-text="customerEmail"></span></p>
+        </div>
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Zurück</button>
+            <button class="btn btn-primary" @click="submitBooking()">Jetzt buchen</button>
+        </div>
+    </div>
+</div>
+
+{% js %}
+    window.csrfTokenName = "{{ craft.app.config.general.csrfTokenName }}";
+    window.csrfTokenValue = "{{ craft.app.request.csrfToken }}";
+{% endjs %}
+
