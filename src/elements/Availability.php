@@ -531,7 +531,7 @@ class Availability extends Element
     public function getSourceName(): string
     {
         if ($this->sourceType === 'entry' && $this->sourceId) {
-            $entry = Craft::$app->entries->getEntryById($this->sourceId);
+            $entry = Craft::$app->entries->getEntryById($this->sourceId, '*');
             return $entry ? $entry->title : 'Entry #' . $this->sourceId;
         }
 
@@ -592,6 +592,7 @@ class Availability extends Element
                 } else {
                     $this->_variations = BookingVariation::find()
                         ->id($variationIds)
+                        ->siteId('*')
                         ->all();
                 }
             }

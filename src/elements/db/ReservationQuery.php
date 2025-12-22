@@ -114,8 +114,7 @@ class ReservationQuery extends ElementQuery
         // Join the bookings_reservations table
         $this->joinElementTable('bookings_reservations');
 
-        // Select custom columns
-        $this->query->select([
+        $this->query->addSelect([
             'bookings_reservations.userName',
             'bookings_reservations.userEmail',
             'bookings_reservations.userPhone',

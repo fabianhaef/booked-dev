@@ -118,6 +118,6 @@ class SchedulesController extends Controller
         }
 
         Craft::$app->session->setNotice(Craft::t('booked', 'Schedule saved.'));
-        return $this->redirectToPostedUrl($schedule);
+        return $this->redirect('booked/schedules');
     }
 }

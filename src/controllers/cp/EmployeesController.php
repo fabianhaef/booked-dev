@@ -119,9 +119,13 @@ class EmployeesController extends Controller
         $employee->userId = $userId === '' || $userId === null ? null : (int)$userId;
         
         $locationId = $request->getBodyParam('locationId');
+        if (is_array($locationId)) {
+            $locationId = $locationId[0] ?? null;
+        }
         $employee->locationId = $locationId === '' || $locationId === null ? null : (int)$locationId;
 
-        $employee->setServiceIds($request->getBodyParam('services', []));
+        $services = $request->getBodyParam('services', []);
+        $employee->setServiceIds(is_array($services) ? $services : []);
 
         if (!Craft::$app->elements->saveElement($employee)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save employee.'));
@@ -132,6 +136,8 @@ class EmployeesController extends Controller
         }
 
         Craft::$app->session->setNotice(Craft::t('booked', 'Employee saved.'));
-        return $this->redirectToPostedUrl($employee);
+        
+        // Redirect to index for new employees, or if requested by the user
+        return $this->redirect('booked/employees');
     }
 }

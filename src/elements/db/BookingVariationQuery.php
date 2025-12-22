@@ -29,8 +29,7 @@ class BookingVariationQuery extends ElementQuery
     {
         $this->joinElementTable('bookings_variations');
 
-        // Select custom columns
-        $this->query->select([
+        $this->query->addSelect([
             'bookings_variations.description',
             'bookings_variations.slotDurationMinutes',
             'bookings_variations.bufferMinutes',

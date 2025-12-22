@@ -94,7 +94,7 @@ class BlackoutDatesController extends Controller
         }
 
         Craft::$app->session->setNotice('Blackout date saved successfully.');
-        return $this->redirectToPostedUrl($blackoutDate);
+        return $this->redirect('booked/blackout-dates');
     }
 
     /**

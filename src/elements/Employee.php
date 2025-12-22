@@ -418,11 +418,15 @@ class Employee extends Element
     /**
      * Set service IDs
      *
-     * @param int[] $value
+     * @param int[]|string|null $value
      */
-    public function setServiceIds(array $value): void
+    public function setServiceIds($value): void
     {
-        $this->_serviceIds = $value;
+        if (empty($value)) {
+            $this->_serviceIds = [];
+            return;
+        }
+        $this->_serviceIds = (array)$value;
     }
 
     /**
@@ -485,7 +489,7 @@ class Employee extends Element
         }
 
         if ($this->_location === null && $this->locationId) {
-            $this->_location = Location::findOne($this->locationId);
+            $this->_location = Location::find()->id($this->locationId)->siteId('*')->one();
         }
         return $this->_location;
     }

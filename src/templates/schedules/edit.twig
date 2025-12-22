@@ -23,7 +23,7 @@
                 id: 'employeeId',
                 name: 'employeeId',
                 elementType: 'fabian\\booked\\elements\\Employee',
-                elements: schedule.employeeId ? [schedule.getEmployee()] : [],
+                elements: schedule.employeeId and schedule.getEmployee() ? [schedule.getEmployee()] : [],
                 limit: 1,
                 required: true,
                 errors: schedule.getErrors('employeeId'),

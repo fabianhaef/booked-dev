@@ -331,7 +331,7 @@ class Schedule extends Element
         }
 
         if ($this->_employee === null && $this->employeeId) {
-            $this->_employee = Employee::findOne($this->employeeId);
+            $this->_employee = Employee::find()->id($this->employeeId)->siteId('*')->one();
         }
         return $this->_employee;
     }

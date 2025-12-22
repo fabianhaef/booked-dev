@@ -64,7 +64,7 @@ class ServiceQuery extends ElementQuery
 
         $this->joinElementTable('booked_services');
 
-        $this->query->select([
+        $this->query->addSelect([
             'booked_services.duration',
             'booked_services.bufferBefore',
             'booked_services.bufferAfter',

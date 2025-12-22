@@ -103,7 +103,7 @@ class VariationsController extends Controller
         }
 
         Craft::$app->session->setNotice('Variation saved successfully.');
-        return $this->redirectToPostedUrl($variation);
+        return $this->redirect('booked/variations');
     }
 
     /**

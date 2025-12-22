@@ -83,8 +83,7 @@ class AvailabilityQuery extends ElementQuery
         // Join the bookings_availability table
         $this->joinElementTable('bookings_availability');
 
-        // Select custom columns
-        $this->query->select([
+        $this->query->addSelect([
             'bookings_availability.dayOfWeek',
             'bookings_availability.startTime',
             'bookings_availability.endTime',

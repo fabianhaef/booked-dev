@@ -51,7 +51,7 @@
             id: 'locationId',
             name: 'locationId',
             elementType: 'fabian\\booked\\elements\\Location',
-            elements: employee.locationId ? [employee.getLocation()] : [],
+            elements: employee.locationId and employee.getLocation() ? [employee.getLocation()] : [],
             limit: 1,
             errors: employee.getErrors('locationId'),
             instructions: 'Primary location for this employee'

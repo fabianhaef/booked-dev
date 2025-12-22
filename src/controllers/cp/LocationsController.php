@@ -109,6 +109,6 @@ class LocationsController extends Controller
         }
 
         Craft::$app->session->setNotice(Craft::t('booked', 'Location saved.'));
-        return $this->redirectToPostedUrl($location);
+        return $this->redirect('booked/locations');
     }
 }

@@ -677,7 +677,7 @@ class Reservation extends Element
         }
 
         if ($this->sourceType === 'entry' && $this->sourceId) {
-            $entry = Craft::$app->entries->getEntryById($this->sourceId);
+            $entry = Craft::$app->entries->getEntryById($this->sourceId, '*');
             return $entry ? $entry->title : 'Entry #' . $this->sourceId;
         }
 
@@ -844,7 +844,7 @@ class Reservation extends Element
         if ($this->employeeId === null) {
             return null;
         }
-        return Employee::find()->id($this->employeeId)->one();
+        return Employee::find()->id($this->employeeId)->siteId('*')->one();
     }
 
     /**
@@ -855,7 +855,7 @@ class Reservation extends Element
         if ($this->serviceId === null) {
             return null;
         }
-        return Service::find()->id($this->serviceId)->one();
+        return Service::find()->id($this->serviceId)->siteId('*')->one();
     }
 
     /**

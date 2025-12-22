@@ -53,8 +53,7 @@ class BlackoutDateQuery extends ElementQuery
         // Join the bookings_blackout_dates table
         $this->joinElementTable('bookings_blackout_dates');
 
-        // Select custom columns
-        $this->query->select([
+        $this->query->addSelect([
             'bookings_blackout_dates.startDate',
             'bookings_blackout_dates.endDate',
             'bookings_blackout_dates.isActive',

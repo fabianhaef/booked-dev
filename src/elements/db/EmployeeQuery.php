@@ -74,7 +74,7 @@ class EmployeeQuery extends ElementQuery
 
         $this->joinElementTable('booked_employees');
 
-        $this->query->select([
+        $this->query->addSelect([
             'booked_employees.userId',
             'booked_employees.locationId',
         ]);

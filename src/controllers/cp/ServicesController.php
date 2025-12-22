@@ -110,6 +110,6 @@ class ServicesController extends Controller
         }
 
         Craft::$app->session->setNotice(Craft::t('booked', 'Service saved.'));
-        return $this->redirectToPostedUrl($service);
+        return $this->redirect('booked/services');
     }
 }
