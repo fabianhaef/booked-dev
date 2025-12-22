@@ -22,14 +22,6 @@ use fabian\booked\records\ReservationRecord;
  */
 class BookingService extends Component
 {
-    private AvailabilityService $availabilityService;
-
-    public function init(): void
-    {
-        parent::init();
-        $this->availabilityService = Booked::getInstance()->availability;
-    }
-
     /**
      * Get all reservations
      */
@@ -143,6 +135,47 @@ class BookingService extends Component
     }
 
     /**
+     * Create reservation model
+     */
+    protected function createReservationModel(): Reservation
+    {
+        return new Reservation();
+    }
+
+    /**
+     * Get plugin settings
+     */
+    protected function getSettingsModel(): Settings
+    {
+        return Settings::loadSettings();
+    }
+
+    /**
+     * Create a new booking (wrapper for createReservation with simplified array keys)
+     */
+    public function createBooking(array $data): bool
+    {
+        $reservationData = [
+            'userName' => $data['customerName'] ?? '',
+            'userEmail' => $data['customerEmail'] ?? '',
+            'bookingDate' => $data['date'] ?? '',
+            'startTime' => $data['time'] ?? '',
+            'serviceId' => $data['serviceId'] ?? null,
+            'employeeId' => $data['employeeId'] ?? null,
+            'locationId' => $data['locationId'] ?? null,
+            'quantity' => $data['quantity'] ?? 1,
+            'notes' => $data['notes'] ?? null,
+        ];
+
+        try {
+            $this->createReservation($reservationData);
+            return true;
+        } catch (\Exception $e) {
+            throw new BookingException($e->getMessage());
+        }
+    }
+
+    /**
      * Create a new reservation
      *
      * Uses mutex locking and database transaction to prevent race conditions
@@ -164,8 +197,8 @@ class BookingService extends Component
 
         // Rate limiting - check IP (skip for console requests)
         $ipAddress = $data['ipAddress'] ?? null;
-        if ($ipAddress === null && !Craft::$app->request->getIsConsoleRequest()) {
-            $ipAddress = Craft::$app->request->getUserIP();
+        if ($ipAddress === null && !$this->getRequestService()->getIsConsoleRequest()) {
+            $ipAddress = $this->getRequestService()->getUserIP();
         }
         if ($ipAddress && !$this->checkIPRateLimit($ipAddress)) {
             Craft::warning("Booking blocked: IP rate limit exceeded for {$ipAddress}", __METHOD__);
@@ -173,10 +206,15 @@ class BookingService extends Component
         }
 
         // CRITICAL: Acquire mutex lock to prevent race conditions with overlapping bookings
-        // Lock on the booking date to prevent any concurrent bookings for the same day
+        // Lock on the specific slot to allow concurrent bookings for different slots
         $bookingDate = $data['bookingDate'] ?? '';
-        $lockKey = "booking_date_{$bookingDate}";
-        $mutex = Craft::$app->mutex;
+        $startTime = $data['startTime'] ?? '';
+        $employeeId = $data['employeeId'] ?? null;
+        $locationId = $data['locationId'] ?? null;
+        $serviceId = $data['serviceId'] ?? null;
+        
+        $lockKey = "booked-booking-{$bookingDate}-{$startTime}-" . ($employeeId ?? 'any') . "-" . ($serviceId ?? 'any');
+        $mutex = $this->getMutex();
 
         // Try to acquire lock with 10 second timeout
         if (!$mutex->acquire($lockKey, 10)) {
@@ -187,19 +225,35 @@ class BookingService extends Component
         // Wrap entire booking logic in try-finally to ensure mutex is ALWAYS released
         try {
             // Begin database transaction to prevent race conditions
-            $transaction = Craft::$app->db->beginTransaction();
+            $transaction = $this->getDb()->beginTransaction();
 
             try {
-                $reservation = new Reservation();
+                // Calculate end time based on service duration if not provided
+                $endTime = $data['endTime'] ?? '';
+                if (empty($endTime) && $serviceId) {
+                    $service = $this->getServiceById($serviceId);
+                    if ($service) {
+                        $startDateTime = new \DateTime($bookingDate . ' ' . $startTime);
+                        $endDateTime = (clone $startDateTime)->modify("+{$service->duration} minutes");
+                        $endTime = $endDateTime->format('H:i');
+                    }
+                }
+
+                $reservation = $this->createReservationModel();
                 $reservation->userName = $data['userName'] ?? '';
                 $reservation->userEmail = $userEmail;
                 $reservation->userPhone = $data['userPhone'] ?? null;
                 $reservation->userTimezone = $data['userTimezone'] ?? $this->detectUserTimezone();
-                $reservation->bookingDate = $data['bookingDate'] ?? '';
-                $reservation->startTime = $data['startTime'] ?? '';
-                $reservation->endTime = $data['endTime'] ?? '';
+                $reservation->bookingDate = $bookingDate;
+                $reservation->startTime = $startTime;
+                $reservation->endTime = $endTime;
                 $reservation->status = $data['status'] ?? ReservationRecord::STATUS_CONFIRMED;
                 $reservation->notes = $data['notes'] ?? null;
+
+                // Store relationships
+                $reservation->employeeId = $employeeId;
+                $reservation->locationId = $locationId;
+                $reservation->serviceId = $serviceId;
 
                 // Store source information from availability
                 $reservation->sourceType = $data['sourceType'] ?? null;
@@ -213,13 +267,13 @@ class BookingService extends Component
 
                 // Validate availability INSIDE transaction for consistency
                 // CRITICAL: Pass quantity to check capacity-based availability
-                if (!$this->availabilityService->isSlotAvailable(
+                if (!$this->getAvailabilityService()->isSlotAvailable(
                     $reservation->bookingDate,
                     $reservation->startTime,
                     $reservation->endTime,
-                    null, // employeeId
-                    null, // locationId
-                    $reservation->variationId,
+                    $reservation->employeeId,
+                    $reservation->locationId,
+                    $reservation->serviceId,
                     $reservation->quantity
                 )) {
                     $transaction->rollBack();
@@ -230,9 +284,9 @@ class BookingService extends Component
                         ' (variation: ' . ($reservation->variationId ?? 'none') . ', quantity: ' . $reservation->quantity . ')', __METHOD__);
                     throw new BookingConflictException('Der gewählte Zeitslot hat nicht genügend Kapazität für die angeforderte Anzahl.');
                 }
-
+                
                 // Save reservation - unique constraint will catch any race conditions
-                if (!Craft::$app->elements->saveElement($reservation)) {
+                if (!$this->getElementsService()->saveElement($reservation)) {
                     $transaction->rollBack();
                     Craft::error('Failed to save reservation: ' . json_encode($reservation->getErrors()), __METHOD__);
                     throw new BookingValidationException('Die Buchungsvalidierung ist fehlgeschlagen.', $reservation->getErrors());
@@ -250,6 +304,9 @@ class BookingService extends Component
 
                 // Commit transaction first to ensure booking is saved
                 $transaction->commit();
+
+                // Invalidate availability cache for this date
+                $this->getAvailabilityCacheService()->invalidateDateCache($reservation->bookingDate);
 
                 // Queue confirmation email to client AFTER commit (async, failure won't affect booking)
                 $this->queueBookingEmail($reservation->id, 'confirmation');
@@ -340,7 +397,7 @@ class BookingService extends Component
 
         // If time/date changed, validate availability
         if (isset($data['bookingDate']) || isset($data['startTime']) || isset($data['endTime'])) {
-            if (!$this->availabilityService->isSlotAvailable(
+            if (!$this->getAvailabilityService()->isSlotAvailable(
                 $reservation->bookingDate,
                 $reservation->startTime,
                 $reservation->endTime
@@ -443,7 +500,7 @@ class BookingService extends Component
             'oldStatus' => $oldStatus,
         ]);
 
-        Craft::$app->queue->priority($priority)->push($job);
+        $this->getQueueService()->priority($priority)->push($job);
 
         Craft::info(
             "Queued {$emailType} email for reservation #{$reservationId}",
@@ -462,7 +519,7 @@ class BookingService extends Component
      */
     public function queueOwnerNotification(int $reservationId, int $priority = 1024): void
     {
-        $settings = Settings::loadSettings();
+        $settings = $this->getSettingsModel();
 
         // Check if owner notification is enabled
         if (!$settings->ownerNotificationEnabled) {
@@ -482,7 +539,7 @@ class BookingService extends Component
             'emailType' => 'owner_notification',
         ]);
 
-        Craft::$app->queue->priority($priority)->push($job);
+        $this->getQueueService()->priority($priority)->push($job);
 
         Craft::info(
             "Queued owner notification email for reservation #{$reservationId}",
@@ -665,6 +722,78 @@ class BookingService extends Component
     }
 
     /**
+     * Get DB service
+     */
+    protected function getDb()
+    {
+        return Craft::$app->db;
+    }
+
+    /**
+     * Get elements service
+     */
+    protected function getElementsService()
+    {
+        return Craft::$app->elements;
+    }
+
+    /**
+     * Get mutex service
+     */
+    protected function getMutex()
+    {
+        return Craft::$app->mutex;
+    }
+
+    /**
+     * Get availability cache service
+     */
+    protected function getAvailabilityCacheService(): AvailabilityCacheService
+    {
+        return Booked::getInstance()->getAvailabilityCache();
+    }
+
+    /**
+     * Get queue service
+     */
+    protected function getQueueService()
+    {
+        return Craft::$app->queue;
+    }
+
+    /**
+     * Get cache service
+     */
+    protected function getCacheService()
+    {
+        return Craft::$app->cache;
+    }
+
+    /**
+     * Get request service
+     */
+    protected function getRequestService()
+    {
+        return Craft::$app->request;
+    }
+
+    /**
+     * Get service by ID
+     */
+    protected function getServiceById(int $id): ?\fabian\booked\elements\Service
+    {
+        return \fabian\booked\elements\Service::findOne($id);
+    }
+
+    /**
+     * Get reservation record query
+     */
+    protected function getReservationRecordQuery(): \yii\db\ActiveQuery
+    {
+        return ReservationRecord::find();
+    }
+
+    /**
      * Detect user's timezone from browser or default to Europe/Zurich
      * Can be enhanced with IP-based detection or browser timezone detection
      */
@@ -699,7 +828,7 @@ class BookingService extends Component
      */
     private function checkEmailRateLimit(string $email): bool
     {
-        $settings = Settings::loadSettings();
+        $settings = $this->getSettingsModel();
 
         // Skip in test environment to avoid session issues
         if (defined('CRAFT_ENVIRONMENT') && CRAFT_ENVIRONMENT === 'test') {
@@ -710,7 +839,7 @@ class BookingService extends Component
 
         try {
             // Check total bookings per email today
-            $bookingsToday = ReservationRecord::find()
+            $bookingsToday = $this->getReservationRecordQuery()
                 ->where(['userEmail' => $email])
                 ->andWhere(['>=', 'dateCreated', $today . ' 00:00:00'])
                 ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED])
@@ -721,7 +850,7 @@ class BookingService extends Component
             }
 
             // Check time between bookings
-            $lastBooking = ReservationRecord::find()
+            $lastBooking = $this->getReservationRecordQuery()
                 ->where(['userEmail' => $email])
                 ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED])
                 ->orderBy(['dateCreated' => SORT_DESC])
@@ -750,7 +879,7 @@ class BookingService extends Component
      */
     private function checkIPRateLimit(string $ipAddress): bool
     {
-        $settings = Settings::loadSettings();
+        $settings = $this->getSettingsModel();
 
         // Skip in test environment
         if (defined('CRAFT_ENVIRONMENT') && CRAFT_ENVIRONMENT === 'test') {
@@ -758,7 +887,7 @@ class BookingService extends Component
         }
 
         $today = date('Y-m-d');
-        $cache = Craft::$app->cache;
+        $cache = $this->getCacheService();
         $cacheKey = 'booking_ip_limit_' . md5($ipAddress);
 
         try {

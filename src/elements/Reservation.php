@@ -448,7 +448,7 @@ class Reservation extends Element
             }
 
             // Check minimum advance booking time
-            $settings = \fabian\booked\models\Settings::loadSettings();
+            $settings = $this->getSettings();
             $minimumAdvanceHours = $settings->minimumAdvanceBookingHours ?? 2;
 
             // If set to 0, allow immediate bookings
@@ -538,7 +538,7 @@ class Reservation extends Element
     public function afterSave(bool $isNew): void
     {
         if (!$isNew) {
-            $record = ReservationRecord::findOne($this->id);
+            $record = $this->getRecord();
             if (!$record) {
                 throw new \Exception('Invalid reservation ID: ' . $this->id);
             }
@@ -586,12 +586,28 @@ class Reservation extends Element
     public function afterDelete(): void
     {
         // Delete the reservation record
-        $record = ReservationRecord::findOne($this->id);
+        $record = $this->getRecord();
         if ($record) {
             $record->delete();
         }
 
         parent::afterDelete();
+    }
+
+    /**
+     * Get reservation record
+     */
+    protected function getRecord(): ?ReservationRecord
+    {
+        return ReservationRecord::findOne($this->id);
+    }
+
+    /**
+     * Get plugin settings
+     */
+    protected function getSettings(): \fabian\booked\models\Settings
+    {
+        return \fabian\booked\models\Settings::loadSettings();
     }
 
     // === Business Logic Methods ===
@@ -705,7 +721,7 @@ class Reservation extends Element
         }
 
         // Get cancellation policy from settings
-        $settings = \fabian\booked\models\Settings::loadSettings();
+        $settings = $this->getSettings();
         $hoursBeforeCancellation = $settings->cancellationPolicyHours ?? 24;
 
         // If policy is set to 0, allow cancellation any time

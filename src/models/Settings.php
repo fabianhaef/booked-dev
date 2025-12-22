@@ -215,6 +215,14 @@ class Settings extends Model
     public ?int $paymentQrAssetId = null;
 
     /**
+     * Get the effective owner email address
+     */
+    public function getEffectiveEmail(): ?string
+    {
+        return $this->ownerEmail ?: Craft::$app->getProjectConfig()->get('email.fromEmail');
+    }
+
+    /**
      * @inheritdoc
      */
     public function rules(): array

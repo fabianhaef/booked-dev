@@ -47,6 +47,60 @@ if (!class_exists('Craft')) {
         public static function error($message, $category = 'app') {}
         public static function warning($message, $category = 'app') {}
         public static function dd($var) { var_dump($var); die(); }
+        public static function createObject($type, array $params = []) {
+            if (is_string($type) && class_exists($type)) {
+                return new $type(...$params);
+            }
+            return null;
+        }
+        public static function configure($object, $properties) {
+            foreach ($properties as $name => $value) {
+                $object->$name = $value;
+            }
+            return $object;
+        }
+        public static function getAlias($alias) {
+            return $alias;
+        }
+    }
+    
+    // Initialize Craft::$app with a basic mock
+    Craft::$app = new class {
+        public $components = [];
+        public function __construct() {
+            $this->components['cache'] = new stdClass();
+            $this->components['db'] = new stdClass();
+            $this->components['elements'] = new stdClass();
+            $this->components['queue'] = new stdClass();
+            $this->components['mailer'] = new stdClass();
+            $this->components['request'] = new class {
+                public function getIsConsoleRequest() { return true; }
+                public function getUserIP() { return '127.0.0.1'; }
+            };
+            $this->components['session'] = new stdClass();
+            $this->components['projectConfig'] = new stdClass();
+            $this->components['availabilityCache'] = new class {
+                public function invalidateDateCache($date) {}
+            };
+        }
+        public function get($id) {
+            return $this->components[$id] ?? null;
+        }
+        public function getProjectConfig() {
+            return new class {
+                public function get($path) { return 'owner@example.com'; }
+            };
+        }
+        public function getIsConsoleRequest() {
+            return $this->get('request')->getIsConsoleRequest();
+        }
+        public function getTimeZone() {
+            return 'UTC';
+        }
+    };
+
+    if (!class_exists('Yii')) {
+        class Yii extends Craft {}
     }
 }
 

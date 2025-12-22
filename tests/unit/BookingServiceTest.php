@@ -11,12 +11,124 @@ use UnitTester;
 use DateTime;
 
 /**
+ * Mock Service
+ */
+class BookingMockService extends \fabian\booked\elements\Service {
+    public ?int $duration = 60;
+    public function __construct() {}
+}
+
+/**
+ * Mock Mutex
+ */
+class MockMutex {
+    public $acquired = [];
+    public function acquire($name, $timeout = 0) {
+        if (isset($this->acquired[$name])) return false;
+        $this->acquired[$name] = true;
+        return true;
+    }
+    public function release($name) {
+        unset($this->acquired[$name]);
+    }
+}
+
+/**
  * Testable version of BookingService
  */
 class TestableBookingService extends BookingService {
     public $mockReservation = null;
+    public $mockSettings = null;
+    public $mockAvailabilityService = null;
+    public $mockMutex = null;
+
     public function getReservationById(int $id): ?Reservation {
         return $this->mockReservation;
+    }
+
+    protected function createReservationModel(): Reservation {
+        return new MockReservationElement();
+    }
+
+    protected function getServiceById(int $id): ?\fabian\booked\elements\Service {
+        $s = new BookingMockService();
+        $s->duration = 60;
+        return $s;
+    }
+
+    protected function getReservationRecordQuery(): \yii\db\ActiveQuery {
+        return new class extends \yii\db\ActiveQuery {
+            public function __construct() { parent::__construct(\fabian\booked\records\ReservationRecord::class); }
+            public function where($condition, $params = []) { return $this; }
+            public function andWhere($condition, $params = []) { return $this; }
+            public function orderBy($columns) { return $this; }
+            public function count($q = '*', $db = null) { return 0; }
+            public function one($db = null) { return null; }
+        };
+    }
+
+    protected function getRequestService() {
+        return new class {
+            public function getIsConsoleRequest() { return true; }
+            public function getUserIP() { return '127.0.0.1'; }
+        };
+    }
+
+    protected function getQueueService() {
+        return new class {
+            public function priority($p) { return $this; }
+            public function push($job) { return true; }
+        };
+    }
+
+    protected function getCacheService() {
+        return new class {
+            public function get($key) { return null; }
+            public function set($key, $val, $ttl) { return true; }
+        };
+    }
+
+    protected function getSettingsModel(): \fabian\booked\models\Settings {
+        return $this->mockSettings ?? new \fabian\booked\models\Settings();
+    }
+
+    protected function getAvailabilityService(): AvailabilityService {
+        return $this->mockAvailabilityService;
+    }
+
+    protected function getAvailabilityCacheService(): \fabian\booked\services\AvailabilityCacheService {
+        return new class extends \fabian\booked\services\AvailabilityCacheService {
+            public function init(): void {}
+            public function invalidateDateCache(string $date): bool { return true; }
+        };
+    }
+
+    protected function getMutex() {
+        return $this->mockMutex;
+    }
+
+    protected function getDb() {
+        // Mock DB connection for transactions
+        $db = new class {
+            public function beginTransaction() {
+                return new class {
+                    public function commit() {}
+                    public function rollBack() {}
+                };
+            }
+        };
+        return $db;
+    }
+
+    protected function getElementsService() {
+        return new class {
+            public function saveElement($element) {
+                if ($element->id === null) {
+                    $element->id = 123;
+                }
+                return true;
+            }
+        };
     }
 }
 
@@ -25,6 +137,22 @@ class TestableBookingService extends BookingService {
  */
 class MockReservationElement extends Reservation {
     public function __construct() {}
+    protected function getRecord(): ?\fabian\booked\records\ReservationRecord {
+        return new \fabian\booked\records\ReservationRecord();
+    }
+    protected function getSettings(): \fabian\booked\models\Settings {
+        return new \fabian\booked\models\Settings();
+    }
+}
+
+/**
+ * Mock Availability Service
+ */
+class MockAvailabilityService extends AvailabilityService {
+    public $slots = [];
+    public function getAvailableSlots($date, $empId = null, $locId = null, $servId = null, $qty = 1, $tz = null): array {
+        return $this->slots;
+    }
 }
 
 class BookingServiceTest extends Unit
@@ -88,6 +216,55 @@ class BookingServiceTest extends Unit
         $res3->status = 'cancelled';
         
         $this->assertFalse($this->invokeMethod($this->service, 'canCancelReservation', [$res3]));
+    }
+
+    /**
+     * Test that createBooking uses a mutex lock to prevent race conditions
+     */
+    public function testRaceConditionPrevention()
+    {
+        $this->service->mockMutex = new MockMutex();
+        $this->service->mockAvailabilityService = new MockAvailabilityService();
+        $this->service->mockAvailabilityService->slots = [['startTime' => '10:00', 'time' => '10:00', 'endTime' => '11:00', 'employeeId' => 1]];
+        
+        $bookingData = [
+            'date' => '2026-01-01',
+            'time' => '10:00',
+            'serviceId' => 1,
+            'employeeId' => 1,
+            'customerName' => 'Test User',
+            'customerEmail' => 'test@example.com'
+        ];
+
+        // This should pass if mutex is acquired and released
+        $result = $this->service->createBooking($bookingData);
+        
+        $this->assertTrue($result);
+        // Mutex should be empty now because it was released
+        $this->assertEmpty($this->service->mockMutex->acquired);
+    }
+
+    /**
+     * Test that createBooking fails if mutex cannot be acquired
+     */
+    public function testMutexLockFailure()
+    {
+        $this->service->mockMutex = new MockMutex();
+        // Pre-acquire the lock to simulate another process holding it
+        $lockName = 'booked-booking-2026-01-01-10:00-1-1';
+        $this->service->mockMutex->acquire($lockName);
+        
+        $bookingData = [
+            'date' => '2026-01-01',
+            'time' => '10:00',
+            'serviceId' => 1,
+            'employeeId' => 1,
+            'customerName' => 'Test User',
+            'customerEmail' => 'test@example.com'
+        ];
+
+        $this->expectException(\fabian\booked\exceptions\BookingException::class);
+        $this->service->createBooking($bookingData);
     }
 
     protected function invokeMethod(&$object, $methodName, array $parameters = [])
