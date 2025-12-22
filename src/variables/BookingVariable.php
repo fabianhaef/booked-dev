@@ -1,12 +1,12 @@
 <?php
 
-namespace zeix\booked\variables;
+namespace fabian\booked\variables;
 
 use Craft;
-use zeix\booked\Booked;
-use zeix\booked\services\AvailabilityService;
-use zeix\booked\services\BookingService;
-use zeix\booked\models\Settings;
+use fabian\booked\Booked;
+use fabian\booked\services\AvailabilityService;
+use fabian\booked\services\BookingService;
+use fabian\booked\models\Settings;
 
 /**
  * Booking Variable

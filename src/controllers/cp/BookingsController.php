@@ -33,7 +33,7 @@ class BookingsController extends Controller
      */
     public function actionIndex(): Response
     {
-        return $this->renderTemplate('booking/bookings/_index', [
+        return $this->renderTemplate('booked/bookings/_index', [
             'title' => 'Buchungen',
         ]);
     }
@@ -49,7 +49,7 @@ class BookingsController extends Controller
             throw new NotFoundHttpException('Booking not found');
         }
 
-        return $this->renderTemplate('booking/bookings/view', [
+        return $this->renderTemplate('booked/bookings/view', [
             'reservation' => $reservation,
         ]);
     }
@@ -66,6 +66,7 @@ class BookingsController extends Controller
             }
         } else {
             $reservation = new Reservation();
+            $reservation->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
         // Load variation if exists
@@ -74,7 +75,7 @@ class BookingsController extends Controller
             $variation = BookingVariation::find()->id($reservation->variationId)->one();
         }
 
-        return $this->renderTemplate('booking/bookings/edit', [
+        return $this->renderTemplate('booked/bookings/edit', [
             'reservation' => $reservation,
             'variation' => $variation,
             'statuses' => Reservation::getStatuses(),
@@ -111,6 +112,9 @@ class BookingsController extends Controller
         $reservation->notes = $request->getBodyParam('notes');
         $reservation->quantity = (int)($request->getBodyParam('quantity') ?? 1);
 
+        // Set field values
+        $reservation->setFieldValuesFromRequest('fields');
+
         if (!Craft::$app->elements->saveElement($reservation)) {
             Craft::$app->session->setError('Unable to save booking.');
             
@@ -120,7 +124,7 @@ class BookingsController extends Controller
                 $variation = BookingVariation::find()->id($reservation->variationId)->one();
             }
             
-            return $this->renderTemplate('booking/bookings/edit', [
+            return $this->renderTemplate('booked/bookings/edit', [
                 'reservation' => $reservation,
                 'variation' => $variation,
                 'statuses' => Reservation::getStatuses(),
@@ -128,7 +132,7 @@ class BookingsController extends Controller
         }
 
         Craft::$app->session->setNotice('Booking saved successfully.');
-        return $this->redirect('booking/bookings/' . $reservation->id);
+        return $this->redirect('booked/bookings/' . $reservation->id);
     }
 
     /**
@@ -151,7 +155,7 @@ class BookingsController extends Controller
             Craft::$app->session->setError('Unable to delete booking.');
         }
 
-        return $this->redirect('booking/bookings');
+        return $this->redirect('booked/bookings');
     }
 
     /**

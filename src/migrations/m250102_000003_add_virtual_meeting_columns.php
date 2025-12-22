@@ -14,7 +14,7 @@ class m250102_000003_add_virtual_meeting_columns extends Migration
      */
     public function safeUp(): bool
     {
-        $table = '{{%booked_reservations}}';
+        $table = '{{%bookings_reservations}}';
         
         if (!$this->db->columnExists($table, 'virtualMeetingUrl')) {
             $this->addColumn($table, 'virtualMeetingUrl', $this->string()->after('notes'));
@@ -36,7 +36,7 @@ class m250102_000003_add_virtual_meeting_columns extends Migration
      */
     public function safeDown(): bool
     {
-        $table = '{{%booked_reservations}}';
+        $table = '{{%bookings_reservations}}';
         
         if ($this->db->columnExists($table, 'virtualMeetingUrl')) {
             $this->dropColumn($table, 'virtualMeetingUrl');

@@ -14,14 +14,14 @@
         "scheduling"
     ],
     "support": {
-        "docs": "https://github.com/zeix/craft-booked/blob/master/README.md",
-        "issues": "https://github.com/zeix/craft-booked/issues"
+        "docs": "https://github.com/fabianhaef/craft-booked/blob/master/README.md",
+        "issues": "https://github.com/fabianhaef/craft-booked/issues"
     },
     "license": "proprietary",
     "authors": [
         {
-            "name": "Zeix AG",
-            "homepage": "https://zeix.com"
+            "name": "Fabian Haefliger",
+            "homepage": "https://fabianhaefliger.ch"
         }
     ],
     "require": {
@@ -63,9 +63,9 @@
         "name": "Booked",
         "handle": "booked",
         "developer": "Fabian",
-        "developerUrl": "https://zeix.com",
-        "documentationUrl": "https://github.com/zeix/craft-booked/blob/master/README.md",
-        "changelogUrl": "https://raw.githubusercontent.com/zeix/craft-booked/master/CHANGELOG.md",
+        "developerUrl": "https://fabianhaefliger.ch",
+        "documentationUrl": "https://github.com/fabianhaef/craft-booked/blob/master/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/fabianhaef/craft-booked/master/CHANGELOG.md",
         "class": "fabian\\booked\\Booked"
     },
     "config": {

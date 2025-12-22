@@ -137,7 +137,15 @@ class Reservation extends Element
      */
     public static function hasContent(): bool
     {
-        return false;
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getFieldLayout(): ?\craft\models\FieldLayout
+    {
+        return Craft::$app->getFields()->getLayoutByType(static::class);
     }
 
     /**

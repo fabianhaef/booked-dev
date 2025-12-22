@@ -231,6 +231,7 @@ class Booked extends Plugin
                     'booked/settings/calendar' => 'booked/cp/settings/calendar',
                     'booked/settings/meetings' => 'booked/cp/settings/meetings',
                     'booked/settings/notifications' => 'booked/cp/settings/notifications',
+                    'booked/settings/booking-fields' => 'booked/cp/settings/booking-fields',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
                     
@@ -288,6 +289,7 @@ class Booked extends Plugin
                     'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/settings/calendar'],
                     'meetings' => ['label' => Craft::t('booked', 'Virtual Meetings'), 'url' => 'booked/settings/meetings'],
                     'notifications' => ['label' => Craft::t('booked', 'Notifications'), 'url' => 'booked/settings/notifications'],
+                    'booking-fields' => ['label' => Craft::t('booked', 'Booking Fields'), 'url' => 'booked/settings/booking-fields'],
                     'commerce' => ['label' => Craft::t('booked', 'Commerce'), 'url' => 'booked/settings/commerce'],
                     'frontend' => ['label' => Craft::t('booked', 'Frontend'), 'url' => 'booked/settings/frontend'],
                 ],

@@ -281,6 +281,9 @@ class SendBookingEmailJob extends BaseJob
             'bookingId' => $reservation->id,
             'confirmationToken' => $reservation->confirmationToken,
             
+            // Custom Fields
+            'customFields' => $this->getCustomFieldData($reservation),
+            
             // Sender info (uses Craft defaults if not overridden)
             'ownerName' => $settings->getEffectiveName(),
             'ownerEmail' => $settings->getEffectiveEmail(),
@@ -430,6 +433,46 @@ class SendBookingEmailJob extends BaseJob
         ];
 
         return Craft::$app->view->renderTemplate('booked/emails/reminder', $variables);
+    }
+
+    /**
+     * Get custom field data for the reservation
+     */
+    private function getCustomFieldData(Reservation $reservation): array
+    {
+        $data = [];
+        $fieldLayout = $reservation->getFieldLayout();
+        if (!$fieldLayout) {
+            return $data;
+        }
+
+        foreach ($fieldLayout->getCustomFields() as $field) {
+            $value = $reservation->getFieldValue($field->handle);
+            if ($value !== null && $value !== '') {
+                // Format the value based on field type if necessary
+                $label = $field->name;
+                
+                // Simplified formatting for email
+                if (is_object($value)) {
+                    if (method_exists($value, '__toString')) {
+                        $value = (string)$value;
+                    } else if (property_exists($value, 'name')) {
+                        $value = $value->name;
+                    } else {
+                        $value = '[Object]';
+                    }
+                } else if (is_array($value)) {
+                    $value = implode(', ', $value);
+                }
+
+                $data[] = [
+                    'label' => $label,
+                    'value' => $value,
+                ];
+            }
+        }
+
+        return $data;
     }
 
     /**
