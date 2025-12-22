@@ -37,6 +37,7 @@ class EmployeesController extends Controller
             }
         } else {
             $employee = new Employee();
+            $employee->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
         // Get available users and locations for dropdowns

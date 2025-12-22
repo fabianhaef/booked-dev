@@ -157,29 +157,28 @@ class SettingsController extends Controller
         if ($section === 'field-layouts') {
             $fieldsService = Craft::$app->getFields();
             
+            Craft::info('Saving field layouts...', __METHOD__);
+
             // Save Employee field layout
-            $employeeFieldLayout = $this->saveFieldLayout(
-                $request->getBodyParam('employeeFieldLayout'),
-                $settings->employeeFieldLayoutId,
-                'Employee'
-            );
-            $settings->employeeFieldLayoutId = $employeeFieldLayout?->id;
+            $employeeFieldLayout = $this->assembleAndSaveLayout('employeeFieldLayout', \fabian\booked\elements\Employee::class, $settings->employeeFieldLayoutId);
+            if ($employeeFieldLayout) {
+                $settings->employeeFieldLayoutId = $employeeFieldLayout->id;
+                Craft::info('Saved Employee field layout ID: ' . $employeeFieldLayout->id, __METHOD__);
+            }
 
             // Save Service field layout
-            $serviceFieldLayout = $this->saveFieldLayout(
-                $request->getBodyParam('serviceFieldLayout'),
-                $settings->serviceFieldLayoutId,
-                'Service'
-            );
-            $settings->serviceFieldLayoutId = $serviceFieldLayout?->id;
+            $serviceFieldLayout = $this->assembleAndSaveLayout('serviceFieldLayout', \fabian\booked\elements\Service::class, $settings->serviceFieldLayoutId);
+            if ($serviceFieldLayout) {
+                $settings->serviceFieldLayoutId = $serviceFieldLayout->id;
+                Craft::info('Saved Service field layout ID: ' . $serviceFieldLayout->id, __METHOD__);
+            }
 
             // Save Location field layout
-            $locationFieldLayout = $this->saveFieldLayout(
-                $request->getBodyParam('locationFieldLayout'),
-                $settings->locationFieldLayoutId,
-                'Location'
-            );
-            $settings->locationFieldLayoutId = $locationFieldLayout?->id;
+            $locationFieldLayout = $this->assembleAndSaveLayout('locationFieldLayout', \fabian\booked\elements\Location::class, $settings->locationFieldLayoutId);
+            if ($locationFieldLayout) {
+                $settings->locationFieldLayoutId = $locationFieldLayout->id;
+                Craft::info('Saved Location field layout ID: ' . $locationFieldLayout->id, __METHOD__);
+            }
         }
 
         // Load all settings from POST data
@@ -204,41 +203,44 @@ class SettingsController extends Controller
     }
 
     /**
-     * Save a field layout from POST data
+     * Assemble and save a field layout from POST data
      *
-     * @param array|null $fieldLayoutData
+     * @param string $namespace
+     * @param string $elementType
      * @param int|null $existingLayoutId
-     * @param string $type
      * @return FieldLayout|null
      */
-    private function saveFieldLayout(?array $fieldLayoutData, ?int $existingLayoutId, string $type): ?FieldLayout
+    private function assembleAndSaveLayout(string $namespace, string $elementType, ?int $existingLayoutId = null): ?FieldLayout
     {
         $fieldsService = Craft::$app->getFields();
-        
-        // Get or create field layout
-        if ($existingLayoutId) {
-            $fieldLayout = $fieldsService->getLayoutById($existingLayoutId);
-            if (!$fieldLayout) {
-                $fieldLayout = new FieldLayout(['type' => "fabian\\booked\\elements\\{$type}"]);
-            }
-        } else {
-            $fieldLayout = new FieldLayout(['type' => "fabian\\booked\\elements\\{$type}"]);
-        }
+        $request = Craft::$app->getRequest();
 
-        // If field layout data is provided, set it
-        if ($fieldLayoutData !== null) {
-            $fieldLayout->setTabs($fieldLayoutData);
-        }
-
-        // Save the field layout (even if empty, to allow clearing)
-        if (!$fieldsService->saveLayout($fieldLayout)) {
-            Craft::error("Failed to save {$type} field layout: " . implode(', ', $fieldLayout->getFirstErrors()), __METHOD__);
+        // Check the raw POST data first to see if this designer actually sent any data
+        $postedData = $request->getBodyParam($namespace);
+        if (!$postedData || empty($postedData['fieldLayout'])) {
             return null;
         }
 
-        // If layout is empty, return null (but layout is saved for future use)
-        if (empty($fieldLayout->getTabs())) {
-            return $fieldLayout; // Return it anyway so we have the ID
+        // Check if the JSON actually contains tabs. If it doesn't, it might be an 
+        // uninitialized or background designer that shouldn't overwrite our data.
+        $json = \craft\helpers\Json::decodeIfJson($postedData['fieldLayout']);
+        if (!is_array($json) || !isset($json['tabs'])) {
+            Craft::info("Skipping save for field layout namespace '{$namespace}' as it contains no tabs in the POST data.", __METHOD__);
+            return null;
+        }
+
+        // assembleLayoutFromPost handles the complex structure sent by the designer
+        $fieldLayout = $fieldsService->assembleLayoutFromPost($namespace);
+        $fieldLayout->type = $elementType;
+        
+        if ($existingLayoutId) {
+            $fieldLayout->id = $existingLayoutId;
+        }
+
+        // Save the field layout
+        if (!$fieldsService->saveLayout($fieldLayout)) {
+            Craft::error("Failed to save field layout for {$elementType}: " . implode(', ', $fieldLayout->getFirstErrors()), __METHOD__);
+            return null;
         }
 
         return $fieldLayout;

@@ -35,6 +35,7 @@ class ServicesController extends Controller
             }
         } else {
             $service = new Service();
+            $service->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
         return $this->renderTemplate('booked/services/edit', [

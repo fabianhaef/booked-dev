@@ -63,77 +63,6 @@ use craft\db\ActiveRecord;
  */
 class SettingsRecord extends ActiveRecord
 {
-    // Field Layouts
-    public ?int $employeeFieldLayoutId = null;
-    public ?int $serviceFieldLayoutId = null;
-    public ?int $locationFieldLayoutId = null;
-    
-    // General Settings
-    public int $softLockDurationMinutes = 15;
-    public int $availabilityCacheTtl = 3600;
-    public ?string $defaultTimezone = null;
-    public bool $enableRateLimiting = true;
-    public int $rateLimitPerEmail = 5;
-    public int $rateLimitPerIp = 10;
-    
-    // Calendar Integration - Google
-    public bool $googleCalendarEnabled = false;
-    public ?string $googleCalendarClientId = null;
-    public ?string $googleCalendarClientSecret = null;
-    public ?string $googleCalendarWebhookUrl = null;
-    
-    // Calendar Integration - Outlook
-    public bool $outlookCalendarEnabled = false;
-    public ?string $outlookCalendarClientId = null;
-    public ?string $outlookCalendarClientSecret = null;
-    public ?string $outlookCalendarWebhookUrl = null;
-    
-    // Virtual Meetings - Zoom
-    public bool $zoomEnabled = false;
-    public ?string $zoomApiKey = null;
-    public ?string $zoomApiSecret = null;
-    public bool $zoomAutoCreate = true;
-    
-    // Virtual Meetings - Google Meet
-    public bool $googleMeetEnabled = false;
-    public bool $googleMeetAutoCreate = true;
-    
-    // Notifications - Email
-    public bool $ownerNotificationEnabled = true;
-    public ?string $ownerNotificationSubject = null;
-    public ?string $ownerEmail = null;
-    public ?string $ownerName = null;
-    public ?string $bookingConfirmationSubject = null;
-    public ?string $bookingConfirmationBody = null;
-    public bool $emailRemindersEnabled = true;
-    public int $emailReminderHoursBefore = 24;
-    public bool $emailReminderOneHourBefore = true;
-    
-    // Notifications - SMS
-    public bool $smsEnabled = false;
-    public ?string $smsProvider = null;
-    public ?string $twilioApiKey = null;
-    public ?string $twilioApiSecret = null;
-    public ?string $twilioPhoneNumber = null;
-    public bool $smsRemindersEnabled = false;
-    public int $smsReminderHoursBefore = 24;
-    
-    // Commerce Integration
-    public bool $commerceEnabled = false;
-    public ?string $defaultPaymentGateway = null;
-    public bool $requirePaymentBeforeConfirmation = true;
-    
-    // Frontend Settings
-    public string $defaultViewMode = 'wizard';
-    public bool $enableRealTimeAvailability = true;
-    public bool $showEmployeeSelection = true;
-    public bool $showLocationSelection = true;
-    
-    // Legacy/Deprecated
-    public ?int $bufferMinutes = null;
-    public ?int $slotDurationMinutes = null;
-    public ?int $paymentQrAssetId = null;
-
     /**
      * @inheritdoc
      */
@@ -148,40 +77,9 @@ class SettingsRecord extends ActiveRecord
     public function rules(): array
     {
         return [
-            // Field layouts
-            [['employeeFieldLayoutId', 'serviceFieldLayoutId', 'locationFieldLayoutId'], 'integer'],
-            
-            // General settings
-            [['softLockDurationMinutes', 'availabilityCacheTtl', 'rateLimitPerEmail', 'rateLimitPerIp'], 'integer', 'min' => 1],
-            [['defaultTimezone'], 'string'],
-            [['enableRateLimiting'], 'boolean'],
-            
-            // Calendar integration
-            [['googleCalendarEnabled', 'outlookCalendarEnabled'], 'boolean'],
-            [['googleCalendarClientId', 'googleCalendarClientSecret', 'googleCalendarWebhookUrl', 'outlookCalendarClientId', 'outlookCalendarClientSecret', 'outlookCalendarWebhookUrl'], 'string'],
-            
-            // Virtual meetings
-            [['zoomEnabled', 'zoomAutoCreate', 'googleMeetEnabled', 'googleMeetAutoCreate'], 'boolean'],
-            [['zoomApiKey', 'zoomApiSecret'], 'string'],
-            
-            // Notifications
-            [['ownerNotificationEnabled', 'emailRemindersEnabled', 'emailReminderOneHourBefore', 'smsEnabled', 'smsRemindersEnabled'], 'boolean'],
-            [['emailReminderHoursBefore', 'smsReminderHoursBefore'], 'integer', 'min' => 0],
-            [['ownerEmail'], 'email'],
-            [['ownerName', 'ownerNotificationSubject', 'bookingConfirmationSubject'], 'string'],
-            [['bookingConfirmationBody'], 'string'],
-            [['smsProvider', 'twilioApiKey', 'twilioApiSecret', 'twilioPhoneNumber'], 'string'],
-            
-            // Commerce
-            [['commerceEnabled', 'requirePaymentBeforeConfirmation'], 'boolean'],
-            [['defaultPaymentGateway'], 'string'],
-            
-            // Frontend
-            [['defaultViewMode'], 'in', 'range' => ['wizard', 'catalog', 'search']],
-            [['enableRealTimeAvailability', 'showEmployeeSelection', 'showLocationSelection'], 'boolean'],
-            
-            // Legacy
-            [['bufferMinutes', 'slotDurationMinutes', 'paymentQrAssetId'], 'integer'],
+            // Only validate ID here, or core columns that always exist.
+            // Other settings are validated in the Settings model.
+            [['id'], 'integer'],
         ];
     }
 }

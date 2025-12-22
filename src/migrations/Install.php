@@ -22,21 +22,76 @@ class Install extends Migration
         if (!$this->db->tableExists('{{%bookings_settings}}')) {
             $this->createTable('{{%bookings_settings}}', [
                 'id' => $this->primaryKey(),
-                'bufferMinutes' => $this->integer()->notNull()->defaultValue(30),
-                'slotDurationMinutes' => $this->integer()->notNull()->defaultValue(60),
+                // Field Layouts
+                'employeeFieldLayoutId' => $this->integer()->null(),
+                'serviceFieldLayoutId' => $this->integer()->null(),
+                'locationFieldLayoutId' => $this->integer()->null(),
+                // General Settings
+                'softLockDurationMinutes' => $this->integer()->notNull()->defaultValue(15),
+                'availabilityCacheTtl' => $this->integer()->notNull()->defaultValue(3600),
+                'defaultTimezone' => $this->string(50)->null(),
+                'enableRateLimiting' => $this->boolean()->notNull()->defaultValue(true),
+                'rateLimitPerEmail' => $this->integer()->notNull()->defaultValue(5),
+                'rateLimitPerIp' => $this->integer()->notNull()->defaultValue(10),
+                // Calendar Integration
+                'googleCalendarEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'googleCalendarClientId' => $this->string(255)->null(),
+                'googleCalendarClientSecret' => $this->string(255)->null(),
+                'googleCalendarWebhookUrl' => $this->string(255)->null(),
+                'outlookCalendarEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'outlookCalendarClientId' => $this->string(255)->null(),
+                'outlookCalendarClientSecret' => $this->string(255)->null(),
+                'outlookCalendarWebhookUrl' => $this->string(255)->null(),
+                // Virtual Meetings
+                'zoomEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'zoomApiKey' => $this->string(255)->null(),
+                'zoomApiSecret' => $this->string(255)->null(),
+                'zoomAutoCreate' => $this->boolean()->notNull()->defaultValue(true),
+                'googleMeetEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'googleMeetAutoCreate' => $this->boolean()->notNull()->defaultValue(true),
+                // Notifications
+                'ownerNotificationEnabled' => $this->boolean()->notNull()->defaultValue(true),
+                'ownerNotificationSubject' => $this->string(255)->null(),
                 'ownerEmail' => $this->string()->notNull(),
                 'ownerName' => $this->string()->notNull(),
                 'bookingConfirmationSubject' => $this->string(),
                 'bookingConfirmationBody' => $this->text(),
+                'emailRemindersEnabled' => $this->boolean()->notNull()->defaultValue(true),
+                'emailReminderHoursBefore' => $this->integer()->notNull()->defaultValue(24),
+                'emailReminderOneHourBefore' => $this->boolean()->notNull()->defaultValue(true),
+                'smsEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'smsProvider' => $this->string(50)->null(),
+                'twilioApiKey' => $this->string(255)->null(),
+                'twilioApiSecret' => $this->string(255)->null(),
+                'twilioPhoneNumber' => $this->string(50)->null(),
+                'smsRemindersEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'smsReminderHoursBefore' => $this->integer()->notNull()->defaultValue(24),
+                // Commerce Integration
+                'commerceEnabled' => $this->boolean()->notNull()->defaultValue(false),
+                'defaultPaymentGateway' => $this->string(50)->null(),
+                'requirePaymentBeforeConfirmation' => $this->boolean()->notNull()->defaultValue(true),
+                // Frontend Settings
+                'defaultViewMode' => $this->string(20)->notNull()->defaultValue('wizard'),
+                'enableRealTimeAvailability' => $this->boolean()->notNull()->defaultValue(true),
+                'showEmployeeSelection' => $this->boolean()->notNull()->defaultValue(true),
+                'showLocationSelection' => $this->boolean()->notNull()->defaultValue(true),
+                // Legacy/Deprecated
+                'bufferMinutes' => $this->integer()->notNull()->defaultValue(30),
+                'slotDurationMinutes' => $this->integer()->notNull()->defaultValue(60),
+                'paymentQrAssetId' => $this->integer()->null(),
+                // Audit columns
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),
             ]);
 
+            // Add foreign keys for field layouts
+            $this->addForeignKey(null, '{{%bookings_settings}}', 'employeeFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
+            $this->addForeignKey(null, '{{%bookings_settings}}', 'serviceFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
+            $this->addForeignKey(null, '{{%bookings_settings}}', 'locationFieldLayoutId', '{{%fieldlayouts}}', 'id', 'SET NULL', null);
+
             // Insert default settings
             $this->insert('{{%bookings_settings}}', [
-                'bufferMinutes' => 30,
-                'slotDurationMinutes' => 60,
                 'ownerEmail' => 'owner@example.com',
                 'ownerName' => 'Site Owner',
                 'bookingConfirmationSubject' => 'Your booking confirmation',

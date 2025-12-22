@@ -9,102 +9,96 @@
     { label: title }
 ] %}
 
+{% set fullPageForm = true %}
+
 {% block content %}
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
-        <input type="hidden" name="action" value="booked/cp/services/save">
-        {% if service.id %}
-            <input type="hidden" name="elementId" value="{{ service.id }}">
+    <input type="hidden" name="action" value="booked/cp/services/save">
+    {% if service.id %}
+        <input type="hidden" name="elementId" value="{{ service.id }}">
+    {% endif %}
+
+    <div id="fields">
+        {{ forms.textField({
+            label: 'Title'|t('app'),
+            id: 'title',
+            name: 'title',
+            value: service.title,
+            required: true,
+            autofocus: true,
+            errors: service.getErrors('title')
+        }) }}
+
+        {{ forms.textField({
+            label: 'Slug'|t('app'),
+            id: 'slug',
+            name: 'slug',
+            value: service.slug,
+            errors: service.getErrors('slug'),
+            instructions: 'Auto-generated from title. You can edit it manually if needed.'|t('booked')
+        }) }}
+
+        <div class="flex">
+            {{ forms.textField({
+                label: 'Duration (minutes)'|t('booked'),
+                id: 'duration',
+                name: 'duration',
+                type: 'number',
+                value: service.duration,
+                size: 5,
+                errors: service.getErrors('duration'),
+                instructions: 'Service duration in minutes'
+            }) }}
+
+            {{ forms.textField({
+                label: 'Price'|t('booked'),
+                id: 'price',
+                name: 'price',
+                type: 'number',
+                step: '0.01',
+                value: service.price,
+                size: 10,
+                errors: service.getErrors('price'),
+                instructions: 'Service price'
+            }) }}
+        </div>
+
+        <div class="flex">
+            {{ forms.textField({
+                label: 'Buffer Before (minutes)'|t('booked'),
+                id: 'bufferBefore',
+                name: 'bufferBefore',
+                type: 'number',
+                value: service.bufferBefore,
+                size: 5,
+                errors: service.getErrors('bufferBefore'),
+                instructions: 'Buffer time before service starts'
+            }) }}
+
+            {{ forms.textField({
+                label: 'Buffer After (minutes)'|t('booked'),
+                id: 'bufferAfter',
+                name: 'bufferAfter',
+                type: 'number',
+                value: service.bufferAfter,
+                size: 5,
+                errors: service.getErrors('bufferAfter'),
+                instructions: 'Buffer time after service ends'
+            }) }}
+        </div>
+
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: service.enabled ?? true
+        }) }}
+
+        {% if service.getFieldLayout() %}
+            <hr>
+            {% set fieldsLocation = 'fields' %}
+            {{ service.getFieldLayout().createForm(service, fieldsLocation).render()|raw }}
         {% endif %}
-
-        <div class="fields">
-            {{ forms.textField({
-                label: 'Title'|t('app'),
-                id: 'title',
-                name: 'title',
-                value: service.title,
-                required: true,
-                autofocus: true,
-                errors: service.getErrors('title')
-            }) }}
-
-            {{ forms.textField({
-                label: 'Slug'|t('app'),
-                id: 'slug',
-                name: 'slug',
-                value: service.slug,
-                errors: service.getErrors('slug'),
-                instructions: 'Auto-generated from title. You can edit it manually if needed.'|t('booked')
-            }) }}
-
-            <div class="flex">
-                {{ forms.textField({
-                    label: 'Duration (minutes)'|t('booked'),
-                    id: 'duration',
-                    name: 'duration',
-                    type: 'number',
-                    value: service.duration,
-                    size: 5,
-                    errors: service.getErrors('duration'),
-                    instructions: 'Service duration in minutes'
-                }) }}
-
-                {{ forms.textField({
-                    label: 'Price'|t('booked'),
-                    id: 'price',
-                    name: 'price',
-                    type: 'number',
-                    step: '0.01',
-                    value: service.price,
-                    size: 10,
-                    errors: service.getErrors('price'),
-                    instructions: 'Service price'
-                }) }}
-            </div>
-
-            <div class="flex">
-                {{ forms.textField({
-                    label: 'Buffer Before (minutes)'|t('booked'),
-                    id: 'bufferBefore',
-                    name: 'bufferBefore',
-                    type: 'number',
-                    value: service.bufferBefore,
-                    size: 5,
-                    errors: service.getErrors('bufferBefore'),
-                    instructions: 'Buffer time before service starts'
-                }) }}
-
-                {{ forms.textField({
-                    label: 'Buffer After (minutes)'|t('booked'),
-                    id: 'bufferAfter',
-                    name: 'bufferAfter',
-                    type: 'number',
-                    value: service.bufferAfter,
-                    size: 5,
-                    errors: service.getErrors('bufferAfter'),
-                    instructions: 'Buffer time after service ends'
-                }) }}
-            </div>
-
-            {{ forms.lightswitchField({
-                label: 'Enabled'|t('app'),
-                id: 'enabled',
-                name: 'enabled',
-                on: service.enabled ?? true
-            }) }}
-
-            {% if service.getFieldLayout() %}
-                <hr>
-                {% set fieldsLocation = 'fields' %}
-                {{ service.getFieldLayout().createForm(service, fieldsLocation).render()|raw }}
-            {% endif %}
-        </div>
-
-        <div class="buttons">
-            <button type="submit" class="btn submit">{{ service.id ? 'Update'|t('app') : 'Create'|t('app') }}</button>
-            <a class="btn" href="{{ url('booked/services') }}">{{ 'Cancel'|t('app') }}</a>
-        </div>
-    </form>
+    </div>
 {% endblock %}
 
 {% js %}

@@ -9,81 +9,75 @@
     { label: title }
 ] %}
 
+{% set fullPageForm = true %}
+
 {% block content %}
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
-        <input type="hidden" name="action" value="booked/cp/locations/save">
-        {% if location.id %}
-            <input type="hidden" name="elementId" value="{{ location.id }}">
+    <input type="hidden" name="action" value="booked/cp/locations/save">
+    {% if location.id %}
+        <input type="hidden" name="elementId" value="{{ location.id }}">
+    {% endif %}
+
+    <div id="fields">
+        {{ forms.textField({
+            label: 'Title'|t('app'),
+            id: 'title',
+            name: 'title',
+            value: location.title,
+            required: true,
+            autofocus: true,
+            errors: location.getErrors('title')
+        }) }}
+
+        {{ forms.textField({
+            label: 'Slug'|t('app'),
+            id: 'slug',
+            name: 'slug',
+            value: location.slug,
+            errors: location.getErrors('slug')
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Address'|t('booked'),
+            id: 'address',
+            name: 'address',
+            value: location.address,
+            rows: 3,
+            errors: location.getErrors('address'),
+            instructions: 'Full address of this location'
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Timezone'|t('booked'),
+            id: 'timezone',
+            name: 'timezone',
+            options: craft.app.timeZones.getAllTimeZones()|map((label, value) => { value: value, label: label }),
+            value: location.timezone ?? craft.app.timeZone,
+            errors: location.getErrors('timezone'),
+            instructions: 'Timezone for this location'
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Contact Info'|t('booked'),
+            id: 'contactInfo',
+            name: 'contactInfo',
+            value: location.contactInfo,
+            rows: 2,
+            errors: location.getErrors('contactInfo'),
+            instructions: 'Contact information for this location (phone, email, etc.)'
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: location.enabled ?? true
+        }) }}
+
+        {% if location.getFieldLayout() %}
+            <hr>
+            {% set fieldsLocation = 'fields' %}
+            {{ location.getFieldLayout().createForm(location, fieldsLocation).render()|raw }}
         {% endif %}
-
-        <div class="fields">
-            {{ forms.textField({
-                label: 'Title'|t('app'),
-                id: 'title',
-                name: 'title',
-                value: location.title,
-                required: true,
-                autofocus: true,
-                errors: location.getErrors('title')
-            }) }}
-
-            {{ forms.textField({
-                label: 'Slug'|t('app'),
-                id: 'slug',
-                name: 'slug',
-                value: location.slug,
-                errors: location.getErrors('slug')
-            }) }}
-
-            {{ forms.textareaField({
-                label: 'Address'|t('booked'),
-                id: 'address',
-                name: 'address',
-                value: location.address,
-                rows: 3,
-                errors: location.getErrors('address'),
-                instructions: 'Full address of this location'
-            }) }}
-
-            {{ forms.selectField({
-                label: 'Timezone'|t('booked'),
-                id: 'timezone',
-                name: 'timezone',
-                options: craft.app.timeZones.getAllTimeZones()|map((label, value) => { value: value, label: label }),
-                value: location.timezone ?? craft.app.timeZone,
-                errors: location.getErrors('timezone'),
-                instructions: 'Timezone for this location'
-            }) }}
-
-            {{ forms.textareaField({
-                label: 'Contact Info'|t('booked'),
-                id: 'contactInfo',
-                name: 'contactInfo',
-                value: location.contactInfo,
-                rows: 2,
-                errors: location.getErrors('contactInfo'),
-                instructions: 'Contact information for this location (phone, email, etc.)'
-            }) }}
-
-            {{ forms.lightswitchField({
-                label: 'Enabled'|t('app'),
-                id: 'enabled',
-                name: 'enabled',
-                on: location.enabled ?? true
-            }) }}
-
-            {% if location.getFieldLayout() %}
-                <hr>
-                {% set fieldsLocation = 'fields' %}
-                {{ location.getFieldLayout().createForm(location, fieldsLocation).render()|raw }}
-            {% endif %}
-        </div>
-
-        <div class="buttons">
-            <button type="submit" class="btn submit">{{ location.id ? 'Update'|t('app') : 'Create'|t('app') }}</button>
-            <a class="btn" href="{{ url('booked/locations') }}">{{ 'Cancel'|t('app') }}</a>
-        </div>
-    </form>
+    </div>
 {% endblock %}
 

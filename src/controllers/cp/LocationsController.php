@@ -35,6 +35,7 @@ class LocationsController extends Controller
             }
         } else {
             $location = new Location();
+            $location->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
         return $this->renderTemplate('booked/locations/edit', [

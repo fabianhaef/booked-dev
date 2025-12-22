@@ -349,9 +349,10 @@ class Settings extends Model
             $record = new SettingsRecord();
         }
 
-        // Save all properties
-        foreach ($this->attributes() as $attribute => $value) {
-            if (property_exists($record, $attribute)) {
+        // Save all attributes that exist on the record
+        foreach ($this->getAttributes() as $attribute => $value) {
+            // Check if it's a property or an attribute/column on the record
+            if (property_exists($record, $attribute) || $record->hasAttribute($attribute)) {
                 $record->$attribute = $value;
             }
         }
@@ -374,9 +375,9 @@ class Settings extends Model
         $model = new self();
 
         if ($record) {
-            // Load all properties from record
-            foreach ($model->attributes() as $attribute => $value) {
-                if (property_exists($record, $attribute) && isset($record->$attribute)) {
+            // Load all attributes from record
+            foreach ($model->getAttributes() as $attribute => $value) {
+                if (isset($record->$attribute)) {
                     $model->$attribute = $record->$attribute;
                 }
             }
