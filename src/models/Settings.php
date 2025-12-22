@@ -82,11 +82,14 @@ class Settings extends Model
     /** @var bool Enable Zoom integration */
     public bool $zoomEnabled = false;
     
-    /** @var string Zoom API Key */
-    public ?string $zoomApiKey = null;
+    /** @var string Zoom Account ID (Server-to-Server OAuth) */
+    public ?string $zoomAccountId = null;
+
+    /** @var string Zoom Client ID */
+    public ?string $zoomClientId = null;
     
-    /** @var string Zoom API Secret */
-    public ?string $zoomApiSecret = null;
+    /** @var string Zoom Client Secret */
+    public ?string $zoomClientSecret = null;
     
     /** @var bool Auto-create Zoom meetings for bookings */
     public bool $zoomAutoCreate = true;
@@ -142,11 +145,11 @@ class Settings extends Model
     /** @var string SMS provider (e.g., 'twilio') */
     public ?string $smsProvider = null;
     
-    /** @var string Twilio API Key */
-    public ?string $twilioApiKey = null;
+    /** @var string Twilio Account SID */
+    public ?string $twilioAccountSid = null;
     
-    /** @var string Twilio API Secret */
-    public ?string $twilioApiSecret = null;
+    /** @var string Twilio Auth Token */
+    public ?string $twilioAuthToken = null;
     
     /** @var string Twilio Phone Number */
     public ?string $twilioPhoneNumber = null;
@@ -228,7 +231,7 @@ class Settings extends Model
             
             // Virtual meetings
             [['zoomEnabled', 'zoomAutoCreate', 'googleMeetEnabled', 'googleMeetAutoCreate'], 'boolean'],
-            [['zoomApiKey', 'zoomApiSecret'], 'string'],
+            [['zoomAccountId', 'zoomClientId', 'zoomClientSecret'], 'string'],
             
             // Notifications
             [['ownerNotificationEnabled', 'emailRemindersEnabled', 'emailReminderOneHourBefore', 'smsEnabled', 'smsRemindersEnabled'], 'boolean'],
@@ -236,7 +239,7 @@ class Settings extends Model
             [['ownerEmail'], 'email'],
             [['ownerName', 'ownerNotificationSubject', 'bookingConfirmationSubject'], 'string'],
             [['bookingConfirmationBody'], 'string'],
-            [['smsProvider', 'twilioApiKey', 'twilioApiSecret', 'twilioPhoneNumber'], 'string'],
+            [['smsProvider', 'twilioAccountSid', 'twilioAuthToken', 'twilioPhoneNumber'], 'string'],
             
             // Commerce
             [['commerceEnabled', 'requirePaymentBeforeConfirmation'], 'boolean'],
@@ -275,8 +278,9 @@ class Settings extends Model
             
             // Virtual meetings
             'zoomEnabled' => Craft::t('booked', 'Enable Zoom'),
-            'zoomApiKey' => Craft::t('booked', 'Zoom API Key'),
-            'zoomApiSecret' => Craft::t('booked', 'Zoom API Secret'),
+            'zoomAccountId' => Craft::t('booked', 'Zoom Account ID'),
+            'zoomClientId' => Craft::t('booked', 'Zoom Client ID'),
+            'zoomClientSecret' => Craft::t('booked', 'Zoom Client Secret'),
             'zoomAutoCreate' => Craft::t('booked', 'Auto-create Zoom Meetings'),
             'googleMeetEnabled' => Craft::t('booked', 'Enable Google Meet'),
             'googleMeetAutoCreate' => Craft::t('booked', 'Auto-create Google Meet Links'),
@@ -293,8 +297,8 @@ class Settings extends Model
             'emailReminderOneHourBefore' => Craft::t('booked', 'Send 1-Hour Reminder'),
             'smsEnabled' => Craft::t('booked', 'Enable SMS Notifications'),
             'smsProvider' => Craft::t('booked', 'SMS Provider'),
-            'twilioApiKey' => Craft::t('booked', 'Twilio API Key'),
-            'twilioApiSecret' => Craft::t('booked', 'Twilio API Secret'),
+            'twilioAccountSid' => Craft::t('booked', 'Twilio Account SID'),
+            'twilioAuthToken' => Craft::t('booked', 'Twilio Auth Token'),
             'twilioPhoneNumber' => Craft::t('booked', 'Twilio Phone Number'),
             'smsRemindersEnabled' => Craft::t('booked', 'Enable SMS Reminders'),
             'smsReminderHoursBefore' => Craft::t('booked', 'SMS Reminder Hours Before'),
@@ -398,8 +402,9 @@ class Settings extends Model
     public function isZoomConfigured(): bool
     {
         return $this->zoomEnabled && 
-               !empty($this->zoomApiKey) && 
-               !empty($this->zoomApiSecret);
+               !empty($this->zoomAccountId) && 
+               !empty($this->zoomClientId) && 
+               !empty($this->zoomClientSecret);
     }
 
     /**
@@ -409,8 +414,8 @@ class Settings extends Model
     {
         return $this->smsEnabled && 
                $this->smsProvider === 'twilio' &&
-               !empty($this->twilioApiKey) && 
-               !empty($this->twilioApiSecret) &&
+               !empty($this->twilioAccountSid) && 
+               !empty($this->twilioAuthToken) &&
                !empty($this->twilioPhoneNumber);
     }
 }

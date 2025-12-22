@@ -341,6 +341,23 @@
             </ul>
         </div>
 
+        {% if isVirtual %}
+        <div class="payment-box" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #3b82f6;">
+            <div class="payment-title" style="color: #1e40af;">🎥 Virtuelles Meeting</div>
+            <p style="color: #1e3a8a; margin-bottom: 16px;">
+                Ihre Buchung findet online statt. Sie können dem Meeting über den folgenden Link beitreten:
+            </p>
+            <div style="text-align: center;">
+                <a href="{{ virtualMeetingUrl }}" class="btn btn-primary" style="margin: 0;">Meeting beitreten ({{ virtualMeetingProvider|capitalize }})</a>
+            </div>
+            {% if virtualMeetingPassword %}
+            <p style="color: #1e3a8a; margin-top: 12px; font-size: 13px;">
+                <strong>Passwort:</strong> {{ virtualMeetingPassword }}
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if hasPaymentQrAttachment is defined and hasPaymentQrAttachment %}
         <div class="payment-box">
             <div class="payment-title">💳 Zahlung per QR-Code</div>

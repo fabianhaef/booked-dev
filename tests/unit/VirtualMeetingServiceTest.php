@@ -16,14 +16,14 @@ class TestableVirtualMeetingService extends VirtualMeetingService
     public bool $mockZoomSuccess = true;
     public bool $mockGoogleMeetSuccess = true;
 
-    protected function createZoomMeeting(Reservation $reservation): ?string
+    protected function createZoomMeeting(Reservation $reservation): ?array
     {
-        return $this->mockZoomSuccess ? 'https://zoom.us/j/123456789' : null;
+        return $this->mockZoomSuccess ? ['url' => 'https://zoom.us/j/123456789', 'id' => '123456789'] : null;
     }
 
-    protected function createGoogleMeetLink(Reservation $reservation): ?string
+    protected function createGoogleMeetLink(Reservation $reservation): ?array
     {
-        return $this->mockGoogleMeetSuccess ? 'https://meet.google.com/abc-defg-hij' : null;
+        return $this->mockGoogleMeetSuccess ? ['url' => 'https://meet.google.com/abc-defg-hij', 'id' => 'abc-defg-hij'] : null;
     }
 }
 

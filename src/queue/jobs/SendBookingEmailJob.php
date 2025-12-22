@@ -79,6 +79,15 @@ class SendBookingEmailJob extends BaseJob
                 $this->attachPaymentQr($message);
             }
 
+            // Add ICS attachment for client confirmation and reminder emails
+            if ($this->emailType === 'confirmation' || strpos($this->emailType, 'reminder_') === 0) {
+                $icsContent = \fabian\booked\helpers\IcsHelper::generate($reservation);
+                $message->attachContent($icsContent, [
+                    'fileName' => 'termin.ics',
+                    'contentType' => 'text/calendar; charset=utf-8; method=REQUEST',
+                ]);
+            }
+
             $sent = Craft::$app->mailer->send($message);
 
             if ($sent) {
@@ -204,6 +213,16 @@ class SendBookingEmailJob extends BaseJob
                 $body = $this->renderOwnerNotificationEmail($reservation, $settings);
                 break;
 
+            case 'reminder_24h':
+                $subject = 'Erinnerung: Ihr Termin morgen';
+                $body = $this->renderReminderEmail($reservation, '24h', $settings);
+                break;
+
+            case 'reminder_1h':
+                $subject = 'Erinnerung: Ihr Termin in einer Stunde';
+                $body = $this->renderReminderEmail($reservation, '1h', $settings);
+                break;
+
             default:
                 throw new \Exception("Unknown email type: {$this->emailType}");
         }
@@ -271,6 +290,11 @@ class SendBookingEmailJob extends BaseJob
             'managementUrl' => $reservation->getManagementUrl(),
             'cancelUrl' => $reservation->getCancelUrl(),
             
+            // Virtual Meeting
+            'virtualMeetingUrl' => $reservation->virtualMeetingUrl ?: '',
+            'virtualMeetingProvider' => $reservation->virtualMeetingProvider ?: '',
+            'isVirtual' => !empty($reservation->virtualMeetingUrl),
+            
             // Date created
             'dateCreated' => $reservation->dateCreated ? $reservation->dateCreated->format('d.m.Y H:i') : '',
             
@@ -279,7 +303,7 @@ class SendBookingEmailJob extends BaseJob
         ];
 
         // Always use the Twig template
-        return Craft::$app->view->renderTemplate('booking/emails/confirmation', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/confirmation', $variables);
     }
 
     /**
@@ -300,7 +324,7 @@ class SendBookingEmailJob extends BaseJob
             'bookingId' => $reservation->id,
         ];
 
-        return Craft::$app->view->renderTemplate('booking/emails/status-change', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/status-change', $variables);
     }
 
     /**
@@ -318,7 +342,7 @@ class SendBookingEmailJob extends BaseJob
             'bookingId' => $reservation->id,
         ];
 
-        return Craft::$app->view->renderTemplate('booking/emails/cancellation', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/cancellation', $variables);
     }
 
     /**
@@ -345,7 +369,7 @@ class SendBookingEmailJob extends BaseJob
         $sourceName = $reservation->getSourceName();
 
         // Build CP edit URL
-        $cpEditUrl = UrlHelper::cpUrl('booking/bookings/edit/' . $reservation->id);
+        $cpEditUrl = UrlHelper::cpUrl('booked/bookings/edit/' . $reservation->id);
 
         $variables = [
             // Customer data
@@ -386,7 +410,26 @@ class SendBookingEmailJob extends BaseJob
             'dateCreated' => $reservation->dateCreated ? $reservation->dateCreated->format('d.m.Y H:i') : '',
         ];
 
-        return Craft::$app->view->renderTemplate('booking/emails/owner-notification', $variables);
+        return Craft::$app->view->renderTemplate('booked/emails/owner-notification', $variables);
+    }
+
+    /**
+     * Render reminder email body
+     */
+    private function renderReminderEmail(Reservation $reservation, string $type, Settings $settings): string
+    {
+        $variables = [
+            'userName' => $reservation->userName,
+            'formattedDateTime' => $reservation->getFormattedDateTime(),
+            'reminderType' => $type,
+            'ownerName' => $settings->getEffectiveName(),
+            'managementUrl' => $reservation->getManagementUrl(),
+            'virtualMeetingUrl' => $reservation->virtualMeetingUrl ?: '',
+            'virtualMeetingProvider' => $reservation->virtualMeetingProvider ?: '',
+            'isVirtual' => !empty($reservation->virtualMeetingUrl),
+        ];
+
+        return Craft::$app->view->renderTemplate('booked/emails/reminder', $variables);
     }
 
     /**

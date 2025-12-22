@@ -129,7 +129,17 @@ class Booked extends Plugin
             'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
             'softLock' => \fabian\booked\services\SoftLockService::class,
             'calendarSync' => \fabian\booked\services\CalendarSyncService::class,
+            'virtualMeeting' => \fabian\booked\services\VirtualMeetingService::class,
+            'reminder' => \fabian\booked\services\ReminderService::class,
         ]);
+    }
+
+    /**
+     * Get the reminder service
+     */
+    public function getReminder(): \fabian\booked\services\ReminderService
+    {
+        return $this->get('reminder');
     }
 
     public function getAvailability(): \fabian\booked\services\AvailabilityService
@@ -160,6 +170,11 @@ class Booked extends Plugin
     public function getCalendarSync(): \fabian\booked\services\CalendarSyncService
     {
         return $this->get('calendarSync');
+    }
+
+    public function getVirtualMeeting(): \fabian\booked\services\VirtualMeetingService
+    {
+        return $this->get('virtualMeeting');
     }
 
     /**

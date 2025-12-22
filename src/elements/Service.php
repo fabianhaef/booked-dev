@@ -19,6 +19,7 @@ use fabian\booked\records\ServiceRecord;
  * @property int|null $bufferBefore Buffer time before service in minutes
  * @property int|null $bufferAfter Buffer time after service in minutes
  * @property float|null $price Service price
+ * @property string|null $virtualMeetingProvider Virtual meeting provider (zoom, google, none)
  */
 class Service extends Element
 {
@@ -26,6 +27,7 @@ class Service extends Element
     public ?int $bufferBefore = null;
     public ?int $bufferAfter = null;
     public ?float $price = null;
+    public ?string $virtualMeetingProvider = null;
 
     /**
      * @inheritdoc
@@ -330,6 +332,7 @@ class Service extends Element
         $record->bufferBefore = $this->bufferBefore;
         $record->bufferAfter = $this->bufferAfter;
         $record->price = $this->price;
+        $record->virtualMeetingProvider = $this->virtualMeetingProvider;
 
         $record->save(false);
 

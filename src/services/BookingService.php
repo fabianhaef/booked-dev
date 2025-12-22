@@ -325,6 +325,18 @@ class BookingService extends Component
                 // Commit transaction first to ensure booking is saved
                 $transaction->commit();
 
+                // Generate virtual meeting if needed
+                if ($reservation->getService() && $reservation->getService()->virtualMeetingProvider) {
+                    $virtualMeetingService = Booked::getInstance()->getVirtualMeeting();
+                    $meetingUrl = $virtualMeetingService->createMeeting($reservation, $reservation->getService()->virtualMeetingProvider);
+                    
+                    if ($meetingUrl) {
+                        // Re-save the reservation with meeting details
+                        $this->getElementsService()->saveElement($reservation);
+                        Craft::info("Created virtual meeting for reservation #{$reservation->id}: {$meetingUrl}", __METHOD__);
+                    }
+                }
+
                 // Invalidate availability cache for this date
                 $this->getAvailabilityCacheService()->invalidateDateCache($reservation->bookingDate);
 

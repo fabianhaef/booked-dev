@@ -27,6 +27,14 @@ use craft\db\ActiveRecord;
  * @property int|null $locationId
  * @property int|null $serviceId
  * @property int $quantity
+ * @property string|null $virtualMeetingUrl
+ * @property string|null $virtualMeetingProvider
+ * @property string|null $virtualMeetingId
+ * @property bool $notificationSent
+ * @property bool $emailReminder24hSent
+ * @property bool $emailReminder1hSent
+ * @property bool $smsReminder24hSent
+ * @property bool $smsReminder1hSent
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
@@ -59,8 +67,8 @@ class ReservationRecord extends ActiveRecord
             // Accept both H:i and H:i:s formats (database stores with seconds)
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['status'], 'in', 'range' => [self::STATUS_PENDING, self::STATUS_CONFIRMED, self::STATUS_CANCELLED]],
-            [['notes'], 'string'],
-            [['notificationSent'], 'boolean'],
+            [['notes', 'virtualMeetingUrl', 'virtualMeetingProvider', 'virtualMeetingId'], 'string'],
+            [['notificationSent', 'emailReminder24hSent', 'emailReminder1hSent', 'smsReminder24hSent', 'smsReminder1hSent'], 'boolean'],
             [['confirmationToken'], 'string', 'max' => 64],
             [['confirmationToken'], 'unique'],
             [['status'], 'default', 'value' => self::STATUS_CONFIRMED],

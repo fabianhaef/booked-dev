@@ -441,7 +441,7 @@ class CalendarSyncService extends Component
     /**
      * Get a configured Google API client
      */
-    protected function getGoogleClient(): GoogleClient
+    public function getGoogleClient(): GoogleClient
     {
         $settings = Booked::getInstance()->getSettings();
         

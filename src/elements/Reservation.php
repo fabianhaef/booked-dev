@@ -36,6 +36,9 @@ use fabian\booked\records\ReservationRecord;
  * @property int|null $locationId
  * @property int|null $serviceId
  * @property int $quantity
+ * @property string|null $virtualMeetingUrl
+ * @property string|null $virtualMeetingProvider
+ * @property string|null $virtualMeetingId
  */
 class Reservation extends Element
 {
@@ -48,7 +51,14 @@ class Reservation extends Element
     public string $endTime = '';
     public string $status = ReservationRecord::STATUS_CONFIRMED;
     public ?string $notes = null;
+    public ?string $virtualMeetingUrl = null;
+    public ?string $virtualMeetingProvider = null;
+    public ?string $virtualMeetingId = null;
     public bool $notificationSent = false;
+    public bool $emailReminder24hSent = false;
+    public bool $emailReminder1hSent = false;
+    public bool $smsReminder24hSent = false;
+    public bool $smsReminder1hSent = false;
     public string $confirmationToken = '';
     public ?string $sourceType = null;
     public ?int $sourceId = null;
@@ -392,8 +402,8 @@ class Reservation extends Element
                 ReservationRecord::STATUS_CONFIRMED,
                 ReservationRecord::STATUS_CANCELLED
             ]],
-            [['notes'], 'string'],
-            [['notificationSent'], 'boolean'],
+            [['notes', 'virtualMeetingUrl', 'virtualMeetingProvider', 'virtualMeetingId'], 'string'],
+            [['notificationSent', 'emailReminder24hSent', 'emailReminder1hSent', 'smsReminder24hSent', 'smsReminder1hSent'], 'boolean'],
             [['confirmationToken'], 'string', 'max' => 64],
             [['quantity'], 'integer', 'min' => 1],
             [['quantity'], 'required'],
@@ -564,7 +574,14 @@ class Reservation extends Element
         
         $record->status = $this->status;
         $record->notes = $this->notes;
+        $record->virtualMeetingUrl = $this->virtualMeetingUrl;
+        $record->virtualMeetingProvider = $this->virtualMeetingProvider;
+        $record->virtualMeetingId = $this->virtualMeetingId;
         $record->notificationSent = $this->notificationSent;
+        $record->emailReminder24hSent = $this->emailReminder24hSent;
+        $record->emailReminder1hSent = $this->emailReminder1hSent;
+        $record->smsReminder24hSent = $this->smsReminder24hSent;
+        $record->smsReminder1hSent = $this->smsReminder1hSent;
         $record->confirmationToken = $this->confirmationToken;
         $record->sourceType = $this->sourceType;
         $record->sourceId = $this->sourceId;

@@ -99,6 +99,8 @@ class ServicesController extends Controller
         $price = $request->getBodyParam('price');
         $service->price = $price === '' || $price === null ? null : (float)$price;
 
+        $service->virtualMeetingProvider = $request->getBodyParam('virtualMeetingProvider');
+
         if (!Craft::$app->elements->saveElement($service)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save service.'));
             Craft::$app->urlManager->setRouteParams([

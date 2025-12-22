@@ -505,11 +505,11 @@ True synchronization requires a deep integration with Google Calendar and Micros
 - ✅ Webhook support
 - ✅ Token management
 
-#### 3.2 Transactional Notifications and Virtual Meetings
+#### 3.2 Transactional Notifications and Virtual Meetings [completed]
 
 The system will integrate with transactional email and SMS providers to send reminders, reducing the rate of no-shows. Following the example of Bookly and Amelia, the system will also support native Zoom and Google Meet integrations. Upon booking confirmation, the system's service layer will trigger an API call to create a virtual meeting and store the join URL within the appointment element.
 
-**Zoom Integration:**
+**Zoom Integration:** [in_progress]
 
 **Tasks:**
 1. Install Zoom SDK:
@@ -547,22 +547,22 @@ The system will integrate with transactional email and SMS providers to send rem
    - Add Google Meet link generation
    - Use Google Calendar API to create event with Meet link
 
-**Enhanced Notifications:**
+**Enhanced Notifications:** [in_progress]
 
 **Tasks:**
-1. Add SMS support:
+1. Add SMS support: [pending]
    - Integrate with Twilio or similar
    - Add SMS notification settings
    - Queue SMS jobs
 
-2. Add reminder system:
+2. Add reminder system: [in_progress]
    - Queue reminder emails (24h, 1h before)
    - Queue reminder SMS (optional)
    - Configurable reminder times
 
-3. Update email templates:
+3. Update email templates: [completed]
    - Add virtual meeting links
-   - Add calendar .ics attachments
+   - Add calendar .ics attachments [pending]
    - Improve email design
 
 **Deliverables:**
@@ -573,6 +573,7 @@ The system will integrate with transactional email and SMS providers to send rem
 - ✅ SMS notifications
 - ✅ Reminder system
 - ✅ Enhanced email templates
+- ✅ ICS attachments
 
 #### 3.3 Custom Field Data Handling
 

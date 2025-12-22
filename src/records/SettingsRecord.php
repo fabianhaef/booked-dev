@@ -23,8 +23,9 @@ use craft\db\ActiveRecord;
  * @property string|null $outlookCalendarClientSecret
  * @property string|null $outlookCalendarWebhookUrl
  * @property bool $zoomEnabled
- * @property string|null $zoomApiKey
- * @property string|null $zoomApiSecret
+ * @property string|null $zoomAccountId
+ * @property string|null $zoomClientId
+ * @property string|null $zoomClientSecret
  * @property bool $zoomAutoCreate
  * @property bool $googleMeetEnabled
  * @property bool $googleMeetAutoCreate
@@ -39,8 +40,8 @@ use craft\db\ActiveRecord;
  * @property bool $emailReminderOneHourBefore
  * @property bool $smsEnabled
  * @property string|null $smsProvider
- * @property string|null $twilioApiKey
- * @property string|null $twilioApiSecret
+ * @property string|null $twilioAccountSid
+ * @property string|null $twilioAuthToken
  * @property string|null $twilioPhoneNumber
  * @property bool $smsRemindersEnabled
  * @property int $smsReminderHoursBefore
