@@ -165,6 +165,7 @@ class BookingService extends Component
             'locationId' => $data['locationId'] ?? null,
             'quantity' => $data['quantity'] ?? 1,
             'notes' => $data['notes'] ?? null,
+            'softLockToken' => $data['softLockToken'] ?? null,
         ];
 
         try {
@@ -212,6 +213,7 @@ class BookingService extends Component
         $employeeId = $data['employeeId'] ?? null;
         $locationId = $data['locationId'] ?? null;
         $serviceId = $data['serviceId'] ?? null;
+        $softLockToken = $data['softLockToken'] ?? null;
         
         $lockKey = "booked-booking-{$bookingDate}-{$startTime}-" . ($employeeId ?? 'any') . "-" . ($serviceId ?? 'any');
         $mutex = $this->getMutex();
@@ -228,6 +230,23 @@ class BookingService extends Component
             $transaction = $this->getDb()->beginTransaction();
 
             try {
+                // Check for soft locks (unless it's the user's own lock)
+                if (Booked::getInstance()->getSoftLock()->isLocked($bookingDate, $startTime, $serviceId, $employeeId)) {
+                    // Check if it's our lock
+                    $ourLock = false;
+                    if ($softLockToken) {
+                        $lock = Booked::getInstance()->getSoftLock()->getRecordByToken($softLockToken);
+                        if ($lock && $lock->date === $bookingDate && $lock->startTime === $startTime) {
+                            $ourLock = true;
+                        }
+                    }
+
+                    if (!$ourLock) {
+                        $transaction->rollBack();
+                        throw new BookingConflictException('Dieser Zeitslot ist vorübergehend reserviert. Bitte versuchen Sie es in 15 Minuten erneut.');
+                    }
+                }
+
                 // Calculate end time based on service duration if not provided
                 $endTime = $data['endTime'] ?? '';
                 if (empty($endTime) && $serviceId) {
@@ -307,6 +326,11 @@ class BookingService extends Component
 
                 // Invalidate availability cache for this date
                 $this->getAvailabilityCacheService()->invalidateDateCache($reservation->bookingDate);
+
+                // Release soft lock if exists
+                if ($softLockToken) {
+                    Booked::getInstance()->getSoftLock()->releaseLock($softLockToken);
+                }
 
                 // Queue confirmation email to client AFTER commit (async, failure won't affect booking)
                 $this->queueBookingEmail($reservation->id, 'confirmation');

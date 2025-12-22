@@ -126,6 +126,7 @@ class Booked extends Plugin
             'availabilityCache' => \fabian\booked\services\AvailabilityCacheService::class,
             'booking' => \fabian\booked\services\BookingService::class,
             'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
+            'softLock' => \fabian\booked\services\SoftLockService::class,
         ]);
     }
 
@@ -147,6 +148,11 @@ class Booked extends Plugin
     public function getBlackoutDate(): \fabian\booked\services\BlackoutDateService
     {
         return $this->get('blackoutDate');
+    }
+
+    public function getSoftLock(): \fabian\booked\services\SoftLockService
+    {
+        return $this->get('softLock');
     }
 
     /**
