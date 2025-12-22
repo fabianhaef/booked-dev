@@ -3,6 +3,7 @@
 namespace fabian\booked\controllers\cp;
 
 use Craft;
+use craft\elements\Address;
 use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Location;
@@ -87,9 +88,17 @@ class LocationsController extends Controller
         $location->enabled = (bool)$request->getBodyParam('enabled', true);
 
         // Set custom attributes
-        $location->address = $request->getBodyParam('address');
         $location->timezone = $request->getBodyParam('timezone');
         $location->contactInfo = $request->getBodyParam('contactInfo');
+
+        // Set addresses
+        $addressData = $request->getBodyParam('address');
+        if ($addressData) {
+            $address = $location->getPrimaryAddress() ?: new Address();
+            $address->setAttributes($addressData, false);
+            $address->setOwner($location);
+            $location->setAddresses([$address]);
+        }
 
         if (!Craft::$app->elements->saveElement($location)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save location.'));

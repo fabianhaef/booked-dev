@@ -117,6 +117,38 @@ class AvailabilityCacheService extends Component
     }
 
     /**
+     * Invalidate all availability cache for a specific employee
+     * Useful when external calendar events are synced
+     *
+     * @param int $employeeId Employee ID
+     * @return bool Whether the cache was invalidated successfully
+     */
+    public function invalidateAllForEmployee(int $employeeId): bool
+    {
+        // For now, we'll invalidate next 30 days
+        $startDate = new \DateTime();
+        $invalidated = true;
+
+        for ($i = 0; $i < 30; $i++) {
+            $date = $startDate->format('Y-m-d');
+            $this->invalidateCache($date, $employeeId, null);
+            
+            // Also invalidate combined caches
+            $services = \fabian\booked\elements\Service::find()->all();
+            foreach ($services as $service) {
+                $this->invalidateCache($date, $employeeId, $service->id);
+            }
+            
+            // Invalidate the "all" employee cache for this date as it might include this employee
+            $this->invalidateCache($date, null, null);
+
+            $startDate->modify('+1 day');
+        }
+
+        return $invalidated;
+    }
+
+    /**
      * Warm cache for popular dates (next 30 days)
      * This can be called via a queue job or cron
      *

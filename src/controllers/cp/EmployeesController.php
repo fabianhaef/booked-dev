@@ -59,10 +59,27 @@ class EmployeesController extends Controller
         $users = User::find()->all();
         $locations = Location::find()->enabled()->all();
 
+        // Check for active calendar connections
+        $googleConnected = false;
+        $outlookConnected = false;
+        
+        if ($employee->id) {
+            $googleConnected = (bool)\fabian\booked\records\CalendarTokenRecord::findOne([
+                'employeeId' => $employee->id,
+                'provider' => 'google'
+            ]);
+            $outlookConnected = (bool)\fabian\booked\records\CalendarTokenRecord::findOne([
+                'employeeId' => $employee->id,
+                'provider' => 'outlook'
+            ]);
+        }
+
         return $this->renderTemplate('booked/employees/edit', [
             'employee' => $employee,
             'users' => $users,
             'locations' => $locations,
+            'googleConnected' => $googleConnected,
+            'outlookConnected' => $outlookConnected,
         ]);
     }
 

@@ -8,7 +8,6 @@ use craft\db\ActiveRecord;
  * Location Active Record
  *
  * @property int $id
- * @property string|null $address Location address
  * @property string|null $timezone Location timezone
  * @property string|null $contactInfo Contact information
  * @property \DateTime $dateCreated
@@ -31,8 +30,7 @@ class LocationRecord extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['address', 'timezone', 'contactInfo'], 'string'],
+            [['timezone', 'contactInfo'], 'string'],
         ];
     }
 }
-

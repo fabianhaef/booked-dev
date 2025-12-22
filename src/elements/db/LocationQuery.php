@@ -55,7 +55,6 @@ class LocationQuery extends ElementQuery
         $this->joinElementTable('booked_locations');
 
         $this->query->select([
-            'booked_locations.address',
             'booked_locations.timezone',
             'booked_locations.contactInfo',
         ]);

@@ -812,6 +812,28 @@ class Reservation extends Element
     }
 
     /**
+     * Get the associated employee
+     */
+    public function getEmployee(): ?Employee
+    {
+        if ($this->employeeId === null) {
+            return null;
+        }
+        return Employee::find()->id($this->employeeId)->one();
+    }
+
+    /**
+     * Get the associated service
+     */
+    public function getService(): ?Service
+    {
+        if ($this->serviceId === null) {
+            return null;
+        }
+        return Service::find()->id($this->serviceId)->one();
+    }
+
+    /**
      * Find reservation by confirmation token
      */
     public static function findByToken(string $token): ?self

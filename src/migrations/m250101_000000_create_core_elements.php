@@ -89,7 +89,6 @@ class m250101_000000_create_core_elements extends Migration
         if (!$this->db->tableExists('{{%booked_locations}}')) {
             $this->createTable('{{%booked_locations}}', [
                 'id' => $this->integer()->notNull(),
-                'address' => $this->text(),
                 'timezone' => $this->string(50),
                 'contactInfo' => $this->text(),
                 'dateCreated' => $this->dateTime()->notNull(),

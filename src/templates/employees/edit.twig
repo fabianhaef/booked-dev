@@ -63,6 +63,39 @@
             name: 'enabled',
             on: employee.enabled ?? true
         }) }}
+
+        {% if employee.id %}
+            <hr>
+            <h3>{{ 'Calendar Synchronization'|t('booked') }}</h3>
+            
+            <div class="field">
+                <div class="heading">
+                    <label>{{ 'Google Calendar'|t('booked') }}</label>
+                </div>
+                <div class="input">
+                    {% if googleConnected %}
+                        <span class="status green"></span> {{ 'Connected'|t('booked') }}
+                        <a href="{{ url('booked/calendar/connect', { employeeId: employee.id, provider: 'google' }) }}" class="btn small">{{ 'Reconnect'|t('booked') }}</a>
+                    {% else %}
+                        <a href="{{ url('booked/calendar/connect', { employeeId: employee.id, provider: 'google' }) }}" class="btn small submit">{{ 'Connect Google Calendar'|t('booked') }}</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="heading">
+                    <label>{{ 'Microsoft Outlook'|t('booked') }}</label>
+                </div>
+                <div class="input">
+                    {% if outlookConnected %}
+                        <span class="status green"></span> {{ 'Connected'|t('booked') }}
+                        <a href="{{ url('booked/calendar/connect', { employeeId: employee.id, provider: 'outlook' }) }}" class="btn small">{{ 'Reconnect'|t('booked') }}</a>
+                    {% else %}
+                        <a href="{{ url('booked/calendar/connect', { employeeId: employee.id, provider: 'outlook' }) }}" class="btn small submit">{{ 'Connect Outlook Calendar'|t('booked') }}</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
 

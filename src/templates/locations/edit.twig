@@ -36,15 +36,24 @@
             errors: location.getErrors('slug')
         }) }}
 
-        {{ forms.textareaField({
-            label: 'Address'|t('booked'),
-            id: 'address',
-            name: 'address',
-            value: location.address,
-            rows: 3,
-            errors: location.getErrors('address'),
-            instructions: 'Full address of this location'
-        }) }}
+        {% set address = location.getPrimaryAddress() ?? create('craft\\elements\\Address') %}
+        <div id="address-container">
+            {% namespace 'address' %}
+                {{ forms.selectField({
+                    label: "Country"|t('app'),
+                    id: 'countryCode',
+                    name: 'countryCode',
+                    options: craft.app.addresses.getCountryList(),
+                    value: address.countryCode ?? craft.app.addresses.getDefaultCountryCode(),
+                    errors: address.getErrors('countryCode'),
+                    class: 'address-country-select'
+                }) }}
+
+                <div class="address-fields">
+                    {{ craft.app.cp.addressFieldsHtml(address)|raw }}
+                </div>
+            {% endnamespace %}
+        </div>
 
         {{ forms.selectField({
             label: 'Timezone'|t('booked'),
@@ -73,5 +82,26 @@
             on: location.enabled ?? true
         }) }}
     </div>
+
+    {% js %}
+        (function() {
+            const $countrySelect = $('#address-countryCode');
+            const $fieldsContainer = $('#address-container .address-fields');
+
+            $countrySelect.on('change', function() {
+                const countryCode = $(this).val();
+                
+                Craft.postActionRequest('addresses/fields', {
+                    namespace: 'address',
+                    countryCode: countryCode
+                }, function(response, textStatus) {
+                    if (textStatus === 'success') {
+                        $fieldsContainer.html(response.fieldsHtml);
+                        Craft.initUiElements($fieldsContainer);
+                    }
+                });
+            });
+        })();
+    {% endjs %}
 {% endblock %}
 

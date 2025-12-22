@@ -15,6 +15,7 @@ use fabian\booked\exceptions\BookingRateLimitException;
 use fabian\booked\exceptions\BookingValidationException;
 use fabian\booked\models\Settings;
 use fabian\booked\queue\jobs\SendBookingEmailJob;
+use fabian\booked\queue\jobs\SyncToCalendarJob;
 use fabian\booked\records\ReservationRecord;
 
 /**
@@ -338,6 +339,9 @@ class BookingService extends Component
                 // Queue notification email to owner if enabled
                 $this->queueOwnerNotification($reservation->id);
 
+                // Queue calendar sync
+                $this->queueCalendarSync($reservation->id);
+
                 return $reservation;
 
             } catch (\yii\db\IntegrityException $e) {
@@ -528,6 +532,23 @@ class BookingService extends Component
 
         Craft::info(
             "Queued {$emailType} email for reservation #{$reservationId}",
+            __METHOD__
+        );
+    }
+
+    /**
+     * Queue calendar sync for a reservation
+     */
+    public function queueCalendarSync(int $reservationId, int $priority = 1024): void
+    {
+        $job = new SyncToCalendarJob([
+            'reservationId' => $reservationId,
+        ]);
+
+        $this->getQueueService()->priority($priority)->push($job);
+
+        Craft::info(
+            "Queued calendar sync for reservation #{$reservationId}",
             __METHOD__
         );
     }

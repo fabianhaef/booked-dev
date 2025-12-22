@@ -27,7 +27,9 @@
     "require": {
         "craftcms/cms": "^5.0.0",
         "php": "^8.0.2",
-        "rlanvin/php-rrule": "^2.6"
+        "rlanvin/php-rrule": "^2.6",
+        "google/apiclient": "*",
+        "microsoft/microsoft-graph": "*"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
@@ -73,4 +75,3 @@
         }
     }
 }
-

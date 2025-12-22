@@ -128,6 +128,7 @@ class Booked extends Plugin
             'booking' => \fabian\booked\services\BookingService::class,
             'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
             'softLock' => \fabian\booked\services\SoftLockService::class,
+            'calendarSync' => \fabian\booked\services\CalendarSyncService::class,
         ]);
     }
 
@@ -154,6 +155,11 @@ class Booked extends Plugin
     public function getSoftLock(): \fabian\booked\services\SoftLockService
     {
         return $this->get('softLock');
+    }
+
+    public function getCalendarSync(): \fabian\booked\services\CalendarSyncService
+    {
+        return $this->get('calendarSync');
     }
 
     /**
@@ -212,6 +218,10 @@ class Booked extends Plugin
                     'booked/settings/notifications' => 'booked/cp/settings/notifications',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
+                    
+                    // Calendar Sync
+                    'booked/calendar/connect' => 'booked/cp/calendar/connect',
+                    'booked/calendar/callback' => 'booked/cp/calendar/callback',
                 ]);
             }
         );

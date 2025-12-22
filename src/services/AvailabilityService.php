@@ -122,6 +122,9 @@ class AvailabilityService extends Component
             // Step 7: Subtract blackout dates
             $timeWindows = $this->subtractBlackouts($timeWindows, $date);
 
+            // Step 7.5: Subtract external calendar events
+            $timeWindows = $this->subtractExternalEvents($timeWindows, $date, $empId);
+
             // Step 8: Generate slots for this employee
             $empSlots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId);
             
@@ -473,6 +476,23 @@ class AvailabilityService extends Component
         
         if ($blackoutService->isDateBlackedOut($date)) {
             return [];
+        }
+
+        return $windows;
+    }
+
+    /**
+     * Subtract external calendar events from time windows
+     */
+    protected function subtractExternalEvents(array $windows, string $date, int $employeeId): array
+    {
+        $events = \fabian\booked\records\ExternalEventRecord::find()
+            ->where(['employeeId' => $employeeId])
+            ->andWhere(['startDate' => $date])
+            ->all();
+
+        foreach ($events as $event) {
+            $windows = $this->subtractWindow($windows, $event->startTime, $event->endTime);
         }
 
         return $windows;
