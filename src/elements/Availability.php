@@ -22,6 +22,9 @@ use fabian\booked\models\EventDate;
  * @property string|null $endTime
  * @property bool $isActive
  * @property string $availabilityType
+ * @property string|null $rrule
+ * @property string|null $recurrenceType
+ * @property string|null $recurrenceEndDate
  * @property string|null $description
  * @property string $sourceType
  * @property int|null $sourceId
@@ -34,6 +37,9 @@ class Availability extends Element
     public ?string $endTime = null;
     public bool $isActive = true;
     public string $availabilityType = 'recurring';
+    public ?string $rrule = null;
+    public ?string $recurrenceType = 'none'; // none, daily, weekly, monthly, custom
+    public ?string $recurrenceEndDate = null;
     public ?string $description = null;
     public string $sourceType = 'section';
     public ?int $sourceId = null;

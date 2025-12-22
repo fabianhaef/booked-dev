@@ -19,6 +19,7 @@ class TestableAvailabilityService extends AvailabilityService
 {
     public $mockWorkingHours = [];
     public $mockReservations = [];
+    public $mockAvailabilities = []; // New mock property
     public $mockNow = null;
 
     protected function getWorkingHours(int $dayOfWeek, ?int $employeeId = null, ?int $locationId = null): array
@@ -30,6 +31,12 @@ class TestableAvailabilityService extends AvailabilityService
             });
         }
         return array_values($filtered);
+    }
+
+    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null): array
+    {
+        // Simple mock for now
+        return $this->mockAvailabilities;
     }
 
     protected function getReservationsForDate(string $date, ?int $employeeId = null, ?int $serviceId = null): array
@@ -80,6 +87,13 @@ class MockBlackoutService extends BlackoutDateService {
     public function isDateBlackedOut(string $date): bool {
         return $this->isBlackedOut;
     }
+}
+
+/**
+ * Mock Availability element
+ */
+class MockAvailability extends \fabian\booked\elements\Availability {
+    public function __construct() {}
 }
 
 class AvailabilityServiceTest extends Unit
@@ -326,5 +340,26 @@ class AvailabilityServiceTest extends Unit
         
         $this->assertFalse($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 2));
         $this->assertTrue($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 1));
+    }
+
+    public function testGetAvailableSlotsWithRecurrence()
+    {
+        $monday = '2026-01-05'; // A future Monday
+        
+        $avail = new MockAvailability();
+        $avail->startTime = '09:00';
+        $avail->endTime = '12:00';
+        $avail->availabilityType = 'recurring';
+        $avail->rrule = 'FREQ=WEEKLY;BYDAY=MO';
+        $avail->isActive = true;
+        $avail->sourceId = 1; // employeeId
+        
+        $this->service->mockAvailabilities = [$avail];
+        $this->service->mockWorkingHours = []; // No base schedule
+        
+        $slots = $this->service->getAvailableSlots($monday, 1);
+        
+        $this->assertNotEmpty($slots);
+        $this->assertEquals('09:00', $slots[0]['time']);
     }
 }

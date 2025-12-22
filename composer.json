@@ -26,7 +26,8 @@
     ],
     "require": {
         "craftcms/cms": "^5.0.0",
-        "php": "^8.0.2"
+        "php": "^8.0.2",
+        "rlanvin/php-rrule": "^2.6"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",

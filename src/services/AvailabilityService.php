@@ -22,7 +22,7 @@ class AvailabilityService extends Component
 {
     /**
      * Get available time slots for a specific date
-     * 
+     *
      * @param string $date Date in Y-m-d format
      * @param int|null $employeeId Optional employee ID to filter by
      * @param int|null $locationId Optional location ID to filter by
@@ -67,15 +67,19 @@ class AvailabilityService extends Component
 
         $dayOfWeek = (int)$dateObj->format('w'); // 0 = Sunday, 6 = Saturday
 
-        // Step 1: Get working hours (Schedule) for the date
+        // Step 1: Get base working hours (Schedule) for the date
         $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId);
         
-        if (empty($schedules)) {
+        // Step 2: Get additional availability elements
+        $availabilities = $this->getAvailabilities($employeeId, $locationId);
+        $expandedAvailabilities = $this->expandAvailabilities($availabilities, $date);
+
+        if (empty($schedules) && empty($expandedAvailabilities)) {
             $cacheService->setCachedAvailability($date, [], $employeeId, $serviceId);
             return [];
         }
 
-        // Step 2: Get service details if specified
+        // Step 3: Get service details if specified
         $service = null;
         if ($serviceId) {
             $service = Service::findOne($serviceId);
@@ -87,17 +91,26 @@ class AvailabilityService extends Component
         $duration = $service ? $service->duration : 60; // Default 60 minutes
         $allSlots = [];
 
-        // Group schedules by employee to process availability per-employee
+        // Group schedules and availabilities by employee
         $schedulesByEmployee = [];
         foreach ($schedules as $schedule) {
-            $schedulesByEmployee[$schedule->employeeId][] = $schedule;
+            $schedulesByEmployee[$schedule->employeeId][] = [
+                'start' => $schedule->startTime,
+                'end' => $schedule->endTime,
+            ];
+        }
+        foreach ($expandedAvailabilities as $avail) {
+            $schedulesByEmployee[$avail['employeeId']][] = [
+                'start' => $avail['start'],
+                'end' => $avail['end'],
+            ];
         }
 
-        foreach ($schedulesByEmployee as $empId => $empSchedules) {
-            // Step 3: Generate base time windows for this employee
-            $timeWindows = $this->generateTimeWindows($empSchedules);
+        foreach ($schedulesByEmployee as $empId => $empWindowsRaw) {
+            // Step 4: Generate merged time windows for this employee
+            $timeWindows = $this->mergeTimeWindows($empWindowsRaw);
 
-            // Step 4: Subtract this employee's bookings
+            // Step 5: Subtract this employee's bookings
             $timeWindows = $this->subtractBookings($timeWindows, $date, $empId, $serviceId);
 
             // Step 5: Subtract buffer times (if service specified)
@@ -154,6 +167,58 @@ class AvailabilityService extends Component
         }
 
         return $filtered;
+    }
+
+    /**
+     * Get availability elements
+     */
+    protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null): array
+    {
+        $query = \fabian\booked\elements\Availability::find()
+            ->status('active');
+
+        // TODO: Filter by employee/location once relationships are established
+        // For now, return all active ones
+        return $query->all();
+    }
+
+    /**
+     * Expand availability elements for a specific date
+     */
+    protected function expandAvailabilities(array $availabilities, string $date): array
+    {
+        $expanded = [];
+        $dateObj = new DateTime($date);
+        $recurrenceService = new RecurrenceService();
+
+        foreach ($availabilities as $avail) {
+            $match = false;
+
+            if ($avail->availabilityType === 'event') {
+                foreach ($avail->getEventDates() as $eventDate) {
+                    if ($eventDate->eventDate === $date) {
+                        $expanded[] = [
+                            'start' => $eventDate->startTime,
+                            'end' => $eventDate->endTime,
+                            'employeeId' => $avail->sourceId, // Assuming sourceId is employeeId for now
+                        ];
+                    }
+                }
+            } elseif ($avail->availabilityType === 'recurring' && $avail->rrule) {
+                // Use dateCreated as start of series if no explicit startDate (TODO: add startDate to element)
+                $seriesStart = $avail->dateCreated ?? new DateTime('2000-01-01');
+                $occurs = $recurrenceService->occursOn($avail->rrule, $date, $seriesStart);
+                if ($occurs) {
+                    $expanded[] = [
+                        'start' => $avail->startTime,
+                        'end' => $avail->endTime,
+                        'employeeId' => $avail->sourceId,
+                    ];
+                }
+            }
+        }
+
+        return $expanded;
     }
 
     /**
@@ -534,8 +599,8 @@ class AvailabilityService extends Component
             if ($slot['time'] === $startTime && $slot['endTime'] === $endTime) {
                 // If specific employee requested, match it
                 if ($employeeId !== null && $slot['employeeId'] !== $employeeId) {
-                    continue;
-                }
+                continue;
+            }
                 return true;
             }
         }
