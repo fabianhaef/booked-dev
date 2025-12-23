@@ -382,6 +382,9 @@ class Booked extends Plugin
     /**
      * Register template variables
      */
+    /**
+     * Register template variable
+     */
     private function registerTemplateVariable(): void
     {
         Event::on(
@@ -391,6 +394,8 @@ class Booked extends Plugin
                 /** @var CraftVariable $variable */
                 $variable = $event->sender;
                 $variable->set('booked', \fabian\booked\variables\BookingVariable::class);
+                // Also support legacy 'booking' handle
+                $variable->set('booking', \fabian\booked\variables\BookingVariable::class);
             }
         );
     }

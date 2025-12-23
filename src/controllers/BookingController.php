@@ -208,8 +208,8 @@ class BookingController extends Controller
         $form->userTimezone = Craft::$app->getTimeZone(); 
         $form->bookingDate = $request->getBodyParam('date') ?? $request->getBodyParam('bookingDate');
         $form->startTime = $request->getBodyParam('time') ?? $request->getBodyParam('startTime');
-        $form->endTime = $request->getBodyParam('endTime');
-        $form->notes = $request->getBodyParam('notes');
+        $form->endTime = $request->getBodyParam('endTime') ?? $request->getBodyParam('end_time');
+        $form->notes = $request->getBodyParam('notes') ?? $request->getBodyParam('customerNotes');
         $form->serviceId = $request->getBodyParam('serviceId') ? (int)$request->getBodyParam('serviceId') : null;
         $form->employeeId = $request->getBodyParam('employeeId') ? (int)$request->getBodyParam('employeeId') : null;
         $form->locationId = $request->getBodyParam('locationId') ? (int)$request->getBodyParam('locationId') : null;

@@ -144,14 +144,6 @@ class BookingService extends Component
     }
 
     /**
-     * Get plugin settings
-     */
-    protected function getSettingsModel(): Settings
-    {
-        return Settings::loadSettings();
-    }
-
-    /**
      * Create a new booking (wrapper for createReservation with simplified array keys)
      */
     public function createBooking(array $data): bool
@@ -607,7 +599,7 @@ class BookingService extends Component
      */
     public function queueOwnerNotification(int $reservationId, int $priority = 1024): void
     {
-        $settings = $this->getSettingsModel();
+        $settings = $this->getSettings();
 
         // Check if owner notification is enabled
         if (!$settings->ownerNotificationEnabled) {
@@ -810,30 +802,6 @@ class BookingService extends Component
     }
 
     /**
-     * Get DB service
-     */
-    protected function getDb()
-    {
-        return Craft::$app->db;
-    }
-
-    /**
-     * Get elements service
-     */
-    protected function getElementsService()
-    {
-        return Craft::$app->elements;
-    }
-
-    /**
-     * Get mutex service
-     */
-    protected function getMutex()
-    {
-        return Craft::$app->mutex;
-    }
-
-    /**
      * Get availability cache service
      */
     protected function getAvailabilityCacheService(): AvailabilityCacheService
@@ -842,43 +810,11 @@ class BookingService extends Component
     }
 
     /**
-     * Get queue service
-     */
-    protected function getQueueService()
-    {
-        return Craft::$app->queue;
-    }
-
-    /**
-     * Get cache service
-     */
-    protected function getCacheService()
-    {
-        return Craft::$app->cache;
-    }
-
-    /**
-     * Get request service
-     */
-    protected function getRequestService()
-    {
-        return Craft::$app->request;
-    }
-
-    /**
      * Get service by ID
      */
     protected function getServiceById(int $id): ?\fabian\booked\elements\Service
     {
         return \fabian\booked\elements\Service::findOne($id);
-    }
-
-    /**
-     * Get reservation record query
-     */
-    protected function getReservationRecordQuery(): \yii\db\ActiveQuery
-    {
-        return ReservationRecord::find();
     }
 
     /**
@@ -912,11 +848,87 @@ class BookingService extends Component
     }
 
     /**
+     * Get availability service
+     */
+    protected function getAvailabilityService(): AvailabilityService
+    {
+        return Booked::getInstance()->getAvailability();
+    }
+
+    /**
+     * Get queue service
+     */
+    protected function getQueueService(): \craft\queue\Service
+    {
+        return Craft::$app->getQueue();
+    }
+
+    /**
+     * Get elements service
+     */
+    protected function getElementsService(): \craft\services\Elements
+    {
+        return Craft::$app->getElements();
+    }
+
+    /**
+     * Get cache service
+     */
+    protected function getCacheService(): \yii\caching\CacheInterface
+    {
+        return Craft::$app->getCache();
+    }
+
+    /**
+     * Get DB service
+     */
+    protected function getDb(): \craft\db\Connection
+    {
+        return Craft::$app->getDb();
+    }
+
+    /**
+     * Get request service
+     */
+    protected function getRequestService(): \craft\web\Request
+    {
+        return Craft::$app->getRequest();
+    }
+
+    /**
+     * Get mutex service
+     */
+    protected function getMutex(): \yii\mutex\Mutex
+    {
+        return Craft::$app->getMutex();
+    }
+
+    /**
+     * Get reservation record query
+     */
+    protected function getReservationRecordQuery(): \yii\db\ActiveQuery
+    {
+        return ReservationRecord::find();
+    }
+
+    /**
+     * Get plugin settings
+     */
+    protected function getSettings(): Settings
+    {
+        return Booked::getInstance()->getSettings();
+    }
+
+    /**
      * Check if email has exceeded rate limit
      */
     private function checkEmailRateLimit(string $email): bool
     {
-        $settings = $this->getSettingsModel();
+        $settings = $this->getSettings();
+
+        if (!$settings->enableRateLimiting) {
+            return true;
+        }
 
         // Skip in test environment to avoid session issues
         if (defined('CRAFT_ENVIRONMENT') && CRAFT_ENVIRONMENT === 'test') {
@@ -933,25 +945,8 @@ class BookingService extends Component
                 ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED])
                 ->count();
 
-            if ($bookingsToday >= $settings->maxBookingsPerEmail) {
+            if ($bookingsToday >= $settings->rateLimitPerEmail) {
                 return false;
-            }
-
-            // Check time between bookings
-            $lastBooking = $this->getReservationRecordQuery()
-                ->where(['userEmail' => $email])
-                ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED])
-                ->orderBy(['dateCreated' => SORT_DESC])
-                ->one();
-
-            if ($lastBooking) {
-                $lastBookingTime = strtotime($lastBooking->dateCreated);
-                $now = time();
-                $minutesSinceLastBooking = ($now - $lastBookingTime) / 60;
-
-                if ($minutesSinceLastBooking < $settings->rateLimitMinutes) {
-                    return false;
-                }
             }
 
             return true;
@@ -967,7 +962,11 @@ class BookingService extends Component
      */
     private function checkIPRateLimit(string $ipAddress): bool
     {
-        $settings = $this->getSettingsModel();
+        $settings = $this->getSettings();
+
+        if (!$settings->enableRateLimiting) {
+            return true;
+        }
 
         // Skip in test environment
         if (defined('CRAFT_ENVIRONMENT') && CRAFT_ENVIRONMENT === 'test') {
@@ -988,19 +987,8 @@ class BookingService extends Component
             });
 
             // Check if exceeded max bookings per IP
-            if (count($ipBookings) >= $settings->maxBookingsPerIP) {
+            if (count($ipBookings) >= $settings->rateLimitPerIp) {
                 return false;
-            }
-
-            // Check time between bookings
-            if (!empty($ipBookings)) {
-                $lastBookingTime = max($ipBookings);
-                $now = time();
-                $minutesSinceLastBooking = ($now - $lastBookingTime) / 60;
-
-                if ($minutesSinceLastBooking < $settings->rateLimitMinutes) {
-                    return false;
-                }
             }
 
             // Track this booking attempt

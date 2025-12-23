@@ -18,15 +18,6 @@ use Twig\Markup;
  */
 class BookingVariable
 {
-    private AvailabilityService $availabilityService;
-    private BookingService $bookingService;
-
-    public function __construct()
-    {
-        $this->availabilityService = Booked::getInstance()->availability;
-        $this->bookingService = Booked::getInstance()->booking;
-    }
-
     /**
      * Get booking form HTML
      *
@@ -113,7 +104,7 @@ class BookingVariable
      */
     public function getAvailableSlots(string $date): array
     {
-        return $this->availabilityService->getAvailableSlots($date);
+        return Booked::getInstance()->getAvailability()->getAvailableSlots($date);
     }
 
     /**
@@ -123,7 +114,7 @@ class BookingVariable
      */
     public function getNextAvailableDate(): ?string
     {
-        return $this->availabilityService->getNextAvailableDate();
+        return Booked::getInstance()->getAvailability()->getNextAvailableDate();
     }
 
     /**
@@ -135,7 +126,7 @@ class BookingVariable
      */
     public function getAvailabilityCalendar(string $startDate, string $endDate): array
     {
-        return $this->availabilityService->getAvailabilitySummary($startDate, $endDate);
+        return Booked::getInstance()->getAvailability()->getAvailabilitySummary($startDate, $endDate);
     }
 
     /**
@@ -146,7 +137,7 @@ class BookingVariable
      */
     public function getUpcomingReservations(int $limit = 10): array
     {
-        return $this->bookingService->getUpcomingReservations($limit);
+        return Booked::getInstance()->getBooking()->getUpcomingReservations($limit);
     }
 
     /**
@@ -156,7 +147,7 @@ class BookingVariable
      */
     public function getSettings(): Settings
     {
-        return Settings::loadSettings();
+        return Booked::getInstance()->getSettings();
     }
 
     /**
@@ -169,7 +160,7 @@ class BookingVariable
      */
     public function isSlotAvailable(string $date, string $startTime, string $endTime): bool
     {
-        return $this->availabilityService->isSlotAvailable($date, $startTime, $endTime);
+        return Booked::getInstance()->getAvailability()->isSlotAvailable($date, $startTime, $endTime);
     }
 
     /**
@@ -179,7 +170,7 @@ class BookingVariable
      */
     public function getStats(): array
     {
-        return $this->bookingService->getBookingStats();
+        return Booked::getInstance()->getBooking()->getBookingStats();
     }
 
     /**
@@ -191,7 +182,9 @@ class BookingVariable
      */
     public function hasPaymentQrFile(): bool
     {
-        $settings = Settings::loadSettings();
-        return $settings->hasPaymentQr();
+        $settings = Booked::getInstance()->getSettings();
+        // Assuming settings has this method, if not we check for the legacy attribute
+        return method_exists($settings, 'hasPaymentQr') ? $settings->hasPaymentQr() : false;
     }
+}
 }

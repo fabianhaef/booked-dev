@@ -235,6 +235,9 @@ class Install extends Migration
                 'sourceId' => $this->integer()->null(),
                 'sourceHandle' => $this->string()->null(),
                 'variationId' => $this->integer()->null(),
+                'employeeId' => $this->integer()->null(),
+                'locationId' => $this->integer()->null(),
+                'serviceId' => $this->integer()->null(),
                 'quantity' => $this->integer()->notNull()->defaultValue(1),
                 'notes' => $this->text(),
                 'virtualMeetingUrl' => $this->string()->null(),
@@ -247,12 +250,41 @@ class Install extends Migration
                 'uid' => $this->uid(),
             ]);
 
-            // Add foreign key to variations table
             $this->addForeignKey(
                 null,
                 '{{%bookings_reservations}}',
                 'variationId',
                 '{{%bookings_variations}}',
+                'id',
+                'SET NULL',
+                null
+            );
+
+            $this->addForeignKey(
+                null,
+                '{{%bookings_reservations}}',
+                'employeeId',
+                '{{%elements}}',
+                'id',
+                'SET NULL',
+                null
+            );
+
+            $this->addForeignKey(
+                null,
+                '{{%bookings_reservations}}',
+                'locationId',
+                '{{%elements}}',
+                'id',
+                'SET NULL',
+                null
+            );
+
+            $this->addForeignKey(
+                null,
+                '{{%bookings_reservations}}',
+                'serviceId',
+                '{{%elements}}',
                 'id',
                 'SET NULL',
                 null
@@ -264,6 +296,9 @@ class Install extends Migration
             $this->createIndex(null, '{{%bookings_reservations}}', ['sourceType', 'sourceId']);
             $this->createIndex(null, '{{%bookings_reservations}}', ['sourceType', 'sourceHandle']);
             $this->createIndex(null, '{{%bookings_reservations}}', ['variationId']);
+            $this->createIndex(null, '{{%bookings_reservations}}', ['employeeId']);
+            $this->createIndex(null, '{{%bookings_reservations}}', ['locationId']);
+            $this->createIndex(null, '{{%bookings_reservations}}', ['serviceId']);
             $this->createIndex('idx_confirmationToken', '{{%bookings_reservations}}', 'confirmationToken', true);
             $this->createIndex(
                 'idx_unique_active_booking',

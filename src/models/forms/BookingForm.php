@@ -12,13 +12,13 @@ use fabian\booked\elements\Reservation;
  */
 class BookingForm extends Model
 {
-    public string $userName = '';
-    public string $userEmail = '';
+    public ?string $userName = null;
+    public ?string $userEmail = null;
     public ?string $userPhone = null;
     public ?string $userTimezone = 'Europe/Zurich';
-    public string $bookingDate = '';
-    public string $startTime = '';
-    public string $endTime = '';
+    public ?string $bookingDate = null;
+    public ?string $startTime = null;
+    public ?string $endTime = null;
     public ?string $notes = null;
     public ?int $serviceId = null;
     public ?int $employeeId = null;

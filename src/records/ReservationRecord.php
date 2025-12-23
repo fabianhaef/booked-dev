@@ -74,7 +74,7 @@ class ReservationRecord extends ActiveRecord
             [['status'], 'default', 'value' => self::STATUS_CONFIRMED],
             [['notificationSent'], 'default', 'value' => false],
             [['sourceType'], 'in', 'range' => ['entry', 'section']],
-            [['sourceId', 'variationId', 'quantity'], 'integer'],
+            [['sourceId', 'variationId', 'employeeId', 'locationId', 'serviceId', 'quantity'], 'integer'],
             [['quantity'], 'default', 'value' => 1],
             [['sourceHandle'], 'string', 'max' => 255],
         ];
