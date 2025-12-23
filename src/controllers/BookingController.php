@@ -143,9 +143,10 @@ class BookingController extends Controller
         $request = Craft::$app->request;
         $startDate = $request->getParam('startDate', date('Y-m-d'));
         $endDate = $request->getParam('endDate', date('Y-m-d', strtotime('+90 days')));
-        $entryId = $request->getParam('entryId');
+        $employeeId = $request->getParam('employeeId') ?: $request->getParam('entryId'); // Support both
+        $locationId = $request->getParam('locationId');
+        $serviceId = $request->getParam('serviceId');
         $quantity = (int)($request->getParam('quantity') ?? 1);
-        $variationId = $request->getParam('variationId');
 
         // Validate quantity
         if ($quantity < 1) {
@@ -160,14 +161,19 @@ class BookingController extends Controller
             $dateStr = $current->format('Y-m-d');
 
             // Check if date is blacked out
-            $isBlackedOut = $this->availabilityService->isDateBlackedOut($dateStr);
+            $isBlackedOut = $this->availabilityService->isDateBlackedOut($dateStr, $employeeId ? (int)$employeeId : null, $locationId ? (int)$locationId : null);
 
             // Check if date has available slots with enough capacity for requested quantity
             $hasSlots = false;
             if (!$isBlackedOut) {
-                $slots = $this->availabilityService->getAvailableSlots($dateStr, $entryId, $variationId, $quantity);
+                $slots = $this->availabilityService->getAvailableSlots(
+                    $dateStr, 
+                    $employeeId ? (int)$employeeId : null, 
+                    $locationId ? (int)$locationId : null, 
+                    $serviceId ? (int)$serviceId : null, 
+                    $quantity
+                );
                 $hasSlots = !empty($slots);
-
             }
 
             $calendar[$dateStr] = [

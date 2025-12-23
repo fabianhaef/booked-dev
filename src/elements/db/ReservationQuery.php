@@ -22,8 +22,38 @@ class ReservationQuery extends ElementQuery
     public ?string $endTime = null;
     public array|string|null $status = null;
     public ?int $variationId = null;
+    public ?int $employeeId = null;
+    public ?int $locationId = null;
+    public ?int $serviceId = null;
     public ?string $sourceType = null;
     public ?int $sourceId = null;
+
+    /**
+     * Filter by employee ID
+     */
+    public function employeeId(?int $value): static
+    {
+        $this->employeeId = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by location ID
+     */
+    public function locationId(?int $value): static
+    {
+        $this->locationId = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by service ID
+     */
+    public function serviceId(?int $value): static
+    {
+        $this->serviceId = $value;
+        return $this;
+    }
 
     /**
      * Filter by user name
@@ -130,6 +160,9 @@ class ReservationQuery extends ElementQuery
             'bookings_reservations.sourceId',
             'bookings_reservations.sourceHandle',
             'bookings_reservations.variationId',
+            'bookings_reservations.employeeId',
+            'bookings_reservations.locationId',
+            'bookings_reservations.serviceId',
             'bookings_reservations.quantity',
         ]);
 
@@ -160,6 +193,18 @@ class ReservationQuery extends ElementQuery
 
         if ($this->variationId) {
             $this->subQuery->andWhere(Db::parseParam('bookings_reservations.variationId', $this->variationId));
+        }
+
+        if ($this->employeeId) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.employeeId', $this->employeeId));
+        }
+
+        if ($this->locationId) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.locationId', $this->locationId));
+        }
+
+        if ($this->serviceId) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.serviceId', $this->serviceId));
         }
 
         if ($this->sourceType) {

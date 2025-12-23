@@ -20,6 +20,7 @@ class TestableAvailabilityService extends AvailabilityService
     public $mockWorkingHours = [];
     public $mockReservations = [];
     public $mockAvailabilities = [];
+    public $mockBlackedOutDates = [];
     public $mockNow = null;
     public $mockEmployeeTimezone = 'Europe/Zurich'; // Default mock TZ
 
@@ -32,6 +33,15 @@ class TestableAvailabilityService extends AvailabilityService
             });
         }
         return array_values($filtered);
+    }
+
+    protected function subtractBlackouts(array $windows, string $date, ?int $employeeId = null): array
+    {
+        // Simple mock: return empty if date is in mockBlackedOutDates
+        if (isset($this->mockBlackedOutDates) && in_array($date, $this->mockBlackedOutDates)) {
+            return [];
+        }
+        return $windows;
     }
 
     protected function getEmployeeTimezone(int $employeeId): string
@@ -95,9 +105,33 @@ class MockCacheService extends AvailabilityCacheService {
  */
 class MockBlackoutService extends BlackoutDateService {
     public $isBlackedOut = false;
-    public function isDateBlackedOut(string $date): bool {
+    public function isDateBlackedOut(string $date, ?int $employeeId = null, ?int $locationId = null): bool {
         return $this->isBlackedOut;
     }
+}
+
+/**
+ * Mock Schedule element
+ */
+class MockScheduleElement extends \fabian\booked\elements\Schedule {
+    public ?string $startTime = null;
+    public ?string $endTime = null;
+    public ?int $employeeId = null;
+    public array $employeeIds = [];
+    public function __construct() {}
+    public function getEmployees(): array { return []; }
+    public function getEmployee(): ?\fabian\booked\elements\Employee { return null; }
+}
+
+/**
+ * Mock Reservation element
+ */
+class MockReservationElement extends \fabian\booked\elements\Reservation {
+    public string $startTime = '';
+    public string $endTime = '';
+    public ?int $employeeId = null;
+    public int $quantity = 1;
+    public function __construct() {}
 }
 
 /**
@@ -167,12 +201,12 @@ class AvailabilityServiceTest extends Unit
         $date = '2025-12-25';
 
         // Case 1: No blackout
-        $this->blackoutService->isBlackedOut = false;
+        $this->service->mockBlackedOutDates = [];
         $result = $this->invokeMethod($this->service, 'subtractBlackouts', [$windows, $date]);
         $this->assertEquals($windows, $result);
 
         // Case 2: Date is blacked out
-        $this->blackoutService->isBlackedOut = true;
+        $this->service->mockBlackedOutDates = [$date];
         $result = $this->invokeMethod($this->service, 'subtractBlackouts', [$windows, $date]);
         $this->assertEquals([], $result);
     }
@@ -254,12 +288,12 @@ class AvailabilityServiceTest extends Unit
     public function testGetAvailableSlotsWithQuantity()
     {
         // Setup mock working hours for two employees
-        $s1 = new \stdClass();
+        $s1 = new MockScheduleElement();
         $s1->startTime = '09:00';
         $s1->endTime = '10:00';
         $s1->employeeId = 1;
         
-        $s2 = new \stdClass();
+        $s2 = new MockScheduleElement();
         $s2->startTime = '09:00';
         $s2->endTime = '10:00';
         $s2->employeeId = 2;
@@ -294,7 +328,7 @@ class AvailabilityServiceTest extends Unit
     {
         $today = (new DateTime())->format('Y-m-d');
         
-        $s1 = new \stdClass();
+        $s1 = new MockScheduleElement();
         $s1->startTime = '09:00';
         $s1->endTime = '12:00';
         $s1->employeeId = 1;
@@ -323,7 +357,7 @@ class AvailabilityServiceTest extends Unit
     public function testIsSlotAvailable()
     {
         $today = (new DateTime())->format('Y-m-d');
-        $s1 = new \stdClass();
+        $s1 = new MockScheduleElement();
         $s1->startTime = '09:00';
         $s1->endTime = '10:00';
         $s1->employeeId = 1;
@@ -334,7 +368,7 @@ class AvailabilityServiceTest extends Unit
         $this->assertFalse($this->service->isSlotAvailable($today, '10:00', '11:00', 1));
         
         // With quantity
-        $s2 = new \stdClass();
+        $s2 = new MockScheduleElement();
         $s2->startTime = '09:00';
         $s2->endTime = '10:00';
         $s2->employeeId = 2;
@@ -377,7 +411,7 @@ class AvailabilityServiceTest extends Unit
     public function testGetAvailableSlotsWithTimezoneShift()
     {
         $today = '2026-01-01';
-        $s1 = new \stdClass();
+        $s1 = new MockScheduleElement();
         $s1->startTime = '09:00';
         $s1->endTime = '12:00';
         $s1->employeeId = 1;

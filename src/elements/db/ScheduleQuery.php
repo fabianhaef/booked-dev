@@ -79,15 +79,20 @@ class ScheduleQuery extends ElementQuery
             'booked_schedules.dayOfWeek',
             'booked_schedules.startTime',
             'booked_schedules.endTime',
+            'booked_schedules.employeeId',
         ]);
 
-        // Always join the junction table if we're filtering by employee or service
+        // Support both junction table and legacy employeeId column
         if ($this->employeeId !== null || $this->serviceId !== null) {
-            $this->subQuery->innerJoin('{{%booked_schedule_employees}} booked_schedule_employees', '[[booked_schedule_employees.scheduleId]] = [[elements.id]]');
+            $this->subQuery->leftJoin('{{%booked_schedule_employees}} booked_schedule_employees', '[[booked_schedule_employees.scheduleId]] = [[elements.id]]');
         }
 
         if ($this->employeeId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('booked_schedule_employees.employeeId', $this->employeeId));
+            $this->subQuery->andWhere([
+                'or',
+                ['booked_schedule_employees.employeeId' => $this->employeeId],
+                ['booked_schedules.employeeId' => $this->employeeId]
+            ]);
         }
 
         if ($this->dayOfWeek !== null) {
@@ -95,7 +100,11 @@ class ScheduleQuery extends ElementQuery
         }
 
         if ($this->serviceId !== null) {
-            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[booked_schedule_employees.employeeId]]');
+            // Join services through employees (either from junction or legacy column)
+            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', 
+                '[[booked_employees_services.employeeId]] = [[booked_schedule_employees.employeeId]] OR ' .
+                '([[booked_schedule_employees.employeeId]] IS NULL AND [[booked_employees_services.employeeId]] = [[booked_schedules.employeeId]])'
+            );
             $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
         }
 

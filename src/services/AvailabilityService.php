@@ -10,6 +10,10 @@ use fabian\booked\elements\Employee;
 use fabian\booked\elements\Service;
 use fabian\booked\elements\Schedule;
 use fabian\booked\elements\Location;
+use fabian\booked\elements\Reservation;
+use fabian\booked\elements\Availability;
+use fabian\booked\records\ReservationRecord;
+use fabian\booked\records\ExternalEventRecord;
 use fabian\booked\Booked;
 
 /**
@@ -78,7 +82,10 @@ class AvailabilityService extends Component
         $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId, $serviceId);
         Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek. Employee: $employeeId, Service: $serviceId", __METHOD__);
         foreach ($schedules as $s) {
-            Craft::info("Schedule ID: {$s->id}, Time: {$s->startTime}-{$s->endTime}", __METHOD__);
+            $sid = isset($s->id) ? $s->id : 'N/A';
+            $st = isset($s->startTime) ? $s->startTime : 'N/A';
+            $et = isset($s->endTime) ? $s->endTime : 'N/A';
+            Craft::info("Schedule ID: {$sid}, Time: {$st}-{$et}", __METHOD__);
         }
         
         // Step 2: Get additional availability elements
@@ -232,9 +239,9 @@ class AvailabilityService extends Component
         // Default to system timezone
         $timezone = \Craft::$app->getTimezone();
 
-        $employee = \fabian\booked\elements\Employee::findOne($employeeId);
+        $employee = Employee::findOne($employeeId);
         if ($employee && $employee->locationId) {
-            $location = \fabian\booked\elements\Location::findOne($employee->locationId);
+            $location = Location::findOne($employee->locationId);
             if ($location && $location->timezone) {
                 $timezone = $location->timezone;
             }
@@ -271,7 +278,7 @@ class AvailabilityService extends Component
      */
     protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
-        $query = \fabian\booked\elements\Availability::find()
+        $query = Availability::find()
             ->status('active');
 
         if ($employeeId !== null) {
@@ -478,15 +485,15 @@ class AvailabilityService extends Component
     protected function getReservationsForDate(string $date, ?int $employeeId = null, ?int $serviceId = null): array
     {
         $query = Reservation::find()
-            ->where(['bookingDate' => $date])
-            ->andWhere(['!=', 'status', ReservationRecord::STATUS_CANCELLED]);
+            ->bookingDate($date)
+            ->status(['not', ReservationRecord::STATUS_CANCELLED]);
 
         if ($employeeId !== null) {
-            $query->andWhere(['employeeId' => $employeeId]);
+            $query->employeeId($employeeId);
         }
 
         if ($serviceId !== null) {
-            $query->andWhere(['serviceId' => $serviceId]);
+            $query->serviceId($serviceId);
         }
 
         return $query->all();
@@ -547,10 +554,13 @@ class AvailabilityService extends Component
         // Find the locationId if employeeId is set
         $locationId = null;
         if ($employeeId) {
-            $employee = Employee::findOne($employeeId);
-            if ($employee) {
-                $locationId = $employee->locationId;
+            // Use static cache or similar to avoid N+1 in the loop
+            static $employeeLocations = [];
+            if (!isset($employeeLocations[$employeeId])) {
+                $employee = Employee::find()->id($employeeId)->one();
+                $employeeLocations[$employeeId] = $employee ? $employee->locationId : null;
             }
+            $locationId = $employeeLocations[$employeeId];
         }
 
         if ($blackoutService->isDateBlackedOut($date, $employeeId, $locationId)) {
@@ -565,7 +575,7 @@ class AvailabilityService extends Component
      */
     protected function subtractExternalEvents(array $windows, string $date, int $employeeId): array
     {
-        $events = \fabian\booked\records\ExternalEventRecord::find()
+        $events = ExternalEventRecord::find()
             ->where(['employeeId' => $employeeId])
             ->andWhere(['startDate' => $date])
             ->all();
