@@ -132,7 +132,7 @@ class BookingsController extends Controller
         }
 
         Craft::$app->session->setNotice('Booking saved successfully.');
-        return $this->redirect('booked/bookings/' . $reservation->id);
+        return $this->redirect('booked/bookings');
     }
 
     /**
