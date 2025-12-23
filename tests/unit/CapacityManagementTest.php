@@ -147,10 +147,10 @@ class CapacityManagementTest extends Unit
 
         $this->service->mockReservations = [$reservation1];
 
-        // Request quantity 1 - should be available (1 of 2 capacity used)
+        // Request quantity 1 - should be available (1 of 2 capacity used, 1 remaining)
         $slots = $this->service->getAvailableSlots($date, null, null, null, 1);
         $this->assertNotEmpty($slots);
-        $this->assertEquals(2, $slots[0]['capacity']);
+        $this->assertEquals(1, $slots[0]['capacity'], 'Remaining capacity should be 1 (2 total - 1 booked)');
 
         // Request quantity 2 - should NOT be available (only 1 capacity remaining)
         $slotsOverbook = $this->service->getAvailableSlots($date, null, null, null, 2);
@@ -284,15 +284,15 @@ class CapacityManagementTest extends Unit
         // Available capacity should be 1 (3 total - 2 booked)
         $slots = $this->service->getAvailableSlots($date, null, null, null, 1);
         $this->assertNotEmpty($slots);
-        $this->assertEquals(3, $slots[0]['capacity']);
+        $this->assertEquals(1, $slots[0]['capacity'], 'Remaining capacity should be 1 (3 total - 2 booked)');
 
         // Cancel one reservation
         $reservation1->status = 'cancelled';
 
-        // Now available capacity should be 2
+        // Now available capacity should be 2 (3 total - 1 booked)
         $slotsAfterCancel = $this->service->getAvailableSlots($date, null, null, null, 1);
         $this->assertNotEmpty($slotsAfterCancel);
-        // Capacity calculation should exclude cancelled bookings
+        $this->assertEquals(2, $slotsAfterCancel[0]['capacity'], 'Remaining capacity should be 2 after one cancellation');
     }
 
     /**
