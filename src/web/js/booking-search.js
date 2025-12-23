@@ -5,10 +5,11 @@
     const initSearch = () => {
         if (!window.Alpine) return;
 
-        Alpine.data('bookingSearch', () => ({
+        Alpine.data('bookingSearch', (config) => ({
             loading: false,
             date: new Date().toISOString().split('T')[0],
             results: [],
+            bookingUrl: config?.bookingUrl || '/booking',
             
             async search() {
                 this.loading = true;

@@ -50,6 +50,7 @@ use craft\db\ActiveRecord;
  * @property string|null $defaultPaymentGateway
  * @property bool $requirePaymentBeforeConfirmation
  * @property string $defaultViewMode
+ * @property string|null $bookingPageUrl
  * @property bool $enableRealTimeAvailability
  * @property bool $showEmployeeSelection
  * @property bool $showLocationSelection

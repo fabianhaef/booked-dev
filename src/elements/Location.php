@@ -9,6 +9,8 @@ use craft\elements\db\ElementQueryInterface;
 use craft\helpers\ElementHelper;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
+use craft\elements\Address;
+use craft\elements\NestedElementManager;
 use fabian\booked\elements\db\LocationQuery;
 use fabian\booked\records\LocationRecord;
 
@@ -316,6 +318,32 @@ class Location extends Element
         }
         
         return $query->exists();
+    }
+
+    /**
+     * Returns the address manager for this location.
+     *
+     * @return NestedElementManager
+     */
+    public function getAddressManager(): NestedElementManager
+    {
+        return new NestedElementManager(
+            Address::class,
+            fn() => Address::find()->ownerId($this->id),
+            [
+                'attribute' => 'addresses',
+            ]
+        );
+    }
+
+    /**
+     * Returns the addresses for this location.
+     *
+     * @return \craft\elements\ElementCollection
+     */
+    public function getAddresses(): \craft\elements\ElementCollection
+    {
+        return $this->getAddressManager()->getElements();
     }
 
     /**

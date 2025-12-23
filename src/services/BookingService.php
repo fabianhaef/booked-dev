@@ -312,6 +312,19 @@ class BookingService extends Component
                     throw new BookingValidationException('Die Buchungsvalidierung ist fehlgeschlagen.', $reservation->getErrors());
                 }
 
+                // Phase 4.2 - Commerce Integration
+                if (Booked::getInstance()->isCommerceEnabled()) {
+                    $service = $reservation->getService();
+                    if ($service && $service->price > 0) {
+                        // For paid services, set status to pending until paid
+                        $reservation->status = ReservationRecord::STATUS_PENDING;
+                        $this->getElementsService()->saveElement($reservation);
+                        
+                        // Add to cart and link to order
+                        Booked::getInstance()->commerce->addReservationToCart($reservation);
+                    }
+                }
+
                 // Log successful booking with variation and quantity info
                 Craft::info(
                     "Reservation created: ID {$reservation->id} | " .

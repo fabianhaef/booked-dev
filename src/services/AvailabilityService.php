@@ -775,12 +775,31 @@ class AvailabilityService extends Component
             if ($slot['time'] === $startTime && $slot['endTime'] === $endTime) {
                 // If specific employee requested, match it
                 if ($employeeId !== null && $slot['employeeId'] !== $employeeId) {
-                continue;
-            }
+                    continue;
+                }
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Find matching availability for a specific slot
+     * 
+     * @param string $date
+     * @param string $startTime
+     * @param string $endTime
+     * @return Availability|null
+     */
+    public function getAvailabilityForSlot(string $date, string $startTime, string $endTime): ?Availability
+    {
+        // This is a simplified version. In Phase 4.1, we might need more complex logic
+        // to link a specific slot back to an Availability element if it's an event.
+        
+        // For now, return first active availability that might cover this slot
+        return Availability::find()
+            ->status('active')
+            ->one();
     }
 }

@@ -48,7 +48,7 @@ class TestableBookingService extends BookingService {
     }
 
     protected function createReservationModel(): Reservation {
-        return new MockReservationElement();
+        return new BookingMockReservation();
     }
 
     protected function getServiceById(int $id): ?\fabian\booked\elements\Service {
@@ -136,7 +136,7 @@ class TestableBookingService extends BookingService {
 /**
  * Real Mock extending Reservation to pass type hints
  */
-class MockReservationElement extends Reservation {
+class BookingMockReservation extends Reservation {
     public function __construct() {}
     public function getService(): ?\fabian\booked\elements\Service {
         return null;
@@ -177,6 +177,7 @@ class BookingMockApplication {
     public $cache;
     public $queue;
     public $projectConfig;
+    public $plugins;
     public function getIsInstalled() { return true; }
     public function getIsUpdating() { return false; }
     public function getTimeZone() { return 'Europe/Zurich'; }
@@ -218,6 +219,9 @@ class BookingServiceTest extends Unit
                 return new class { public int $id = 1; };
             }
         };
+        $app->plugins = new class {
+            public function isPluginEnabled($handle) { return false; }
+        };
         Craft::$app = $app;
 
         // Mock the Booked plugin singleton
@@ -252,7 +256,7 @@ class BookingServiceTest extends Unit
         $yesterday = (clone $now)->modify('-1 day')->format('Y-m-d');
 
         // Case 1: Future reservation
-        $res1 = new MockReservationElement();
+        $res1 = new BookingMockReservation();
         $res1->bookingDate = $tomorrow;
         $res1->startTime = '10:00';
         $res1->status = 'confirmed';
@@ -260,7 +264,7 @@ class BookingServiceTest extends Unit
         $this->assertTrue($this->invokeMethod($this->service, 'canCancelReservation', [$res1]));
 
         // Case 2: Past reservation
-        $res2 = new MockReservationElement();
+        $res2 = new BookingMockReservation();
         $res2->bookingDate = $yesterday;
         $res2->startTime = '10:00';
         $res2->status = 'confirmed';
@@ -268,7 +272,7 @@ class BookingServiceTest extends Unit
         $this->assertFalse($this->invokeMethod($this->service, 'canCancelReservation', [$res2]));
 
         // Case 3: Already cancelled
-        $res3 = new MockReservationElement();
+        $res3 = new BookingMockReservation();
         $res3->bookingDate = $tomorrow;
         $res3->status = 'cancelled';
         

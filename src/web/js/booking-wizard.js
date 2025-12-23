@@ -35,6 +35,37 @@
             selectedLocation: null,
             
             init() {
+                // Initialize with URL parameters if present
+                const urlParams = new URLSearchParams(window.location.search);
+                
+                if (urlParams.has('serviceId')) {
+                    const serviceId = parseInt(urlParams.get('serviceId'));
+                    this.serviceId = serviceId;
+                    this.step = 2; // Jump to location selection
+                }
+                
+                if (urlParams.has('locationId')) {
+                    this.locationId = parseInt(urlParams.get('locationId'));
+                    this.step = 3; // Jump to employee selection
+                }
+                
+                if (urlParams.has('employeeId')) {
+                    const empId = urlParams.get('employeeId');
+                    this.employeeId = empId === 'null' ? null : parseInt(empId);
+                    this.step = 4; // Jump to date selection
+                }
+                
+                if (urlParams.has('date')) {
+                    this.date = urlParams.get('date');
+                    this.fetchSlots();
+                    this.step = 4;
+                }
+                
+                if (urlParams.has('time')) {
+                    this.time = urlParams.get('time');
+                    this.step = 5; // Jump to info
+                }
+
                 this.fetchServices();
                 this.fetchLocations();
             },

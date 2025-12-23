@@ -126,7 +126,7 @@ class MockScheduleElement extends \fabian\booked\elements\Schedule {
 /**
  * Mock Reservation element
  */
-class MockReservationElement extends \fabian\booked\elements\Reservation {
+class AvailabilityMockReservation extends \fabian\booked\elements\Reservation {
     public string $startTime = '';
     public string $endTime = '';
     public ?int $employeeId = null;
@@ -248,7 +248,7 @@ class AvailabilityServiceTest extends Unit
         $date = '2025-12-25';
         
         // Mock a reservation
-        $res = new MockReservationElement();
+        $res = new AvailabilityMockReservation();
         $res->startTime = '10:00';
         $res->endTime = '11:00';
         $res->employeeId = 1;
@@ -308,7 +308,7 @@ class AvailabilityServiceTest extends Unit
         $this->assertNotEmpty($slots);
 
         // Case 2: One employee is booked
-        $res = new MockReservationElement();
+        $res = new AvailabilityMockReservation();
         $res->startTime = '09:00';
         $res->endTime = '10:00';
         $res->employeeId = 1;
@@ -377,7 +377,7 @@ class AvailabilityServiceTest extends Unit
         $this->assertTrue($this->service->isSlotAvailable($today, '09:00', '10:00', null, null, null, 2));
         
         // One booked
-        $res = new MockReservationElement();
+        $res = new AvailabilityMockReservation();
         $res->startTime = '09:00';
         $res->endTime = '10:00';
         $res->employeeId = 1;

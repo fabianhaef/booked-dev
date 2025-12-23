@@ -201,18 +201,36 @@ class BookingController extends Controller
         $request = Craft::$app->request;
         $form = new BookingForm();
 
-        // Populate form model
-        $form->userName = $request->getBodyParam('userName');
-        $form->userEmail = $request->getBodyParam('userEmail');
-        $form->userPhone = $request->getBodyParam('userPhone');
-        $form->userTimezone = Craft::$app->getTimeZone(); // Use system timezone for consistency
-        $form->bookingDate = $request->getBodyParam('bookingDate');
-        $form->startTime = $request->getBodyParam('startTime');
+        // Populate form model - support both internal and JS/frontend names
+        $form->userName = $request->getBodyParam('customerName') ?? $request->getBodyParam('userName');
+        $form->userEmail = $request->getBodyParam('customerEmail') ?? $request->getBodyParam('userEmail');
+        $form->userPhone = $request->getBodyParam('customerPhone') ?? $request->getBodyParam('userPhone');
+        $form->userTimezone = Craft::$app->getTimeZone(); 
+        $form->bookingDate = $request->getBodyParam('date') ?? $request->getBodyParam('bookingDate');
+        $form->startTime = $request->getBodyParam('time') ?? $request->getBodyParam('startTime');
         $form->endTime = $request->getBodyParam('endTime');
         $form->notes = $request->getBodyParam('notes');
+        $form->serviceId = $request->getBodyParam('serviceId') ? (int)$request->getBodyParam('serviceId') : null;
+        $form->employeeId = $request->getBodyParam('employeeId') ? (int)$request->getBodyParam('employeeId') : null;
+        $form->locationId = $request->getBodyParam('locationId') ? (int)$request->getBodyParam('locationId') : null;
         $form->variationId = $request->getBodyParam('variationId') ? (int)$request->getBodyParam('variationId') : null;
         $form->quantity = $request->getBodyParam('quantity') ? (int)$request->getBodyParam('quantity') : 1;
         $form->honeypot = $request->getBodyParam('website');
+
+        // Calculate end time if missing
+        if (!$form->endTime && $form->startTime && $form->serviceId && $form->bookingDate) {
+            $service = Service::findOne($form->serviceId);
+            if ($service) {
+                try {
+                    $start = new \DateTime($form->bookingDate . ' ' . $form->startTime);
+                    $end = clone $start;
+                    $end->add(new \DateInterval('PT' . $service->duration . 'M'));
+                    $form->endTime = $end->format('H:i');
+                } catch (\Throwable $e) {
+                    Craft::error("Error calculating end time: " . $e->getMessage(), __METHOD__);
+                }
+            }
+        }
 
         // Check spam
         if ($form->isSpam()) {
@@ -239,11 +257,14 @@ class BookingController extends Controller
         }
 
         // Find the matching availability to get source information
-        $availability = $this->availabilityService->getAvailabilityForSlot(
-            $form->bookingDate, 
-            $form->startTime, 
-            $form->endTime
-        );
+        $availability = null;
+        if ($form->bookingDate && $form->startTime && $form->endTime) {
+            $availability = $this->availabilityService->getAvailabilityForSlot(
+                $form->bookingDate, 
+                $form->startTime, 
+                $form->endTime
+            );
+        }
 
         $data = $form->getReservationData();
 
@@ -319,11 +340,11 @@ class BookingController extends Controller
             if ($request->getAcceptsJson()) {
                 return $this->asJson([
                     'success' => false,
-                    'message' => 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+                    'message' => 'Ein Fehler ist aufgetreten: ' . $e->getMessage(),
                     'error' => 'general'
                 ]);
             } else {
-                Craft::$app->session->setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+                Craft::$app->session->setError('Ein Fehler ist aufgetreten: ' . $e->getMessage());
                 return $this->redirectToPostedUrl($form);
             }
         }

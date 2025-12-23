@@ -18,6 +18,8 @@ use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
 use craft\web\View;
 use craft\web\twig\variables\CraftVariable;
+use craft\commerce\elements\Order;
+use craft\commerce\services\Orders;
 use yii\base\Event;
 
 /**
@@ -62,8 +64,10 @@ class Booked extends Plugin
         $this->registerServices();
         $this->registerElementTypes();
         $this->registerCpRoutes();
+        $this->registerSiteRoutes();
         $this->registerPermissions();
         $this->registerTemplateVariable();
+        $this->registerCommerceListeners();
     }
 
     /**
@@ -129,6 +133,7 @@ class Booked extends Plugin
             'booking' => \fabian\booked\services\BookingService::class,
             'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
             'softLock' => \fabian\booked\services\SoftLockService::class,
+            'commerce' => \fabian\booked\services\CommerceService::class,
             'calendarSync' => \fabian\booked\services\CalendarSyncService::class,
             'virtualMeeting' => \fabian\booked\services\VirtualMeetingService::class,
             'reminder' => \fabian\booked\services\ReminderService::class,
@@ -176,6 +181,37 @@ class Booked extends Plugin
     public function getVirtualMeeting(): \fabian\booked\services\VirtualMeetingService
     {
         return $this->get('virtualMeeting');
+    }
+
+    /**
+     * Check if Craft Commerce is installed and enabled
+     */
+    public function isCommerceEnabled(): bool
+    {
+        return Craft::$app->plugins->isPluginEnabled('commerce');
+    }
+
+    /**
+     * Register commerce event listeners
+     */
+    private function registerCommerceListeners(): void
+    {
+        if ($this->isCommerceEnabled()) {
+            Event::on(
+                Order::class,
+                Order::EVENT_AFTER_COMPLETE_ORDER,
+                function(Event $event) {
+                    /** @var Order $order */
+                    $order = $event->sender;
+                    $reservation = $this->commerce->getReservationByOrderId($order->id);
+                    if ($reservation) {
+                        $reservation->status = \fabian\booked\records\ReservationRecord::STATUS_CONFIRMED;
+                        Craft::$app->elements->saveElement($reservation);
+                        Craft::info("Reservation #{$reservation->id} confirmed via Order #{$order->id}", __METHOD__);
+                    }
+                }
+            );
+        }
     }
 
     /**
@@ -243,6 +279,23 @@ class Booked extends Plugin
                     // Calendar Sync
                     'booked/calendar/connect' => 'booked/cp/calendar/connect',
                     'booked/calendar/callback' => 'booked/cp/calendar/callback',
+                ]);
+            }
+        );
+    }
+
+    /**
+     * Register site routes
+     */
+    private function registerSiteRoutes(): void
+    {
+        Event::on(
+            \craft\web\UrlManager::class,
+            \craft\web\UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            function(\craft\events\RegisterUrlRulesEvent $event) {
+                $event->rules = array_merge($event->rules, [
+                    'booking/manage/<token:[^\/]+>' => 'booked/booking/manage-booking',
+                    'booking/cancel/<token:[^\/]+>' => 'booked/booking/cancel-booking-by-token',
                 ]);
             }
         );

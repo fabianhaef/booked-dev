@@ -28,7 +28,7 @@ class AssignmentMockCacheService extends \fabian\booked\services\AvailabilityCac
  */
 class AssignmentMockBlackoutService extends \fabian\booked\services\BlackoutDateService {
     public $isBlackedOut = false;
-    public function isDateBlackedOut(string $date): bool {
+    public function isDateBlackedOut(string $date, ?int $employeeId = null, ?int $locationId = null): bool {
         return $this->isBlackedOut;
     }
 }
@@ -86,6 +86,11 @@ class AssignmentBaseTestableAvailabilityService extends AvailabilityService
     {
         return $windows; // Mock: don't subtract anything by default
     }
+
+    protected function subtractBlackouts(array $windows, string $date, ?int $employeeId = null): array
+    {
+        return $windows; // Mock: skip DB call for employee location
+    }
 }
 
 /**
@@ -127,6 +132,57 @@ class EmployeeServiceAssignmentTest extends Unit
     {
         parent::_before();
 
+        // Mock Craft::$app
+        $app = new class {
+            public $sites;
+            public $fields;
+            public $elements;
+            public $view;
+            public $projectConfig;
+            public $plugins;
+            public $db;
+            public $cache;
+            public $request;
+            public function getTimeZone() { return 'UTC'; }
+            public function getIsInstalled() { return true; }
+            public function getIsUpdating() { return false; }
+            public function get($id) { return $this->$id ?? null; }
+            public function getDb() { return $this->db; }
+        };
+        $app->fields = \Codeception\Stub::makeEmpty(\craft\services\Fields::class);
+        $app->elements = \Codeception\Stub::makeEmpty(\craft\services\Elements::class);
+        $app->view = \Codeception\Stub::makeEmpty(\craft\web\View::class);
+        $app->projectConfig = \Codeception\Stub::makeEmpty(\craft\services\ProjectConfig::class);
+        $app->cache = new class {
+            public function get($key) { return null; }
+            public function set($key, $val, $ttl = null) { return true; }
+            public function delete($key) { return true; }
+            public function flush() { return true; }
+        };
+        $app->request = \Codeception\Stub::makeEmpty(\craft\web\Request::class);
+        $app->db = new class {
+            public function getIsMysql() { return true; }
+            public function getTablePrefix() { return ''; }
+            public function getSchema() { 
+                return new class { 
+                    public function getTableSchema($name) { return null; } 
+                    public function getQueryBuilder() { return new class { public function build($query) { return ['', []]; } }; }
+                }; 
+            }
+            public function getQueryBuilder() { return $this->getSchema()->getQueryBuilder(); }
+        };
+        $app->plugins = new class {
+            public function isPluginEnabled($handle) { return false; }
+            public function getPlugin($handle) { return null; }
+            public function getEnabledPluginBehaviors($element) { return []; }
+        };
+        $app->sites = new class {
+            public function getCurrentSite() {
+                return new class { public int $id = 1; };
+            }
+        };
+        Craft::$app = $app;
+
         // Mock the Booked plugin
         $pluginMock = $this->getMockBuilder(Booked::class)
             ->disableOriginalConstructor()
@@ -164,15 +220,19 @@ class EmployeeServiceAssignmentTest extends Unit
         $service20 = Stub::makeEmpty(Service::class, ['id' => 20, 'duration' => 60, 'enabled' => true]);
         
         // 1. Setup two employees with schedules
-        $s1 = new \stdClass();
-        $s1->startTime = '09:00';
-        $s1->endTime = '10:00';
-        $s1->employeeId = 1; // John
+        $s1 = new class {
+            public $startTime = '09:00';
+            public $endTime = '10:00';
+            public $employeeId = 1; // John
+            public function getEmployees() { return []; }
+        };
         
-        $s2 = new \stdClass();
-        $s2->startTime = '09:00';
-        $s2->endTime = '10:00';
-        $s2->employeeId = 2; // Sarah
+        $s2 = new class {
+            public $startTime = '09:00';
+            public $endTime = '10:00';
+            public $employeeId = 2; // Sarah
+            public function getEmployees() { return []; }
+        };
         
         // We need to mock the getWorkingHours to return our filtered list
         // based on the serviceId passed to it.

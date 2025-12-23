@@ -20,6 +20,9 @@ class BookingForm extends Model
     public string $startTime = '';
     public string $endTime = '';
     public ?string $notes = null;
+    public ?int $serviceId = null;
+    public ?int $employeeId = null;
+    public ?int $locationId = null;
     public ?int $variationId = null;
     public int $quantity = 1;
     public ?string $honeypot = null;
@@ -30,7 +33,7 @@ class BookingForm extends Model
     public function rules(): array
     {
         return [
-            [['userName', 'userEmail', 'bookingDate', 'startTime', 'endTime'], 'required', 'message' => 'Dieses Feld ist erforderlich.'],
+            [['userName', 'userEmail', 'bookingDate', 'startTime', 'endTime', 'serviceId'], 'required', 'message' => 'Dieses Feld ist erforderlich.'],
             ['userEmail', 'email', 'message' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'],
             [['userName', 'userEmail', 'userPhone'], 'string', 'max' => 255],
             [['userName', 'userEmail', 'userPhone', 'notes'], 'filter', 'filter' => function ($value) {
@@ -40,7 +43,7 @@ class BookingForm extends Model
             ['userEmail', 'filter', 'filter' => 'strtolower'],
             [['bookingDate'], 'date', 'format' => 'php:Y-m-d'],
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
-            [['variationId'], 'integer'],
+            [['serviceId', 'employeeId', 'locationId', 'variationId'], 'integer'],
             [['quantity'], 'integer', 'min' => 1],
             [['userTimezone'], 'string', 'max' => 50],
             [['honeypot'], 'string'],
@@ -68,6 +71,9 @@ class BookingForm extends Model
             'bookingDate' => $this->bookingDate,
             'startTime' => $this->startTime,
             'endTime' => $this->endTime,
+            'serviceId' => $this->serviceId,
+            'employeeId' => $this->employeeId,
+            'locationId' => $this->locationId,
             'notes' => $this->notes,
             'variationId' => $this->variationId,
             'quantity' => $this->quantity,

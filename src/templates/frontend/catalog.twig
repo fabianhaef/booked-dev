@@ -4,8 +4,10 @@
  */
 #}
 {% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+{% set settings = craft.booked.getSettings() %}
+{% set bookingUrl = settings.bookingPageUrl ?: '/booking' %}
 
-<div class="booked-catalog" x-data="bookingCatalog()" :class="{ 'booked-loading': loading }">
+<div class="booked-catalog" x-data="bookingCatalog({ bookingUrl: '{{ bookingUrl }}' })" :class="{ 'booked-loading': loading }">
     <div class="booked-grid">
         <template x-for="service in services" :key="service.id">
             <div class="booked-card" @click="openWizard(service.id)">

@@ -36,6 +36,15 @@
             ]
         }) }}
 
+        {{ forms.textField({
+            label: 'Booking Page URL'|t('booked'),
+            instructions: 'The URL where the booking wizard is located (e.g., /booking). Used for redirects from Catalog and Search views.'|t('booked'),
+            id: 'bookingPageUrl',
+            name: 'settings[bookingPageUrl]',
+            value: settings.bookingPageUrl,
+            placeholder: '/booking'
+        }) }}
+
         {{ forms.lightswitchField({
             label: 'Enable Real-Time Availability'|t('booked'),
             instructions: 'Update available time slots without page reload using AJAX.'|t('booked'),

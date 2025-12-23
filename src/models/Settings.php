@@ -182,6 +182,9 @@ class Settings extends Model
     
     /** @var string Default booking view mode ('wizard', 'catalog', 'search') */
     public string $defaultViewMode = 'wizard';
+
+    /** @var string|null URL to the booking page */
+    public ?string $bookingPageUrl = null;
     
     /** @var bool Enable real-time availability updates (AJAX) */
     public bool $enableRealTimeAvailability = true;
@@ -250,6 +253,7 @@ class Settings extends Model
             
             // Frontend
             [['defaultViewMode'], 'in', 'range' => ['wizard', 'catalog', 'search']],
+            [['bookingPageUrl'], 'string'],
             [['enableRealTimeAvailability', 'showEmployeeSelection', 'showLocationSelection'], 'boolean'],
             
             // Legacy

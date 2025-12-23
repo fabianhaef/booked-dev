@@ -66,9 +66,10 @@ class BlackoutDateServiceTest extends Unit
         
         // Check if query was built correctly
         $this->assertEquals(['isActive' => true], $this->service->mockQuery->where);
-        $this->assertCount(2, $this->service->mockQuery->andWhere);
+        $this->assertCount(3, $this->service->mockQuery->andWhere);
         $this->assertEquals(['<=', 'startDate', $date], $this->service->mockQuery->andWhere[0]);
         $this->assertEquals(['>=', 'endDate', $date], $this->service->mockQuery->andWhere[1]);
+        $this->assertEquals(['locationId' => null, 'employeeId' => null], $this->service->mockQuery->andWhere[2]);
 
         // Case 2: Date is NOT blacked out
         $this->service->mockQuery->existsResult = false;

@@ -4,8 +4,10 @@
  */
 #}
 {% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+{% set settings = craft.booked.getSettings() %}
+{% set bookingUrl = settings.bookingPageUrl ?: '/booking' %}
 
-<div class="booked-search" x-data="bookingSearch()" :class="{ 'booked-loading': loading }">
+<div class="booked-search" x-data="bookingSearch({ bookingUrl: '{{ bookingUrl }}' })" :class="{ 'booked-loading': loading }">
     <div class="flex gap-4 mb-8">
         <input type="date" x-model="date" class="text-input w-48">
         <button class="btn btn-primary" @click="search()">Suchen</button>
@@ -13,7 +15,7 @@
 
     <div class="booked-grid">
         <template x-for="slot in results" :key="slot.time + slot.employeeId">
-            <div class="booked-card" @click="window.location.href='/booking?date=' + date + '&time=' + slot.time + '&employeeId=' + slot.employeeId">
+            <div class="booked-card" @click="window.location.href=bookingUrl + '?date=' + date + '&time=' + slot.time + '&employeeId=' + slot.employeeId">
                 <div class="font-bold text-xl mb-2" x-text="slot.time"></div>
                 <div class="text-sm light" x-text="'Mitarbeiter ID: ' + slot.employeeId"></div>
                 <button class="btn btn-primary btn-sm mt-4">Buchen</button>

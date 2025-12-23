@@ -5,9 +5,10 @@
     const initCatalog = () => {
         if (!window.Alpine) return;
 
-        Alpine.data('bookingCatalog', () => ({
+        Alpine.data('bookingCatalog', (config) => ({
             loading: false,
             services: [],
+            bookingUrl: config?.bookingUrl || '/booking',
             
             init() {
                 this.fetchServices();
@@ -30,7 +31,7 @@
             
             openWizard(serviceId) {
                 // Logic to open wizard with pre-selected service
-                window.location.href = `/booking?serviceId=${serviceId}`;
+                window.location.href = `${this.bookingUrl}?serviceId=${serviceId}`;
             }
         }));
     };
