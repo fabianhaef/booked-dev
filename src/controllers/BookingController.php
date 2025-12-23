@@ -567,6 +567,7 @@ class BookingController extends Controller
         $this->requireAcceptsJson();
 
         $services = Service::find()
+            ->enabled()
             ->all();
 
         $data = [];
@@ -597,13 +598,15 @@ class BookingController extends Controller
         $locationId = Craft::$app->request->getParam('locationId');
         $serviceId = Craft::$app->request->getParam('serviceId');
 
-        $query = Employee::find();
+        $query = Employee::find()->enabled();
 
         if ($locationId) {
             $query->locationId($locationId);
         }
 
-        // TODO: Filter by service once the relationship is implemented
+        if ($serviceId) {
+            $query->serviceId($serviceId);
+        }
         
         $employees = $query->all();
 

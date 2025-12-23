@@ -137,6 +137,8 @@ class Booked extends Plugin
             'calendarSync' => \fabian\booked\services\CalendarSyncService::class,
             'virtualMeeting' => \fabian\booked\services\VirtualMeetingService::class,
             'reminder' => \fabian\booked\services\ReminderService::class,
+            'recurrence' => \fabian\booked\services\RecurrenceService::class,
+            'timezone' => \fabian\booked\services\TimezoneService::class,
         ]);
     }
 

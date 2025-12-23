@@ -14,10 +14,10 @@
     </div>
 
     <div class="booked-grid">
-        <template x-for="slot in results" :key="slot.time + slot.employeeId">
+        <template x-for="slot in results" :key="slot.time + (slot.employeeId || '')">
             <div class="booked-card" @click="window.location.href=bookingUrl + '?date=' + date + '&time=' + slot.time + '&employeeId=' + slot.employeeId">
                 <div class="font-bold text-xl mb-2" x-text="slot.time"></div>
-                <div class="text-sm light" x-text="'Mitarbeiter ID: ' + slot.employeeId"></div>
+                <div class="text-sm light" x-text="'Mitarbeiter: ' + (slot.employeeName || 'ID: ' + slot.employeeId)"></div>
                 <button class="btn btn-primary btn-sm mt-4">Buchen</button>
             </div>
         </template>

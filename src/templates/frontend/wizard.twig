@@ -71,10 +71,10 @@
             </div>
             <div class="w-1/2">
                 <div class="booked-slots">
-                    <template x-for="slot in availableSlots" :key="slot.time">
+                    <template x-for="slot in availableSlots" :key="slot.time + (slot.employeeId || '')">
                         <div class="booked-slot" @click="selectSlot(slot)" x-text="slot.time"></div>
                     </template>
-                    <template x-if="availableSlots.length === 0 && date">
+                    <template x-if="availableSlots.length === 0 && date && !loading">
                         <p class="light">Keine freien Termine an diesem Tag.</p>
                     </template>
                 </div>

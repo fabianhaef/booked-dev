@@ -275,6 +275,24 @@ class BookingService extends Component
                 $reservation->locationId = $locationId;
                 $reservation->serviceId = $serviceId;
 
+                // If no specific employee requested, pick the first available one for this slot
+                if ($reservation->employeeId === null) {
+                    $slots = $this->getAvailabilityService()->getAvailableSlots(
+                        $reservation->bookingDate,
+                        null,
+                        $reservation->locationId,
+                        $reservation->serviceId,
+                        $reservation->quantity
+                    );
+                    
+                    foreach ($slots as $slot) {
+                        if ($slot['time'] === $reservation->startTime && $slot['endTime'] === $reservation->endTime) {
+                            $reservation->employeeId = $slot['employeeId'];
+                            break;
+                        }
+                    }
+                }
+
                 // Store source information from availability
                 $reservation->sourceType = $data['sourceType'] ?? null;
                 $reservation->sourceId = $data['sourceId'] ?? null;

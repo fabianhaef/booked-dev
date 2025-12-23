@@ -80,7 +80,16 @@ class AvailabilityService extends Component
 
         // Step 1: Get base working hours (Schedule) for the date
         $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId, $serviceId);
-        Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek. Employee: $employeeId, Service: $serviceId", __METHOD__);
+        Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek. Employee: $employeeId, Location: $locationId, Service: $serviceId", __METHOD__);
+        
+        if (empty($schedules) && $serviceId !== null) {
+            // Try without serviceId to see if it's the filter
+            $schedulesWithoutService = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId);
+            if (!empty($schedulesWithoutService)) {
+                Craft::warning("Found " . count($schedulesWithoutService) . " schedules when serviceId filter was REMOVED. This suggests Employee/Service mapping is missing.", __METHOD__);
+            }
+        }
+
         foreach ($schedules as $s) {
             $sid = isset($s->id) ? $s->id : 'N/A';
             $st = isset($s->startTime) ? $s->startTime : 'N/A';
@@ -112,6 +121,10 @@ class AvailabilityService extends Component
         }
 
         $duration = $service ? $service->duration : 60; // Default 60 minutes
+        if ($duration <= 0) {
+            Craft::error("Service $serviceId has invalid duration: $duration", __METHOD__);
+            return [];
+        }
         $allSlots = [];
 
         // Group schedules and availabilities by employee
@@ -126,8 +139,6 @@ class AvailabilityService extends Component
                         'end' => $schedule->endTime,
                     ];
                     Craft::info("Added legacy schedule for Employee {$schedule->employeeId}", __METHOD__);
-                } else {
-                    Craft::warning("Schedule {$schedule->id} has no employees assigned", __METHOD__);
                 }
                 continue;
             }
@@ -137,44 +148,82 @@ class AvailabilityService extends Component
                     'start' => $schedule->startTime,
                     'end' => $schedule->endTime,
                 ];
-                Craft::info("Added schedule for Employee {$employee->id} from Schedule {$schedule->id}", __METHOD__);
             }
         }
         foreach ($expandedAvailabilities as $avail) {
-            $schedulesByEmployee[$avail['employeeId']][] = [
-                'start' => $avail['start'],
-                'end' => $avail['end'],
-            ];
+            $empId = $avail['employeeId'] ?? null;
+            if ($empId) {
+                $schedulesByEmployee[$empId][] = [
+                    'start' => $avail['start'],
+                    'end' => $avail['end'],
+                ];
+            }
         }
 
         foreach ($schedulesByEmployee as $empId => $empWindowsRaw) {
             // Step 4: Generate merged time windows for this employee
             $timeWindows = $this->mergeTimeWindows($empWindowsRaw);
+            Craft::info("Employee $empId base working hours: " . json_encode($timeWindows), __METHOD__);
 
-            // Step 5: Subtract this employee's bookings
-            $timeWindows = $this->subtractBookings($timeWindows, $date, $empId, $serviceId);
+            // Step 5: Subtract this employee's bookings with buffers
+            $bufferBefore = $service->bufferBefore ?? 0;
+            $bufferAfter = $service->bufferAfter ?? 0;
+            
+            $bookings = $this->getReservationsForDate($date, $empId);
+            foreach ($bookings as $booking) {
+                // Expanding the blocked window: 
+                // A new booking starting at T must have T >= booking.end + bufferBefore
+                // and T + duration + bufferAfter <= booking.start
+                $blockedStart = $this->minutesToTime(max(0, $this->timeToMinutes($booking->startTime) - $bufferAfter));
+                $blockedEnd = $this->minutesToTime($this->timeToMinutes($booking->endTime) + $bufferBefore);
+                
+                $timeWindows = $this->subtractWindow($timeWindows, $blockedStart, $blockedEnd);
+            }
+            Craft::info("Employee $empId after bookings: " . json_encode($timeWindows), __METHOD__);
 
-            // Step 6: Subtract buffer times (if service specified)
-            if ($service) {
-                $timeWindows = $this->subtractBuffers($timeWindows, $service);
+            // Step 6: Apply start/end of day buffers
+            if ($bufferBefore > 0 || $bufferAfter > 0) {
+                foreach ($timeWindows as $key => $window) {
+                    $winStart = $this->timeToMinutes($window['start']);
+                    $winEnd = $this->timeToMinutes($window['end']);
+                    
+                    $adjustedStart = $winStart + $bufferBefore;
+                    $adjustedEnd = $winEnd - $bufferAfter;
+                    
+                    if ($adjustedStart < $adjustedEnd) {
+                        $timeWindows[$key]['start'] = $this->minutesToTime($adjustedStart);
+                        $timeWindows[$key]['end'] = $this->minutesToTime($adjustedEnd);
+                    } else {
+                        unset($timeWindows[$key]);
+                    }
+                }
+                $timeWindows = array_values($timeWindows);
+                Craft::info("Employee $empId after start/end buffers: " . json_encode($timeWindows), __METHOD__);
             }
 
             // Step 7: Subtract blackout dates
             $timeWindows = $this->subtractBlackouts($timeWindows, $date, $empId);
+            Craft::info("Employee $empId after blackouts: " . json_encode($timeWindows), __METHOD__);
 
             // Step 7.5: Subtract external calendar events
             $timeWindows = $this->subtractExternalEvents($timeWindows, $date, $empId);
+            Craft::info("Employee $empId after external events: " . json_encode($timeWindows), __METHOD__);
 
             // Step 8: Generate slots for this employee
             $empSlots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId);
             
-            // Add employee ID and timezone to each slot
+            // Add employee info to each slot
+            $empElement = Employee::find()->id($empId)->one();
+            $empName = $empElement ? $empElement->title : "Unknown";
             $empTimezone = $this->getEmployeeTimezone($empId);
+            
             foreach ($empSlots as &$slot) {
                 $slot['employeeId'] = $empId;
+                $slot['employeeName'] = $empName;
                 $slot['timezone'] = $empTimezone;
             }
             
+            Craft::info("Employee $empId generated " . count($empSlots) . " slots", __METHOD__);
             $allSlots = array_merge($allSlots, $empSlots);
         }
 
@@ -239,9 +288,9 @@ class AvailabilityService extends Component
         // Default to system timezone
         $timezone = \Craft::$app->getTimezone();
 
-        $employee = Employee::findOne($employeeId);
+        $employee = Employee::find()->id($employeeId)->one();
         if ($employee && $employee->locationId) {
-            $location = Location::findOne($employee->locationId);
+            $location = Location::find()->id($employee->locationId)->one();
             if ($location && $location->timezone) {
                 $timezone = $location->timezone;
             }
@@ -375,11 +424,11 @@ class AvailabilityService extends Component
                 $employees = $schedule->getEmployees();
                 if (empty($employees)) {
                     $employee = $schedule->getEmployee();
-                    return $employee && $employee->locationId === $locationId;
+                    return $employee && (int)$employee->locationId === (int)$locationId;
                 }
                 
                 foreach ($employees as $employee) {
-                    if ($employee->locationId === $locationId) {
+                    if ((int)$employee->locationId === (int)$locationId) {
                         return true;
                     }
                 }
@@ -492,10 +541,8 @@ class AvailabilityService extends Component
             $query->employeeId($employeeId);
         }
 
-        if ($serviceId !== null) {
-            $query->serviceId($serviceId);
-        }
-
+        // REMOVED: serviceId filter. An employee is busy regardless of the service type.
+        
         return $query->all();
     }
 
