@@ -114,13 +114,7 @@ class SchedulesController extends Controller
         $schedule->employeeId = $employeeId === '' || $employeeId === null ? null : (int)$employeeId;
 
         // Handle multiple days of week
-        // Debug: Log ALL body params to see the structure
-        \Craft::info('ALL body params: ' . print_r($request->getBodyParams(), true), 'booked');
-
         $daysOfWeek = $request->getBodyParam('daysOfWeek');
-
-        // Debug: Log what we received
-        \Craft::info('daysOfWeek received (type: ' . gettype($daysOfWeek) . '): ' . print_r($daysOfWeek, true), 'booked');
 
         if (is_array($daysOfWeek)) {
             // Remove empty string values that checkboxes send
@@ -129,10 +123,7 @@ class SchedulesController extends Controller
             });
             // Convert to integers and re-index array
             $schedule->daysOfWeek = array_values(array_map('intval', $filtered));
-
-            \Craft::info('daysOfWeek after processing: ' . print_r($schedule->daysOfWeek, true), 'booked');
         } else {
-            \Craft::info('daysOfWeek is NOT an array!', 'booked');
             $schedule->daysOfWeek = [];
         }
 
