@@ -22,11 +22,10 @@
                 label: 'Title'|t('booked'),
                 id: 'title',
                 name: 'title',
-                required: true,
                 value: schedule.title,
                 placeholder: 'e.g., Morning Shift, Weekend Hours'|t('booked'),
                 errors: schedule.getErrors('title'),
-                instructions: 'Give this schedule a descriptive name'
+                instructions: 'Optional: Give this schedule a descriptive name'
             }) }}
 
             {{ forms.elementSelectField({
@@ -45,7 +44,7 @@
                 label: 'Days of Week'|t('booked'),
                 id: 'daysOfWeek',
                 name: 'daysOfWeek',
-                options: daysOfWeek|map((label, value) => { value: value, label: label }),
+                options: daysOfWeek,
                 values: schedule.daysOfWeek,
                 required: true,
                 errors: schedule.getErrors('daysOfWeek'),

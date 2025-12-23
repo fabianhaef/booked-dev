@@ -19,7 +19,7 @@ use fabian\booked\records\ScheduleEmployeeRecord;
  * @property int|null $employeeId Foreign key to Employee element (deprecated, use employeeIds)
  * @property array $employeeIds Array of employee IDs assigned to this schedule
  * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday) - DEPRECATED, use daysOfWeek
- * @property array $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri)
+ * @property string|array|null $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri) - stored as JSON string in DB
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
  */
@@ -29,7 +29,7 @@ class Schedule extends Element
     public ?int $employeeId = null;
     public array $employeeIds = [];
     public ?int $dayOfWeek = null; // Kept for backward compatibility
-    public array $daysOfWeek = [];
+    public string|array|null $daysOfWeek = []; // Can be JSON string from DB or array
     public ?string $startTime = null;
     public ?string $endTime = null;
 
@@ -384,13 +384,15 @@ class Schedule extends Element
      */
     public function validateDaysOfWeek(): void
     {
-        if (empty($this->daysOfWeek)) {
+        $days = $this->getDaysOfWeekArray();
+
+        if (empty($days)) {
             $this->addError('daysOfWeek', Craft::t('booked', 'At least one day must be selected.'));
             return;
         }
 
         // Ensure all values are integers between 1-7 (Monday-Sunday)
-        foreach ($this->daysOfWeek as $day) {
+        foreach ($days as $day) {
             if (!is_int($day) || $day < 1 || $day > 7) {
                 $this->addError('daysOfWeek', Craft::t('booked', 'Invalid day value: {day}', ['day' => $day]));
                 return;
@@ -529,12 +531,26 @@ class Schedule extends Element
     }
 
     /**
+     * Get daysOfWeek as an array (handles JSON string from database)
+     */
+    private function getDaysOfWeekArray(): array
+    {
+        if (is_string($this->daysOfWeek)) {
+            return json_decode($this->daysOfWeek, true) ?? [];
+        }
+
+        return is_array($this->daysOfWeek) ? $this->daysOfWeek : [];
+    }
+
+    /**
      * Get formatted string of multiple days
      * Days: 1 = Monday, 2 = Tuesday, ..., 7 = Sunday
      */
     public function getDaysName(): string
     {
-        if (empty($this->daysOfWeek)) {
+        $days = $this->getDaysOfWeekArray();
+
+        if (empty($days)) {
             return Craft::t('booked', 'No days selected');
         }
 
@@ -549,7 +565,7 @@ class Schedule extends Element
         ];
 
         $names = [];
-        foreach ($this->daysOfWeek as $day) {
+        foreach ($days as $day) {
             $names[] = $dayNames[$day] ?? $day;
         }
 

@@ -57,14 +57,15 @@ class SchedulesController extends Controller
         $employees = Employee::find()->enabled()->all();
 
         // Days of week for checkboxes (1 = Monday, 7 = Sunday)
+        // Format as array of objects with 'value' and 'label' properties
         $daysOfWeek = [
-            1 => Craft::t('booked', 'Monday'),
-            2 => Craft::t('booked', 'Tuesday'),
-            3 => Craft::t('booked', 'Wednesday'),
-            4 => Craft::t('booked', 'Thursday'),
-            5 => Craft::t('booked', 'Friday'),
-            6 => Craft::t('booked', 'Saturday'),
-            7 => Craft::t('booked', 'Sunday'),
+            ['value' => 1, 'label' => Craft::t('booked', 'Monday')],
+            ['value' => 2, 'label' => Craft::t('booked', 'Tuesday')],
+            ['value' => 3, 'label' => Craft::t('booked', 'Wednesday')],
+            ['value' => 4, 'label' => Craft::t('booked', 'Thursday')],
+            ['value' => 5, 'label' => Craft::t('booked', 'Friday')],
+            ['value' => 6, 'label' => Craft::t('booked', 'Saturday')],
+            ['value' => 7, 'label' => Craft::t('booked', 'Sunday')],
         ];
 
         return $this->renderTemplate('booked/schedules/edit', [

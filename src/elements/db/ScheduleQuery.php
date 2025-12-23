@@ -76,7 +76,9 @@ class ScheduleQuery extends ElementQuery
         $this->joinElementTable('booked_schedules');
 
         $this->query->addSelect([
+            'booked_schedules.title',
             'booked_schedules.dayOfWeek',
+            'booked_schedules.daysOfWeek',
             'booked_schedules.startTime',
             'booked_schedules.endTime',
             'booked_schedules.employeeId',
