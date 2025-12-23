@@ -2,6 +2,7 @@
 
 namespace fabian\booked\elements\db;
 
+use Craft;
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
 
@@ -75,14 +76,17 @@ class ScheduleQuery extends ElementQuery
         $this->joinElementTable('booked_schedules');
 
         $this->query->addSelect([
-            'booked_schedules.employeeId',
             'booked_schedules.dayOfWeek',
             'booked_schedules.startTime',
             'booked_schedules.endTime',
         ]);
 
-        if ($this->employeeId !== null) {
+        // Always join the junction table if we're filtering by employee or service
+        if ($this->employeeId !== null || $this->serviceId !== null) {
             $this->subQuery->innerJoin('{{%booked_schedule_employees}} booked_schedule_employees', '[[booked_schedule_employees.scheduleId]] = [[elements.id]]');
+        }
+
+        if ($this->employeeId !== null) {
             $this->subQuery->andWhere(Db::parseParam('booked_schedule_employees.employeeId', $this->employeeId));
         }
 
@@ -99,6 +103,8 @@ class ScheduleQuery extends ElementQuery
         if ($this->enabled !== null) {
             $this->subQuery->andWhere(Db::parseParam('elements.enabled', (int)$this->enabled));
         }
+
+        Craft::info("ScheduleQuery prepared with dayOfWeek: {$this->dayOfWeek}, employeeId: {$this->employeeId}, serviceId: {$this->serviceId}", __METHOD__);
 
         return true;
     }

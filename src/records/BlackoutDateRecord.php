@@ -8,6 +8,8 @@ use craft\db\ActiveRecord;
  * Blackout Date Active Record
  *
  * @property int $id
+ * @property int|null $locationId
+ * @property int|null $employeeId
  * @property string $startDate
  * @property string $endDate
  * @property string|null $reason
@@ -35,6 +37,7 @@ class BlackoutDateRecord extends ActiveRecord
             [['startDate', 'endDate'], 'required'],
             [['startDate', 'endDate'], 'date', 'format' => 'php:Y-m-d'],
             [['reason'], 'string'],
+            [['locationId', 'employeeId'], 'integer'],
             [['isActive'], 'boolean'],
             [['isActive'], 'default', 'value' => true],
         ];

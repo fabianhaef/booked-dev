@@ -17,6 +17,8 @@ class BlackoutDateQuery extends ElementQuery
     public ?string $startDate = null;
     public ?string $endDate = null;
     public ?bool $isActive = null;
+    public ?int $locationId = null;
+    public ?int $employeeId = null;
 
     /**
      * Filter by start date
@@ -46,6 +48,24 @@ class BlackoutDateQuery extends ElementQuery
     }
 
     /**
+     * Filter by location ID
+     */
+    public function locationId(?int $value): static
+    {
+        $this->locationId = $value;
+        return $this;
+    }
+
+    /**
+     * Filter by employee ID
+     */
+    public function employeeId(?int $value): static
+    {
+        $this->employeeId = $value;
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     protected function beforePrepare(): bool
@@ -57,6 +77,8 @@ class BlackoutDateQuery extends ElementQuery
             'bookings_blackout_dates.startDate',
             'bookings_blackout_dates.endDate',
             'bookings_blackout_dates.isActive',
+            'bookings_blackout_dates.locationId',
+            'bookings_blackout_dates.employeeId',
         ]);
 
         // Apply filters
@@ -70,6 +92,14 @@ class BlackoutDateQuery extends ElementQuery
 
         if ($this->isActive !== null) {
             $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.isActive', $this->isActive));
+        }
+
+        if ($this->locationId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.locationId', $this->locationId));
+        }
+
+        if ($this->employeeId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.employeeId', $this->employeeId));
         }
 
         return parent::beforePrepare();

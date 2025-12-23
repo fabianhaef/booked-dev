@@ -40,8 +40,10 @@ class AvailabilityService extends Component
     ): array {
         Craft::info("Getting available slots for date: $date, employee: $employeeId, location: $locationId, service: $serviceId", __METHOD__);
 
-        // Check cache first
         $cacheService = Booked::getInstance()->availabilityCache;
+        
+        // Skip cache for now while debugging
+        /*
         $cached = $cacheService->getCachedAvailability($date, $employeeId, $serviceId);
         
         if ($cached !== null) {
@@ -62,6 +64,7 @@ class AvailabilityService extends Component
             }
             return array_values($slots);
         }
+        */
 
         $dateObj = DateTime::createFromFormat('Y-m-d', $date);
         if (!$dateObj) {
@@ -73,12 +76,18 @@ class AvailabilityService extends Component
 
         // Step 1: Get base working hours (Schedule) for the date
         $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId, $serviceId);
-        Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek", __METHOD__);
+        Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek. Employee: $employeeId, Service: $serviceId", __METHOD__);
+        foreach ($schedules as $s) {
+            Craft::info("Schedule ID: {$s->id}, Time: {$s->startTime}-{$s->endTime}", __METHOD__);
+        }
         
         // Step 2: Get additional availability elements
         $availabilities = $this->getAvailabilities($employeeId, $locationId, $serviceId);
         $expandedAvailabilities = $this->expandAvailabilities($availabilities, $date);
         Craft::info("Found " . count($expandedAvailabilities) . " expanded availabilities", __METHOD__);
+        foreach ($expandedAvailabilities as $ea) {
+            Craft::info("Expanded Avail: Employee {$ea['employeeId']}, Time: {$ea['start']}-{$ea['end']}", __METHOD__);
+        }
 
         if (empty($schedules) && empty($expandedAvailabilities)) {
             Craft::info("No schedules or availabilities found for $date", __METHOD__);
@@ -109,6 +118,9 @@ class AvailabilityService extends Component
                         'start' => $schedule->startTime,
                         'end' => $schedule->endTime,
                     ];
+                    Craft::info("Added legacy schedule for Employee {$schedule->employeeId}", __METHOD__);
+                } else {
+                    Craft::warning("Schedule {$schedule->id} has no employees assigned", __METHOD__);
                 }
                 continue;
             }
@@ -118,6 +130,7 @@ class AvailabilityService extends Component
                     'start' => $schedule->startTime,
                     'end' => $schedule->endTime,
                 ];
+                Craft::info("Added schedule for Employee {$employee->id} from Schedule {$schedule->id}", __METHOD__);
             }
         }
         foreach ($expandedAvailabilities as $avail) {
@@ -140,7 +153,7 @@ class AvailabilityService extends Component
             }
 
             // Step 7: Subtract blackout dates
-            $timeWindows = $this->subtractBlackouts($timeWindows, $date);
+            $timeWindows = $this->subtractBlackouts($timeWindows, $date, $empId);
 
             // Step 7.5: Subtract external calendar events
             $timeWindows = $this->subtractExternalEvents($timeWindows, $date, $empId);
@@ -175,7 +188,9 @@ class AvailabilityService extends Component
             $allSlots = $this->shiftAllSlots($allSlots, $date, $userTimezone, $timezoneService);
         }
 
-        return array_values($allSlots);
+        $finalSlots = array_values($allSlots);
+        Craft::info("Returning " . count($finalSlots) . " available slots for $date", __METHOD__);
+        return $finalSlots;
     }
 
     /**
@@ -522,13 +537,23 @@ class AvailabilityService extends Component
      * 
      * @param array $windows Array of time windows
      * @param string $date Date in Y-m-d format
+     * @param int|null $employeeId Optional employee ID
      * @return array Time windows with blackouts subtracted
      */
-    protected function subtractBlackouts(array $windows, string $date): array
+    protected function subtractBlackouts(array $windows, string $date, ?int $employeeId = null): array
     {
         $blackoutService = Booked::getInstance()->getBlackoutDate();
         
-        if ($blackoutService->isDateBlackedOut($date)) {
+        // Find the locationId if employeeId is set
+        $locationId = null;
+        if ($employeeId) {
+            $employee = Employee::findOne($employeeId);
+            if ($employee) {
+                $locationId = $employee->locationId;
+            }
+        }
+
+        if ($blackoutService->isDateBlackedOut($date, $employeeId, $locationId)) {
             return [];
         }
 

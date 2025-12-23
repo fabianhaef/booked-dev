@@ -16,12 +16,16 @@ use fabian\booked\records\BlackoutDateRecord;
  *
  * @property string $startDate
  * @property string $endDate
+ * @property int|null $locationId
+ * @property int|null $employeeId
  * @property bool $isActive
  */
 class BlackoutDate extends Element
 {
     public string $startDate = '';
     public string $endDate = '';
+    public ?int $locationId = null;
+    public ?int $employeeId = null;
     public bool $isActive = true;
 
     /**
@@ -150,6 +154,8 @@ class BlackoutDate extends Element
             'id' => ['label' => 'ID'],
             'title' => ['label' => 'Name'],
             'dateRange' => ['label' => 'Zeitraum'],
+            'location' => ['label' => 'Location'],
+            'employee' => ['label' => 'Employee'],
             'duration' => ['label' => 'Dauer'],
         ];
     }
@@ -159,7 +165,7 @@ class BlackoutDate extends Element
      */
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['id', 'title', 'dateRange', 'duration'];
+        return ['title', 'dateRange', 'location', 'employee'];
     }
 
     /**
@@ -209,6 +215,20 @@ class BlackoutDate extends Element
             case 'dateRange':
                 return Html::encode($this->getFormattedDateRange());
 
+            case 'location':
+                if ($this->locationId) {
+                    $location = Location::findOne($this->locationId);
+                    return $location ? Html::encode($location->title) : Html::tag('span', 'Deleted', ['class' => 'error']);
+                }
+                return Html::tag('span', 'Global', ['class' => 'light']);
+
+            case 'employee':
+                if ($this->employeeId) {
+                    $employee = Employee::findOne($this->employeeId);
+                    return $employee ? Html::encode($employee->title) : Html::tag('span', 'Deleted', ['class' => 'error']);
+                }
+                return Html::tag('span', 'All', ['class' => 'light']);
+
             case 'duration':
                 $days = $this->getDurationDays();
                 return Html::encode($days . ' ' . ($days == 1 ? 'Tag' : 'Tage'));
@@ -222,7 +242,7 @@ class BlackoutDate extends Element
      */
     public function getCpEditUrl(): ?string
     {
-        return UrlHelper::cpUrl('booking/blackout-dates/edit/' . $this->id);
+        return UrlHelper::cpUrl('booked/blackout-dates/' . $this->id);
     }
 
     /**
@@ -302,6 +322,8 @@ class BlackoutDate extends Element
 
         $record->startDate = $this->startDate;
         $record->endDate = $this->endDate;
+        $record->locationId = $this->locationId;
+        $record->employeeId = $this->employeeId;
         $record->isActive = $this->isActive;
 
         $record->save(false);

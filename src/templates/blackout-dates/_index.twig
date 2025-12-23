@@ -1,7 +1,16 @@
 {% extends "_layouts/elementindex" %}
-{% set elementType = 'modules\\booking\\elements\\BlackoutDate' %}
-{% set title = 'Ausfalltage' %}
+{% set elementType = 'fabian\\booked\\elements\\BlackoutDate' %}
+{% set title = 'Blackout Dates'|t('booked') %}
+{% set selectedSubnavItem = 'blackout-dates' %}
 
 {% block actionButton %}
-    <a href="{{ url('booking/blackout-dates/new') }}" class="btn submit add icon">Neuer Ausfalltag</a>
+    <a href="{{ url('booked/blackout-dates/new') }}" class="btn submit add icon">{{ "New Blackout Date"|t('booked') }}</a>
 {% endblock %}
+
+{% set tableAttributes = [
+    'title',
+    'dateRange',
+    'location',
+    'employee',
+    'status'
+] %}

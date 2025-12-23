@@ -221,6 +221,10 @@ class Booked extends Plugin
                     'booked/locations' => 'booked/cp/locations/index',
                     'booked/locations/new' => 'booked/cp/locations/edit',
                     'booked/locations/<id:\d+>' => 'booked/cp/locations/edit',
+
+                    'booked/blackout-dates' => 'booked/cp/blackout-dates/index',
+                    'booked/blackout-dates/new' => 'booked/cp/blackout-dates/new',
+                    'booked/blackout-dates/<id:\d+>' => 'booked/cp/blackout-dates/edit',
                     
                     'booked/schedules' => 'booked/cp/schedules/index',
                     'booked/schedules/new' => 'booked/cp/schedules/edit',
@@ -281,6 +285,7 @@ class Booked extends Plugin
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
+            'blackout-dates' => ['label' => Craft::t('booked', 'Blackout Dates'), 'url' => 'booked/blackout-dates'],
             'schedules' => ['label' => Craft::t('booked', 'Schedules'), 'url' => 'booked/schedules'],
             'settings' => [
                 'label' => Craft::t('booked', 'Settings'),

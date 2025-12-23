@@ -151,13 +151,46 @@ class BlackoutDateService extends Component
     /**
      * Check if a date falls within any active blackout period
      */
-    public function isDateBlackedOut(string $date): bool
+    /**
+     * Check if a date falls within any active blackout period
+     * 
+     * @param string $date Date in Y-m-d format
+     * @param int|null $employeeId Optional employee ID
+     * @param int|null $locationId Optional location ID
+     * @return bool
+     */
+    public function isDateBlackedOut(string $date, ?int $employeeId = null, ?int $locationId = null): bool
     {
-        return $this->getBlackoutQuery()
+        $query = $this->getBlackoutQuery()
             ->where(['isActive' => true])
             ->andWhere(['<=', 'startDate', $date])
-            ->andWhere(['>=', 'endDate', $date])
-            ->exists();
+            ->andWhere(['>=', 'endDate', $date]);
+
+        // If employee specified, check for global OR employee-specific OR location-specific blackouts
+        if ($employeeId !== null || $locationId !== null) {
+            $orConditions = [['locationId' => null, 'employeeId' => null]];
+            
+            if ($employeeId !== null) {
+                $orConditions[] = ['employeeId' => $employeeId];
+            }
+            
+            if ($locationId !== null) {
+                $orConditions[] = ['locationId' => $locationId];
+            }
+            
+            $query->andWhere(['or', ...$orConditions]);
+        } else {
+            // Only global blackouts if no scope provided
+            $query->andWhere(['locationId' => null, 'employeeId' => null]);
+        }
+
+        $isBlackedOut = $query->exists();
+        
+        if ($isBlackedOut) {
+            Craft::info("Date $date is blacked out (Employee: $employeeId, Location: $locationId)", __METHOD__);
+        }
+        
+        return $isBlackedOut;
     }
 
     /**

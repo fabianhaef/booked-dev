@@ -7,6 +7,8 @@ use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\Booked;
 use fabian\booked\elements\BlackoutDate;
+use fabian\booked\elements\Employee;
+use fabian\booked\elements\Location;
 use fabian\booked\services\BlackoutDateService;
 use yii\web\NotFoundHttpException;
 
@@ -28,7 +30,7 @@ class BlackoutDatesController extends Controller
      */
     public function actionIndex(): Response
     {
-        return $this->renderTemplate('booking/blackout-dates/_index', [
+        return $this->renderTemplate('booked/blackout-dates/_index', [
             'title' => 'Ausfalltage',
         ]);
     }
@@ -38,9 +40,11 @@ class BlackoutDatesController extends Controller
      */
     public function actionNew(): Response
     {
-        return $this->renderTemplate('booking/blackout-dates/edit', [
+        return $this->renderTemplate('booked/blackout-dates/edit', [
             'blackoutDate' => null,
-            'title' => 'New Blackout Date'
+            'title' => 'New Blackout Date',
+            'locations' => Location::find()->all(),
+            'employees' => Employee::find()->all(),
         ]);
     }
 
@@ -55,9 +59,11 @@ class BlackoutDatesController extends Controller
             throw new NotFoundHttpException('Blackout date not found');
         }
 
-        return $this->renderTemplate('booking/blackout-dates/edit', [
+        return $this->renderTemplate('booked/blackout-dates/edit', [
             'blackoutDate' => $blackoutDate,
-            'title' => 'Edit Blackout Date'
+            'title' => 'Edit Blackout Date',
+            'locations' => Location::find()->all(),
+            'employees' => Employee::find()->all(),
         ]);
     }
 
@@ -69,7 +75,7 @@ class BlackoutDatesController extends Controller
         $this->requirePostRequest();
 
         $request = Craft::$app->request;
-        $id = $request->getBodyParam('id');
+        $id = $request->getBodyParam('id') ?: $request->getBodyParam('elementId');
 
         if ($id) {
             $blackoutDate = BlackoutDate::find()->id($id)->one();
@@ -83,11 +89,13 @@ class BlackoutDatesController extends Controller
         $blackoutDate->title = $request->getRequiredBodyParam('title');
         $blackoutDate->startDate = $request->getRequiredBodyParam('startDate');
         $blackoutDate->endDate = $request->getRequiredBodyParam('endDate');
+        $blackoutDate->locationId = $request->getBodyParam('locationId') ?: null;
+        $blackoutDate->employeeId = $request->getBodyParam('employeeId') ?: null;
         $blackoutDate->isActive = (bool) $request->getBodyParam('isActive', true);
 
         if (!Craft::$app->elements->saveElement($blackoutDate)) {
             Craft::$app->session->setError('Could not save blackout date.');
-            return $this->renderTemplate('booking/blackout-dates/edit', [
+            return $this->renderTemplate('booked/blackout-dates/edit', [
                 'blackoutDate' => $blackoutDate,
                 'title' => $id ? 'Edit Blackout Date' : 'New Blackout Date'
             ]);

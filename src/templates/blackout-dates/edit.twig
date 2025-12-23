@@ -1,61 +1,69 @@
 {% extends "_layouts/cp" %}
-{% set title = blackoutDate ? 'Ausfalltag bearbeiten' : 'Neuer Ausfalltag' %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'blackout-dates' %}
+{% set title = blackoutDate ? 'Edit Blackout Date'|t('booked') : 'New Blackout Date'|t('booked') %}
+
+{% set fullPageForm = true %}
 
 {% block content %}
-	<form method="post" accept-charset="UTF-8">
-		{{ csrfInput() }}
-		<input type="hidden" name="action" value="booking/blackout-dates/save">
-		{{ redirectInput('booking/blackout-dates') }}
+    <input type="hidden" name="action" value="booked/cp/blackout-dates/save">
+    {% if blackoutDate %}
+        <input type="hidden" name="elementId" value="{{ blackoutDate.id }}">
+    {% endif %}
 
-		{% if blackoutDate %}
-			<input type="hidden" name="id" value="{{ blackoutDate.id }}">
-		{% endif %}
+    <div id="fields">
+        {{ forms.textField({
+            label: 'Title'|t('app'),
+            id: 'title',
+            name: 'title',
+            value: blackoutDate.title ?? '',
+            required: true,
+            autofocus: true,
+            errors: blackoutDate ? blackoutDate.getErrors('title') : []
+        }) }}
 
-		<div class="field" id="title-field">
-			<div class="heading">
-				<label for="title" class="required">Name</label>
-			</div>
-			<div class="input ltr">
-				<input type="text" class="text fullwidth" id="title" name="title" value="{{ blackoutDate ? blackoutDate.title : '' }}" required autofocus>
-			</div>
-		</div>
+        {{ forms.dateField({
+            label: 'Start Date'|t('booked'),
+            id: 'startDate',
+            name: 'startDate',
+            value: blackoutDate.startDate ?? '',
+            required: true,
+            errors: blackoutDate ? blackoutDate.getErrors('startDate') : []
+        }) }}
 
-		<div class="field" id="startDate-field">
-			<div class="heading">
-				<label for="startDate" class="required">Startdatum</label>
-				<div class="instructions">
-					<p>Erster Tag des Ausfallzeitraums</p>
-				</div>
-			</div>
-			<div class="input ltr">
-				<input type="date" class="text" id="startDate" name="startDate" value="{{ blackoutDate ? blackoutDate.startDate : '' }}" required>
-			</div>
-		</div>
+        {{ forms.dateField({
+            label: 'End Date'|t('booked'),
+            id: 'endDate',
+            name: 'endDate',
+            value: blackoutDate.endDate ?? '',
+            required: true,
+            errors: blackoutDate ? blackoutDate.getErrors('endDate') : []
+        }) }}
 
-		<div class="field" id="endDate-field">
-			<div class="heading">
-				<label for="endDate" class="required">Enddatum</label>
-				<div class="instructions">
-					<p>Letzter Tag des Ausfallzeitraums</p>
-				</div>
-			</div>
-			<div class="input ltr">
-				<input type="date" class="text" id="endDate" name="endDate" value="{{ blackoutDate ? blackoutDate.endDate : '' }}" required>
-			</div>
-		</div>
+        {{ forms.selectField({
+            label: 'Location'|t('booked'),
+            id: 'locationId',
+            name: 'locationId',
+            options: [{ label: 'Global (All Locations)'|t('booked'), value: '' }] | merge(locations|map(l => { label: l.title, value: l.id })),
+            value: blackoutDate.locationId ?? '',
+            instructions: 'Limit this blackout to a specific location.'|t('booked')
+        }) }}
 
-		<div class="field" id="isActive-field">
-			<div class="heading">
-				<label for="isActive">Aktiv</label>
-			</div>
-			<div class="input ltr">
-				<input type="checkbox" id="isActive" name="isActive" value="1" {{ (not blackoutDate or blackoutDate.isActive) ? 'checked' : '' }}>
-				<label for="isActive">Aktiv</label>
-			</div>
-		</div>
+        {{ forms.selectField({
+            label: 'Employee'|t('booked'),
+            id: 'employeeId',
+            name: 'employeeId',
+            options: [{ label: 'All Employees'|t('booked'), value: '' }] | merge(employees|map(e => { label: e.title, value: e.id })),
+            value: blackoutDate.employeeId ?? '',
+            instructions: 'Limit this blackout to a specific employee.'|t('booked')
+        }) }}
 
-		<div class="buttons">
-			<input type="submit" class="btn submit" value="Speichern">
-		</div>
-	</form>
+        {{ forms.lightswitchField({
+            label: 'Active'|t('booked'),
+            id: 'isActive',
+            name: 'isActive',
+            on: blackoutDate ? blackoutDate.isActive : true
+        }) }}
+    </div>
 {% endblock %}
