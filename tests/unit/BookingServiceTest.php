@@ -68,24 +68,55 @@ class TestableBookingService extends BookingService {
         };
     }
 
-    protected function getRequestService() {
-        return new class {
+    protected function getRequestService(): \craft\web\Request {
+        $mockConfig = new class {
+            public function get($key, $default = null) { return $default; }
+        };
+
+        $mockApp = new class {
+            public $config;
+            public function __construct() {
+                $this->config = new class {
+                    public function get($key, $default = null) { return $default; }
+                };
+            }
+            public function getConfig() { return $this->config; }
+        };
+
+        return new class($mockConfig, $mockApp) extends \craft\web\Request {
+            private $mockConfig;
+            private $mockApp;
+
+            public function __construct($config, $app) {
+                $this->mockConfig = $config;
+                $this->mockApp = $app;
+                // Don't call parent constructor to avoid Craft dependencies
+            }
+
             public function getIsConsoleRequest() { return true; }
-            public function getUserIP() { return '127.0.0.1'; }
+            public function getUserIP(int $filterOptions = 0): ?string { return '127.0.0.1'; }
         };
     }
 
-    protected function getQueueService() {
-        return new class {
+    protected function getQueueService(): \craft\queue\Service {
+        return new class extends \craft\queue\Service {
             public function priority($p) { return $this; }
             public function push($job) { return true; }
         };
     }
 
-    protected function getCacheService() {
-        return new class {
+    protected function getCacheService(): \yii\caching\CacheInterface {
+        return new class implements \yii\caching\CacheInterface {
             public function get($key) { return null; }
-            public function set($key, $val, $ttl) { return true; }
+            public function set($key, $value, $duration = null) { return true; }
+            public function add($key, $value, $duration = null) { return true; }
+            public function delete($key) { return true; }
+            public function flush() { return true; }
+            public function getMultiple($keys) { return []; }
+            public function setMultiple($items, $duration = null) { return []; }
+            public function addMultiple($items, $duration = null) { return []; }
+            public function deleteMultiple($keys) { return []; }
+            public function exists($key) { return false; }
         };
     }
 
@@ -104,26 +135,26 @@ class TestableBookingService extends BookingService {
         };
     }
 
-    protected function getMutex() {
+    protected function getMutex(): \yii\mutex\Mutex {
         return $this->mockMutex;
     }
 
-    protected function getDb() {
+    protected function getDb(): \craft\db\Connection {
         // Mock DB connection for transactions
-        $db = new class {
-            public function beginTransaction() {
+        return new class extends \craft\db\Connection {
+            public function beginTransaction($isolationLevel = null) {
                 return new class {
                     public function commit() {}
                     public function rollBack() {}
+                    public function getIsActive() { return true; }
                 };
             }
         };
-        return $db;
     }
 
-    protected function getElementsService() {
-        return new class {
-            public function saveElement($element) {
+    protected function getElementsService(): \craft\services\Elements {
+        return new class extends \craft\services\Elements {
+            public function saveElement($element, bool $runValidation = true, bool $propagate = true): bool {
                 if ($element->id === null) {
                     $element->id = 123;
                 }

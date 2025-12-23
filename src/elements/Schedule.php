@@ -15,17 +15,21 @@ use fabian\booked\records\ScheduleEmployeeRecord;
 /**
  * Schedule Element
  *
+ * @property string|null $title Schedule title (e.g., "Morning Shift", "Weekend Hours")
  * @property int|null $employeeId Foreign key to Employee element (deprecated, use employeeIds)
  * @property array $employeeIds Array of employee IDs assigned to this schedule
- * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday)
+ * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday) - DEPRECATED, use daysOfWeek
+ * @property array $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri)
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
  */
 class Schedule extends Element
 {
+    public ?string $title = null;
     public ?int $employeeId = null;
     public array $employeeIds = [];
-    public ?int $dayOfWeek = null;
+    public ?int $dayOfWeek = null; // Kept for backward compatibility
+    public array $daysOfWeek = [];
     public ?string $startTime = null;
     public ?string $endTime = null;
 
@@ -46,6 +50,23 @@ class Schedule extends Element
                 ->all();
 
             $this->employeeIds = array_map(fn($record) => $record->employeeId, $junctionRecords);
+        }
+
+        // Ensure daysOfWeek is an array (handles JSON decoding from database)
+        if (is_string($this->daysOfWeek)) {
+            $this->daysOfWeek = json_decode($this->daysOfWeek, true) ?? [];
+        } elseif (!is_array($this->daysOfWeek)) {
+            $this->daysOfWeek = [];
+        }
+
+        // Backward compatibility: if dayOfWeek is set but daysOfWeek is empty, use dayOfWeek
+        // Convert from old format (0-6) to new format (1-7)
+        if (empty($this->daysOfWeek) && $this->dayOfWeek !== null) {
+            $oldDay = (int)$this->dayOfWeek;
+            // Old: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+            // New: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+            $newDay = $oldDay === 0 ? 7 : $oldDay;
+            $this->daysOfWeek = [$newDay];
         }
     }
 
@@ -96,7 +117,7 @@ class Schedule extends Element
      */
     public static function hasTitles(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -154,8 +175,9 @@ class Schedule extends Element
     protected static function defineTableAttributes(): array
     {
         return [
+            'title' => ['label' => Craft::t('booked', 'Title')],
             'employee' => ['label' => Craft::t('booked', 'Employee')],
-            'dayOfWeek' => ['label' => Craft::t('booked', 'Day')],
+            'dayOfWeek' => ['label' => Craft::t('booked', 'Days')],
             'timeRange' => ['label' => Craft::t('booked', 'Time')],
         ];
     }
@@ -165,7 +187,7 @@ class Schedule extends Element
      */
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['employee', 'dayOfWeek', 'timeRange'];
+        return ['title', 'employee', 'dayOfWeek', 'timeRange'];
     }
 
     /**
@@ -278,7 +300,8 @@ class Schedule extends Element
                 return Html::tag('span', '–', ['class' => 'light']);
 
             case 'dayOfWeek':
-                return Html::encode($this->getDayName());
+                // Support both old single day and new multiple days
+                return Html::encode($this->getDaysName());
 
             case 'timeRange':
                 if ($this->startTime && $this->endTime) {
@@ -336,11 +359,13 @@ class Schedule extends Element
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
-            [['dayOfWeek'], 'required'],
+            [['daysOfWeek'], 'required'],
+            [['daysOfWeek'], 'validateDaysOfWeek'],
             [['employeeId', 'dayOfWeek'], 'integer'],
-            [['dayOfWeek'], 'integer', 'min' => 0, 'max' => 6],
+            [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7], // New format: 1=Monday, 7=Sunday
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['employeeIds'], 'validateEmployeeIds'],
+            [['title'], 'string', 'max' => 255],
         ]);
     }
 
@@ -351,6 +376,25 @@ class Schedule extends Element
     {
         if (empty($this->employeeIds) && !$this->employeeId) {
             $this->addError('employeeIds', Craft::t('booked', 'At least one employee must be assigned.'));
+        }
+    }
+
+    /**
+     * Validate daysOfWeek array
+     */
+    public function validateDaysOfWeek(): void
+    {
+        if (empty($this->daysOfWeek)) {
+            $this->addError('daysOfWeek', Craft::t('booked', 'At least one day must be selected.'));
+            return;
+        }
+
+        // Ensure all values are integers between 1-7 (Monday-Sunday)
+        foreach ($this->daysOfWeek as $day) {
+            if (!is_int($day) || $day < 1 || $day > 7) {
+                $this->addError('daysOfWeek', Craft::t('booked', 'Invalid day value: {day}', ['day' => $day]));
+                return;
+            }
         }
     }
 
@@ -369,9 +413,13 @@ class Schedule extends Element
             $record->id = (int)$this->id;
         }
 
-        // For backward compatibility, keep employeeId if set
+        // Save new fields
+        $record->title = $this->title;
+        $record->daysOfWeek = !empty($this->daysOfWeek) ? json_encode($this->daysOfWeek) : null;
+
+        // For backward compatibility, keep employeeId and dayOfWeek if set
         $record->employeeId = $this->employeeId;
-        $record->dayOfWeek = $this->dayOfWeek;
+        $record->dayOfWeek = $this->dayOfWeek ?? (!empty($this->daysOfWeek) ? $this->daysOfWeek[0] : null);
         $record->startTime = $this->startTime;
         $record->endTime = $this->endTime;
 
@@ -463,7 +511,7 @@ class Schedule extends Element
     }
 
     /**
-     * Get day name from dayOfWeek number
+     * Get day name from dayOfWeek number (backward compatibility)
      */
     public function getDayName(): string
     {
@@ -478,6 +526,34 @@ class Schedule extends Element
         ];
 
         return $days[$this->dayOfWeek] ?? Craft::t('booked', 'Unknown');
+    }
+
+    /**
+     * Get formatted string of multiple days
+     * Days: 1 = Monday, 2 = Tuesday, ..., 7 = Sunday
+     */
+    public function getDaysName(): string
+    {
+        if (empty($this->daysOfWeek)) {
+            return Craft::t('booked', 'No days selected');
+        }
+
+        $dayNames = [
+            1 => Craft::t('booked', 'Mon'),
+            2 => Craft::t('booked', 'Tue'),
+            3 => Craft::t('booked', 'Wed'),
+            4 => Craft::t('booked', 'Thu'),
+            5 => Craft::t('booked', 'Fri'),
+            6 => Craft::t('booked', 'Sat'),
+            7 => Craft::t('booked', 'Sun'),
+        ];
+
+        $names = [];
+        foreach ($this->daysOfWeek as $day) {
+            $names[] = $dayNames[$day] ?? $day;
+        }
+
+        return implode(', ', $names);
     }
 }
 

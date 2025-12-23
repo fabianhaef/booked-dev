@@ -172,19 +172,4 @@ class BookingVariable
     {
         return Booked::getInstance()->getBooking()->getBookingStats();
     }
-
-    /**
-     * Check if a payment QR code exists
-     *
-     * Checks for an uploaded asset or a file at web/media/payment-qr.png (or .jpg, .gif, .webp)
-     *
-     * @return bool
-     */
-    public function hasPaymentQrFile(): bool
-    {
-        $settings = Booked::getInstance()->getSettings();
-        // Assuming settings has this method, if not we check for the legacy attribute
-        return method_exists($settings, 'hasPaymentQr') ? $settings->hasPaymentQr() : false;
-    }
-}
 }

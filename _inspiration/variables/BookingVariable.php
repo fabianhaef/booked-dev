@@ -139,17 +139,4 @@ class BookingVariable
     {
         return $this->bookingService->getBookingStats();
     }
-
-    /**
-     * Check if a payment QR code exists
-     *
-     * Checks for an uploaded asset or a file at web/media/payment-qr.png (or .jpg, .gif, .webp)
-     *
-     * @return bool
-     */
-    public function hasPaymentQrFile(): bool
-    {
-        $settings = Settings::loadSettings();
-        return $settings->hasPaymentQr();
-    }
 }
