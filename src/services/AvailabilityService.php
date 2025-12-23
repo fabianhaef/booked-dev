@@ -38,11 +38,14 @@ class AvailabilityService extends Component
         int $requestedQuantity = 1,
         ?string $userTimezone = null
     ): array {
+        Craft::info("Getting available slots for date: $date, employee: $employeeId, location: $locationId, service: $serviceId", __METHOD__);
+
         // Check cache first
         $cacheService = Booked::getInstance()->availabilityCache;
         $cached = $cacheService->getCachedAvailability($date, $employeeId, $serviceId);
         
         if ($cached !== null) {
+            Craft::info("Returning cached slots for $date", __METHOD__);
             $slots = $cached;
             // Filter by location if specified
             if ($locationId !== null) {
@@ -70,12 +73,15 @@ class AvailabilityService extends Component
 
         // Step 1: Get base working hours (Schedule) for the date
         $schedules = $this->getWorkingHours($dayOfWeek, $employeeId, $locationId, $serviceId);
+        Craft::info("Found " . count($schedules) . " schedules for day $dayOfWeek", __METHOD__);
         
         // Step 2: Get additional availability elements
         $availabilities = $this->getAvailabilities($employeeId, $locationId, $serviceId);
         $expandedAvailabilities = $this->expandAvailabilities($availabilities, $date);
+        Craft::info("Found " . count($expandedAvailabilities) . " expanded availabilities", __METHOD__);
 
         if (empty($schedules) && empty($expandedAvailabilities)) {
+            Craft::info("No schedules or availabilities found for $date", __METHOD__);
             $cacheService->setCachedAvailability($date, [], $employeeId, $serviceId);
             return [];
         }
@@ -95,10 +101,24 @@ class AvailabilityService extends Component
         // Group schedules and availabilities by employee
         $schedulesByEmployee = [];
         foreach ($schedules as $schedule) {
-            $schedulesByEmployee[$schedule->employeeId][] = [
-                'start' => $schedule->startTime,
-                'end' => $schedule->endTime,
-            ];
+            $employees = $schedule->getEmployees();
+            if (empty($employees)) {
+                // Legacy support
+                if ($schedule->employeeId) {
+                    $schedulesByEmployee[$schedule->employeeId][] = [
+                        'start' => $schedule->startTime,
+                        'end' => $schedule->endTime,
+                    ];
+                }
+                continue;
+            }
+            
+            foreach ($employees as $employee) {
+                $schedulesByEmployee[$employee->id][] = [
+                    'start' => $schedule->startTime,
+                    'end' => $schedule->endTime,
+                ];
+            }
         }
         foreach ($expandedAvailabilities as $avail) {
             $schedulesByEmployee[$avail['employeeId']][] = [
@@ -330,8 +350,18 @@ class AvailabilityService extends Component
         // Filter by location if specified
         if ($locationId !== null) {
             $schedules = array_filter($schedules, function($schedule) use ($locationId) {
-                $employee = $schedule->getEmployee();
-                return $employee && $employee->locationId === $locationId;
+                $employees = $schedule->getEmployees();
+                if (empty($employees)) {
+                    $employee = $schedule->getEmployee();
+                    return $employee && $employee->locationId === $locationId;
+                }
+                
+                foreach ($employees as $employee) {
+                    if ($employee->locationId === $locationId) {
+                        return true;
+                    }
+                }
+                return false;
             });
         }
 

@@ -12,26 +12,28 @@ use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\LocationQuery;
 use fabian\booked\records\LocationRecord;
 
-use craft\elements\Address;
-use craft\elements\db\AddressQuery;
-use craft\elements\NestedElementManager;
-use craft\enums\PropagationMethod;
-use craft\elements\ElementCollection;
-
 /**
  * Location Element
  *
  * @property string|null $timezone Location timezone
  * @property string|null $contactInfo Contact information
- * @property-read Address[]|null $addresses the location’s addresses
+ * @property string|null $addressLine1
+ * @property string|null $addressLine2
+ * @property string|null $locality
+ * @property string|null $administrativeArea
+ * @property string|null $postalCode
+ * @property string|null $countryCode
  */
 class Location extends Element
 {
     public ?string $timezone = null;
     public ?string $contactInfo = null;
-
-    private ?NestedElementManager $_addressManager = null;
-    private ?ElementCollection $_addresses = null;
+    public ?string $addressLine1 = null;
+    public ?string $addressLine2 = null;
+    public ?string $locality = null;
+    public ?string $administrativeArea = null;
+    public ?string $postalCode = null;
+    public ?string $countryCode = null;
 
     /**
      * @inheritdoc
@@ -188,87 +190,20 @@ class Location extends Element
     /**
      * @inheritdoc
      */
-    public function getAddressManager(): NestedElementManager
-    {
-        if ($this->_addressManager === null) {
-            $this->_addressManager = new NestedElementManager(
-                Address::class,
-                fn() => $this->createAddressQuery(),
-                [
-                    'attribute' => 'addresses',
-                    'propagationMethod' => PropagationMethod::None,
-                ],
-            );
-        }
-
-        return $this->_addressManager;
-    }
-
-    /**
-     * Returns the location’s addresses.
-     *
-     * @return ElementCollection<Address>
-     */
-    public function getAddresses(): ElementCollection
-    {
-        if ($this->_addresses === null) {
-            $this->_addresses = $this->createAddressQuery()
-                ->collect();
-        }
-
-        return $this->_addresses;
-    }
-
-    /**
-     * Sets the location’s addresses.
-     *
-     * @param Address[]|AddressQuery|ElementCollection|null $addresses
-     */
-    public function setAddresses(array|AddressQuery|ElementCollection|null $addresses): void
-    {
-        if ($addresses instanceof AddressQuery) {
-            $this->_addresses = null;
-        } elseif ($addresses instanceof ElementCollection) {
-            $this->_addresses = $addresses;
-        } elseif ($addresses === null) {
-            $this->_addresses = ElementCollection::make();
-        } else {
-            $this->_addresses = ElementCollection::make($addresses);
-        }
-    }
-
-    /**
-     * Returns the primary address.
-     *
-     * @return Address|null
-     */
-    public function getPrimaryAddress(): ?Address
-    {
-        return $this->getAddresses()->first();
-    }
-
-    /**
-     * Creates an address query.
-     *
-     * @return AddressQuery
-     */
-    private function createAddressQuery(): AddressQuery
-    {
-        return Address::find()
-            ->owner($this)
-            ->orderBy(['id' => SORT_ASC]);
-    }
-
-    /**
-     * @inheritdoc
-     */
     protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
             case 'address':
-                $address = $this->getPrimaryAddress();
-                if ($address) {
-                    return Craft::$app->getAddresses()->formatAddress($address);
+                if ($this->addressLine1) {
+                    $parts = array_filter([
+                        $this->addressLine1,
+                        $this->addressLine2,
+                        $this->locality,
+                        $this->administrativeArea,
+                        $this->postalCode,
+                        $this->countryCode
+                    ]);
+                    return Html::encode(implode(', ', $parts));
                 }
                 return Html::tag('span', '–', ['class' => 'light']);
 
@@ -325,7 +260,7 @@ class Location extends Element
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
-            [['timezone', 'contactInfo'], 'string'],
+            [['timezone', 'contactInfo', 'addressLine1', 'addressLine2', 'locality', 'administrativeArea', 'postalCode', 'countryCode'], 'string'],
         ]);
     }
 
@@ -400,6 +335,12 @@ class Location extends Element
 
         $record->timezone = $this->timezone;
         $record->contactInfo = $this->contactInfo;
+        $record->addressLine1 = $this->addressLine1;
+        $record->addressLine2 = $this->addressLine2;
+        $record->locality = $this->locality;
+        $record->administrativeArea = $this->administrativeArea;
+        $record->postalCode = $this->postalCode;
+        $record->countryCode = $this->countryCode;
 
         $record->save(false);
 
@@ -411,9 +352,6 @@ class Location extends Element
      */
     public function afterPropagate(bool $isNew): void
     {
-        // Save nested addresses
-        $this->getAddressManager()->maintainNestedElements($this, $isNew);
-
         parent::afterPropagate($isNew);
     }
 
@@ -426,9 +364,6 @@ class Location extends Element
         if ($record) {
             $record->delete();
         }
-
-        // Delete nested addresses
-        $this->getAddressManager()->deleteNestedElements($this);
 
         parent::afterDelete();
     }

@@ -19,15 +19,15 @@
 
         <div class="fields">
             {{ forms.elementSelectField({
-                label: 'Employee'|t('booked'),
-                id: 'employeeId',
-                name: 'employeeId',
+                label: 'Employees'|t('booked'),
+                id: 'employeeIds',
+                name: 'employeeIds',
                 elementType: 'fabian\\booked\\elements\\Employee',
-                elements: schedule.employeeId and schedule.getEmployee() ? [schedule.getEmployee()] : [],
-                limit: 1,
+                elements: schedule.getEmployees(),
+                limit: null,
                 required: true,
-                errors: schedule.getErrors('employeeId'),
-                instructions: 'Select the employee for this schedule'
+                errors: schedule.getErrors('employeeIds'),
+                instructions: 'Select one or more employees for this schedule'
             }) }}
 
             {{ forms.selectField({

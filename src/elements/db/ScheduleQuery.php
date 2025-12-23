@@ -82,7 +82,8 @@ class ScheduleQuery extends ElementQuery
         ]);
 
         if ($this->employeeId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('booked_schedules.employeeId', $this->employeeId));
+            $this->subQuery->innerJoin('{{%booked_schedule_employees}} booked_schedule_employees', '[[booked_schedule_employees.scheduleId]] = [[elements.id]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_schedule_employees.employeeId', $this->employeeId));
         }
 
         if ($this->dayOfWeek !== null) {
@@ -90,7 +91,7 @@ class ScheduleQuery extends ElementQuery
         }
 
         if ($this->serviceId !== null) {
-            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[booked_schedules.employeeId]]');
+            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[booked_schedule_employees.employeeId]]');
             $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
         }
 

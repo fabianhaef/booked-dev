@@ -36,7 +36,6 @@
             errors: location.getErrors('slug')
         }) }}
 
-        {% set address = location.getPrimaryAddress() ?? create('craft\\elements\\Address') %}
         <div id="address-container">
             {% namespace 'address' %}
                 {{ forms.selectField({
@@ -44,8 +43,8 @@
                     id: 'countryCode',
                     name: 'countryCode',
                     options: craft.app.addresses.getCountryList(),
-                    value: address.countryCode ?? craft.app.addresses.getDefaultCountryCode(),
-                    errors: address.getErrors('countryCode'),
+                    value: location.countryCode ?? craft.app.config.general.defaultCountryCode,
+                    errors: location.getErrors('countryCode'),
                     class: 'address-country-select'
                 }) }}
 
@@ -54,8 +53,8 @@
                         label: "Address Line 1"|t('app'),
                         id: 'addressLine1',
                         name: 'addressLine1',
-                        value: address.addressLine1,
-                        errors: address.getErrors('addressLine1'),
+                        value: location.addressLine1,
+                        errors: location.getErrors('addressLine1'),
                         required: true
                     }) }}
 
@@ -63,16 +62,16 @@
                         label: "Address Line 2"|t('app'),
                         id: 'addressLine2',
                         name: 'addressLine2',
-                        value: address.addressLine2,
-                        errors: address.getErrors('addressLine2')
+                        value: location.addressLine2,
+                        errors: location.getErrors('addressLine2')
                     }) }}
 
                     {{ forms.textField({
                         label: "City"|t('app'),
                         id: 'locality',
                         name: 'locality',
-                        value: address.locality,
-                        errors: address.getErrors('locality'),
+                        value: location.locality,
+                        errors: location.getErrors('locality'),
                         required: true
                     }) }}
 
@@ -80,16 +79,16 @@
                         label: "State/Province"|t('app'),
                         id: 'administrativeArea',
                         name: 'administrativeArea',
-                        value: address.administrativeArea,
-                        errors: address.getErrors('administrativeArea')
+                        value: location.administrativeArea,
+                        errors: location.getErrors('administrativeArea')
                     }) }}
 
                     {{ forms.textField({
                         label: "Zip Code"|t('app'),
                         id: 'postalCode',
                         name: 'postalCode',
-                        value: address.postalCode,
-                        errors: address.getErrors('postalCode'),
+                        value: location.postalCode,
+                        errors: location.getErrors('postalCode'),
                         required: true
                     }) }}
                 </div>
@@ -123,25 +122,5 @@
         }) }}
     </div>
 
-    {% js %}
-        (function() {
-            const $countrySelect = $('#address-countryCode');
-            const $fieldsContainer = $('#address-container .address-fields');
-
-            $countrySelect.on('change', function() {
-                const countryCode = $(this).val();
-                
-                Craft.postActionRequest('addresses/fields', {
-                    namespace: 'address',
-                    countryCode: countryCode
-                }, function(response, textStatus) {
-                    if (textStatus === 'success') {
-                        $fieldsContainer.html(response.fieldsHtml);
-                        Craft.initUiElements($fieldsContainer);
-                    }
-                });
-            });
-        })();
-    {% endjs %}
 {% endblock %}
 

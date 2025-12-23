@@ -91,13 +91,15 @@ class LocationsController extends Controller
         $location->timezone = $request->getBodyParam('timezone');
         $location->contactInfo = $request->getBodyParam('contactInfo');
 
-        // Set addresses
+        // Set address fields directly
         $addressData = $request->getBodyParam('address');
-        if ($addressData) {
-            $address = $location->getPrimaryAddress() ?: new Address();
-            $address->setAttributes($addressData, false);
-            $address->setOwner($location);
-            $location->setAddresses([$address]);
+        if ($addressData && is_array($addressData)) {
+            $location->countryCode = $addressData['countryCode'] ?? null;
+            $location->administrativeArea = $addressData['administrativeArea'] ?? null;
+            $location->locality = $addressData['locality'] ?? null;
+            $location->postalCode = $addressData['postalCode'] ?? null;
+            $location->addressLine1 = $addressData['addressLine1'] ?? null;
+            $location->addressLine2 = $addressData['addressLine2'] ?? null;
         }
 
         if (!Craft::$app->elements->saveElement($location)) {

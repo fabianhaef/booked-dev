@@ -81,8 +81,9 @@ class BookingController extends Controller
         $this->requireAcceptsJson();
 
         $date = Craft::$app->request->getRequiredBodyParam('date');
-        $entryId = Craft::$app->request->getBodyParam('entryId');
-        $variationId = Craft::$app->request->getBodyParam('variationId');
+        $serviceId = Craft::$app->request->getBodyParam('serviceId');
+        $employeeId = Craft::$app->request->getBodyParam('employeeId');
+        $locationId = Craft::$app->request->getBodyParam('locationId');
         $quantity = (int)(Craft::$app->request->getBodyParam('quantity') ?? 1);
 
         // Validate date format
@@ -95,7 +96,18 @@ class BookingController extends Controller
             $quantity = 1;
         }
 
-        $slots = $this->availabilityService->getAvailableSlots($date, $entryId, $variationId, $quantity);
+        // Convert empty strings to null and cast to int
+        $employeeIdInt = ($employeeId !== null && $employeeId !== '') ? (int)$employeeId : null;
+        $locationIdInt = ($locationId !== null && $locationId !== '') ? (int)$locationId : null;
+        $serviceIdInt = ($serviceId !== null && $serviceId !== '') ? (int)$serviceId : null;
+
+        $slots = $this->availabilityService->getAvailableSlots(
+            $date,
+            $employeeIdInt,
+            $locationIdInt,
+            $serviceIdInt,
+            $quantity
+        );
 
         return $this->asJson([
             'success' => true,
@@ -595,10 +607,19 @@ class BookingController extends Controller
 
         $data = [];
         foreach ($locations as $location) {
+            $addressParts = array_filter([
+                $location->addressLine1,
+                $location->addressLine2,
+                $location->locality,
+                $location->administrativeArea,
+                $location->postalCode,
+                $location->countryCode
+            ]);
+            
             $data[] = [
                 'id' => $location->id,
                 'name' => $location->title,
-                'address' => $location->getPrimaryAddress() ? Craft::$app->addresses->formatAddress($location->getPrimaryAddress()) : '',
+                'address' => implode(', ', $addressParts),
                 'timezone' => $location->timezone,
             ];
         }

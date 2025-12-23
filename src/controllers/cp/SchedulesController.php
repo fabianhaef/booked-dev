@@ -97,15 +97,23 @@ class SchedulesController extends Controller
         $schedule->enabled = (bool)$request->getBodyParam('enabled', true);
 
         // Set custom attributes - convert strings to proper types
+        $employeeIds = $request->getBodyParam('employeeIds');
+        if (is_array($employeeIds)) {
+            $schedule->employeeIds = array_map('intval', array_filter($employeeIds));
+        } else {
+            $schedule->employeeIds = [];
+        }
+
+        // For backward compatibility, also support single employeeId
         $employeeId = $request->getBodyParam('employeeId');
         $schedule->employeeId = $employeeId === '' || $employeeId === null ? null : (int)$employeeId;
-        
+
         $dayOfWeek = $request->getBodyParam('dayOfWeek');
         $schedule->dayOfWeek = $dayOfWeek === '' || $dayOfWeek === null ? null : (int)$dayOfWeek;
-        
+
         $startTime = $request->getBodyParam('startTime');
         $schedule->startTime = $startTime === '' ? null : $startTime;
-        
+
         $endTime = $request->getBodyParam('endTime');
         $schedule->endTime = $endTime === '' ? null : $endTime;
 
