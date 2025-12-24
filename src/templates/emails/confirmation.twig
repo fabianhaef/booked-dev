@@ -358,16 +358,6 @@
         </div>
         {% endif %}
 
-        {% if hasPaymentQrAttachment is defined and hasPaymentQrAttachment %}
-        <div class="payment-box">
-            <div class="payment-title">💳 Zahlung per QR-Code</div>
-            <p>
-                Im Anhang dieser E-Mail finden Sie einen QR-Code für die bequeme Zahlung per Banking-App.
-                Scannen Sie den Code einfach mit Ihrer Bank-App, um die Zahlung durchzuführen.
-            </p>
-        </div>
-        {% endif %}
-
         <div class="footer">
             <div class="footer-company">{{ ownerName }}</div>
             {% if ownerEmail %}

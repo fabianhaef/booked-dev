@@ -74,11 +74,6 @@ class SendBookingEmailJob extends BaseJob
                    ->setSubject($subject)
                    ->setHtmlBody($body);
 
-            // Add payment QR attachment for client confirmation emails (if file exists)
-            if ($this->shouldAttachPaymentQr()) {
-                $this->attachPaymentQr($message);
-            }
-
             // Add ICS attachment for client confirmation and reminder emails
             if ($this->emailType === 'confirmation' || strpos($this->emailType, 'reminder_') === 0) {
                 $icsContent = \fabian\booked\helpers\IcsHelper::generate($reservation);
@@ -120,61 +115,6 @@ class SendBookingEmailJob extends BaseJob
         }
     }
 
-    /**
-     * Check if payment QR should be attached
-     *
-     * Checks for an uploaded asset or a file at web/media/payment-qr.png (or .jpg, .gif, .webp)
-     */
-    private function shouldAttachPaymentQr(): bool
-    {
-        // Only attach to client confirmation emails
-        if ($this->emailType !== 'confirmation') {
-            return false;
-        }
-
-        // Check if the file exists
-        $settings = Settings::loadSettings();
-        return $settings->hasPaymentQr();
-    }
-
-    /**
-     * Attach payment QR code to the email message
-     *
-     * Attaches the uploaded asset or file from web/media/payment-qr.png (or other image extension)
-     */
-    private function attachPaymentQr(Message $message): void
-    {
-        $settings = Settings::loadSettings();
-        $filePath = $settings->getPaymentQrFilePath();
-        if (!$filePath) {
-            return;
-        }
-
-        try {
-            $content = file_get_contents($filePath);
-
-            if ($content === false) {
-                throw new \Exception('Could not read payment QR file');
-            }
-
-            // Determine filename and mime type from the file
-            $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            $filename = 'zahlungs-qr-code.' . $extension;
-            $mimeType = mime_content_type($filePath) ?: 'image/png';
-
-            // Attach the file
-            $message->attachContent($content, [
-                'fileName' => $filename,
-                'contentType' => $mimeType,
-            ]);
-
-            Craft::info("Attached payment QR code: {$filename}", __METHOD__);
-
-        } catch (\Throwable $e) {
-            Craft::error("Failed to attach payment QR: " . $e->getMessage(), __METHOD__);
-            // Don't throw - email should still be sent without attachment
-        }
-    }
 
     /**
      * Get reservation by ID
@@ -297,12 +237,9 @@ class SendBookingEmailJob extends BaseJob
             'virtualMeetingUrl' => $reservation->virtualMeetingUrl ?: '',
             'virtualMeetingProvider' => $reservation->virtualMeetingProvider ?: '',
             'isVirtual' => !empty($reservation->virtualMeetingUrl),
-            
+
             // Date created
             'dateCreated' => $reservation->dateCreated ? $reservation->dateCreated->format('d.m.Y H:i') : '',
-            
-            // Payment QR indicator (for template to show payment info box)
-            'hasPaymentQrAttachment' => $this->shouldAttachPaymentQr(),
         ];
 
         // Always use the Twig template

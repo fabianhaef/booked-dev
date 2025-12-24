@@ -217,6 +217,14 @@ class Settings extends Model
     }
 
     /**
+     * Get the effective owner name
+     */
+    public function getEffectiveName(): ?string
+    {
+        return $this->ownerName ?: Craft::$app->getProjectConfig()->get('email.fromName');
+    }
+
+    /**
      * Get attributes that should be excluded from Project Config
      * (sensitive or environment-specific values)
      *

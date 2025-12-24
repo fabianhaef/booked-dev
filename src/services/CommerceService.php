@@ -92,8 +92,11 @@ class CommerceService extends Component
             return false;
         }
 
-        // Create line item
-        $lineItem = Commerce::getInstance()->getLineItems()->createLineItem($cart, $reservation->id, [], 1, '');
+        // Create line item using the new Commerce 5 API
+        $lineItem = Commerce::getInstance()->getLineItems()->create($cart, [
+            'purchasableId' => $reservation->id,
+            'qty' => 1,
+        ]);
 
         // Add line item to cart
         $cart->addLineItem($lineItem);
