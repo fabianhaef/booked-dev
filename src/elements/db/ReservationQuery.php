@@ -17,7 +17,7 @@ class ReservationQuery extends ElementQuery
     public ?string $userName = null;
     public ?string $userEmail = null;
     public ?string $userPhone = null;
-    public ?string $bookingDate = null;
+    public array|string|null $bookingDate = null;
     public ?string $startTime = null;
     public ?string $endTime = null;
     public array|string|null $status = null;
@@ -76,7 +76,7 @@ class ReservationQuery extends ElementQuery
     /**
      * Filter by booking date
      */
-    public function bookingDate(?string $value): static
+    public function bookingDate(array|string|null $value): static
     {
         $this->bookingDate = $value;
         return $this;

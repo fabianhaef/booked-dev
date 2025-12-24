@@ -244,18 +244,40 @@ class Booked extends Plugin
             \craft\web\UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function(\craft\events\RegisterUrlRulesEvent $event) {
                 $event->rules = array_merge($event->rules, [
-                    // Default redirect to services
-                    'booked' => 'booked/cp/services/index',
-                    
+                    // Default redirect to dashboard
+                    'booked' => 'booked/cp/dashboard/index',
+
+                    // Dashboard
+                    'booked/dashboard' => 'booked/cp/dashboard/index',
+
+                    // Calendar Views
+                    'booked/calendar-view/month' => 'booked/cp/calendar-view/month',
+                    'booked/calendar-view/week' => 'booked/cp/calendar-view/week',
+                    'booked/calendar-view/day' => 'booked/cp/calendar-view/day',
+                    'booked/calendar-view/reschedule' => 'booked/cp/calendar-view/reschedule',
+
+                    // Reports
+                    'booked/reports' => 'booked/cp/reports/index',
+                    'booked/reports/revenue' => 'booked/cp/reports/revenue',
+                    'booked/reports/by-service' => 'booked/cp/reports/by-service',
+                    'booked/reports/by-employee' => 'booked/cp/reports/by-employee',
+                    'booked/reports/cancellations' => 'booked/cp/reports/cancellations',
+                    'booked/reports/peak-hours' => 'booked/cp/reports/peak-hours',
+                    'booked/reports/no-shows' => 'booked/cp/reports/no-shows',
+                    'booked/reports/lead-time' => 'booked/cp/reports/lead-time',
+                    'booked/reports/by-day-of-week' => 'booked/cp/reports/by-day-of-week',
+                    'booked/reports/retention' => 'booked/cp/reports/retention',
+                    'booked/reports/export-csv' => 'booked/cp/reports/export-csv',
+
                     // Phase 1.3 - Core element management
                     'booked/services' => 'booked/cp/services/index',
                     'booked/services/new' => 'booked/cp/services/edit',
                     'booked/services/<id:\d+>' => 'booked/cp/services/edit',
-                    
+
                     'booked/employees' => 'booked/cp/employees/index',
                     'booked/employees/new' => 'booked/cp/employees/edit',
                     'booked/employees/<id:\d+>' => 'booked/cp/employees/edit',
-                    
+
                     'booked/locations' => 'booked/cp/locations/index',
                     'booked/locations/new' => 'booked/cp/locations/edit',
                     'booked/locations/<id:\d+>' => 'booked/cp/locations/edit',
@@ -263,11 +285,11 @@ class Booked extends Plugin
                     'booked/blackout-dates' => 'booked/cp/blackout-dates/index',
                     'booked/blackout-dates/new' => 'booked/cp/blackout-dates/new',
                     'booked/blackout-dates/<id:\d+>' => 'booked/cp/blackout-dates/edit',
-                    
+
                     'booked/schedules' => 'booked/cp/schedules/index',
                     'booked/schedules/new' => 'booked/cp/schedules/edit',
                     'booked/schedules/<id:\d+>' => 'booked/cp/schedules/edit',
-                    
+
                     // Settings - with sidebar navigation
                     'booked/settings' => 'booked/cp/settings/general',
                     'booked/settings/general' => 'booked/cp/settings/general',
@@ -277,8 +299,8 @@ class Booked extends Plugin
                     'booked/settings/booking-fields' => 'booked/cp/settings/booking-fields',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
-                    
-                    // Calendar Sync
+
+                    // Calendar Sync (OAuth)
                     'booked/calendar/connect' => 'booked/cp/calendar/connect',
                     'booked/calendar/callback' => 'booked/cp/calendar/callback',
                 ]);
@@ -337,6 +359,9 @@ class Booked extends Plugin
         // Use base URL so nav stays open for all subnav items
         $item['url'] = 'booked';
         $item['subnav'] = [
+            'dashboard' => ['label' => Craft::t('booked', 'Dashboard'), 'url' => 'booked/dashboard'],
+            'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
+            'reports' => ['label' => Craft::t('booked', 'Reports'), 'url' => 'booked/reports'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],

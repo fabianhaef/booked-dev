@@ -1,0 +1,130 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Booked Dashboard" %}
+
+{% block content %}
+    <div class="dashboard">
+        {# KPI Cards #}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 32px;">
+            {# Today's Bookings Card #}
+            <div class="kpi-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Today's Bookings</div>
+                <div style="font-size: 32px; font-weight: bold; color: #10b981;">{{ todayBookings }}</div>
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">
+                    <a href="{{ url('booked/bookings') }}">View all bookings →</a>
+                </div>
+            </div>
+
+            {# Upcoming Week Card #}
+            <div class="kpi-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Next 7 Days</div>
+                <div style="font-size: 32px; font-weight: bold; color: #3b82f6;">{{ upcomingBookings }}</div>
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">Upcoming bookings</div>
+            </div>
+
+            {# Pending Review Card #}
+            <div class="kpi-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Pending Review</div>
+                <div style="font-size: 32px; font-weight: bold; color: #f59e0b;">{{ pendingBookings }}</div>
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">
+                    <a href="{{ url('booked/bookings', {status: 'pending'}) }}">Review now →</a>
+                </div>
+            </div>
+
+            {# Total Revenue Card #}
+            <div class="kpi-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Total Revenue</div>
+                <div style="font-size: 32px; font-weight: bold; color: #059669;">{{ totalRevenue|currency('USD') }}</div>
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">All confirmed bookings</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
+            {# Recent Activity Widget #}
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 18px;">Recent Activity</h3>
+
+                <div style="max-height: 400px; overflow-y: auto;">
+                    {% if recentActivity|length > 0 %}
+                        {% for reservation in recentActivity %}
+                            <div style="padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500; font-size: 14px;">
+                                        {{ reservation.customerEmail }}
+                                    </div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                                        {{ reservation.bookingDate }} at {{ reservation.startTime }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;
+                                        {% if reservation.status == 'confirmed' %}background: #d1fae5; color: #065f46;
+                                        {% elseif reservation.status == 'pending' %}background: #fef3c7; color: #92400e;
+                                        {% elseif reservation.status == 'cancelled' %}background: #fee2e2; color: #991b1b;
+                                        {% else %}background: #e5e7eb; color: #374151;{% endif %}">
+                                        {{ reservation.status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            No recent activity
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Popular Services Widget #}
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 18px;">Popular Services</h3>
+
+                {% if popularServices|length > 0 %}
+                    {% for service in popularServices %}
+                        <div style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: 500; font-size: 14px;">{{ service.name }}</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #3b82f6;">{{ service.bookings }}</div>
+                            </div>
+                            <div style="margin-top: 8px; background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: #3b82f6; height: 100%; width: {{ (service.bookings / popularServices[0].bookings * 100)|round }}%;"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                        No services data
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            {# Occupancy Rate Widget #}
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">Occupancy Rate</div>
+                <div style="font-size: 48px; font-weight: bold; color: #8b5cf6;">{{ occupancyRate|number_format(1) }}%</div>
+                <div style="width: 100%; background: #e5e7eb; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 12px;">
+                    <div style="background: #8b5cf6; height: 100%; width: {{ occupancyRate }}%;"></div>
+                </div>
+            </div>
+
+            {# Average Booking Value Widget #}
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">Avg Booking Value</div>
+                <div style="font-size: 48px; font-weight: bold; color: #059669;">{{ averageBookingValue|currency('USD') }}</div>
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 12px;">Per confirmed booking</div>
+            </div>
+
+            {# Quick Actions #}
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">Quick Actions</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{{ url('booked/bookings/new') }}" class="btn submit" style="width: 100%;">New Booking</a>
+                    <a href="{{ url('booked/calendar/month') }}" class="btn" style="width: 100%;">View Calendar</a>
+                    <a href="{{ url('booked/reports') }}" class="btn" style="width: 100%;">Reports</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

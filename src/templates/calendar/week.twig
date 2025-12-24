@@ -1,0 +1,59 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Calendar - Week of " ~ startDate|date('M d, Y') %}
+
+{% block content %}
+    <div class="calendar-header">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <a href="{{ url('booked/calendar/week', {
+                    date: startDate|date_modify('-7 days')|date('Y-m-d')
+                }) }}" class="btn">← Previous Week</a>
+
+                <a href="{{ url('booked/calendar/week') }}" class="btn">This Week</a>
+
+                <a href="{{ url('booked/calendar/week', {
+                    date: startDate|date_modify('+7 days')|date('Y-m-d')
+                }) }}" class="btn">Next Week →</a>
+            </div>
+
+            <div>
+                <a href="{{ url('booked/calendar/month') }}" class="btn">Month View</a>
+                <a href="{{ url('booked/calendar/day') }}" class="btn">Day View</a>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">
+        {% for dayKey, dayData in reservationsByDay %}
+            <div style="border: 1px solid #e5e7eb; border-radius: 4px; padding: 12px;">
+                <div style="font-weight: bold; margin-bottom: 8px; text-align: center;">
+                    {{ dayData.date|date('D') }}<br>
+                    <span style="font-size: 20px;">{{ dayData.date|date('d') }}</span>
+                </div>
+
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 8px;">
+                    {% if dayData.reservations|length > 0 %}
+                        {% for reservation in dayData.reservations %}
+                            <div style="padding: 6px; margin: 4px 0; background:
+                                {% if reservation.status == 'confirmed' %}#d1fae5
+                                {% elseif reservation.status == 'pending' %}#fef3c7
+                                {% elseif reservation.status == 'cancelled' %}#fee2e2
+                                {% else %}#e5e7eb{% endif %};
+                                border-radius: 3px; font-size: 12px;">
+                                <div style="font-weight: bold;">{{ reservation.startTime }}</div>
+                                <div style="font-size: 11px; margin-top: 2px;">
+                                    {{ reservation.customerEmail|slice(0, 20) }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #9ca3af; padding: 20px 0; font-size: 12px;">
+                            No bookings
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

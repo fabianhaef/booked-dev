@@ -1,0 +1,89 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Calendar - " ~ startDate|date('F Y') %}
+
+{% block content %}
+    <div class="calendar-header">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <a href="{{ url('booked/calendar/month', {
+                    year: startDate|date_modify('-1 month')|date('Y'),
+                    month: startDate|date_modify('-1 month')|date('m')
+                }) }}" class="btn">← Previous</a>
+
+                <a href="{{ url('booked/calendar/month') }}" class="btn">Today</a>
+
+                <a href="{{ url('booked/calendar/month', {
+                    year: startDate|date_modify('+1 month')|date('Y'),
+                    month: startDate|date_modify('+1 month')|date('m')
+                }) }}" class="btn">Next →</a>
+            </div>
+
+            <div>
+                <a href="{{ url('booked/calendar/week') }}" class="btn">Week View</a>
+                <a href="{{ url('booked/calendar/day') }}" class="btn">Day View</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #e5e7eb;">
+        {% set weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+
+        {# Header row #}
+        {% for day in weekdays %}
+            <div style="background: #f3f4f6; padding: 8px; text-align: center; font-weight: bold;">
+                {{ day }}
+            </div>
+        {% endfor %}
+
+        {# Get first day of month and calculate offset #}
+        {% set firstDayOfWeek = startDate|date('N') %}
+        {% set daysInMonth = startDate|date('t') %}
+
+        {# Add empty cells for days before month starts #}
+        {% for i in 1..(firstDayOfWeek - 1) %}
+            <div style="background: white; padding: 8px; min-height: 100px;"></div>
+        {% endfor %}
+
+        {# Calendar days #}
+        {% for day in 1..daysInMonth %}
+            {% set currentDate = startDate|date_modify('+' ~ (day - 1) ~ ' days')|date('Y-m-d') %}
+            {% set dayReservations = reservations[currentDate] ?? [] %}
+
+            <div style="background: white; padding: 8px; min-height: 100px; border: 1px solid #e5e7eb;">
+                <div style="font-weight: bold; margin-bottom: 4px;">{{ day }}</div>
+
+                {% if dayReservations|length > 0 %}
+                    <div style="font-size: 12px;">
+                        {% for reservation in dayReservations|slice(0, 3) %}
+                            <div style="padding: 2px 4px; margin: 2px 0; background:
+                                {% if reservation.status == 'confirmed' %}#d1fae5
+                                {% elseif reservation.status == 'pending' %}#fef3c7
+                                {% elseif reservation.status == 'cancelled' %}#fee2e2
+                                {% else %}#e5e7eb{% endif %};
+                                border-radius: 3px; font-size: 11px;">
+                                {{ reservation.startTime }} - {{ reservation.customerEmail }}
+                            </div>
+                        {% endfor %}
+
+                        {% if dayReservations|length > 3 %}
+                            <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+                                +{{ dayReservations|length - 3 }} more
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-6">
+        <h3>Legend</h3>
+        <div class="flex gap-4">
+            <div><span style="display: inline-block; width: 12px; height: 12px; background: #d1fae5; border-radius: 2px;"></span> Confirmed</div>
+            <div><span style="display: inline-block; width: 12px; height: 12px; background: #fef3c7; border-radius: 2px;"></span> Pending</div>
+            <div><span style="display: inline-block; width: 12px; height: 12px; background: #fee2e2; border-radius: 2px;"></span> Cancelled</div>
+        </div>
+    </div>
+{% endblock %}

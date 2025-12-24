@@ -1,0 +1,134 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Reports" %}
+
+{% block content %}
+    <div class="reports-index">
+        <h1>Reports & Analytics</h1>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 32px;">
+            {# Revenue Report #}
+            <a href="{{ url('booked/reports/revenue') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit; transition: box-shadow 0.2s;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #d1fae5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        💰
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Revenue Report</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Track revenue by date range</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Bookings by Service #}
+            <a href="{{ url('booked/reports/by-service') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #dbeafe; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        📊
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Service Performance</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Bookings breakdown by service</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Bookings by Employee #}
+            <a href="{{ url('booked/reports/by-employee') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #fef3c7; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        👥
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Employee Performance</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Bookings by staff member</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Cancellation Rate #}
+            <a href="{{ url('booked/reports/cancellations') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #fee2e2; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        ❌
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Cancellations</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Cancellation rate analysis</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Peak Hours #}
+            <a href="{{ url('booked/reports/peak-hours') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #e9d5ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        ⏰
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Peak Hours</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Busiest times of day</p>
+                    </div>
+                </div>
+            </a>
+
+            {# No-Shows #}
+            <a href="{{ url('booked/reports/no-shows') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        👻
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">No-Shows</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">No-show rate tracking</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Lead Time #}
+            <a href="{{ url('booked/reports/lead-time') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #ccfbf1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        📅
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Booking Lead Time</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Average advance booking time</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Day of Week #}
+            <a href="{{ url('booked/reports/by-day-of-week') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #fce7f3; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        📈
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Revenue by Day</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Performance by day of week</p>
+                    </div>
+                </div>
+            </a>
+
+            {# Customer Retention #}
+            <a href="{{ url('booked/reports/retention') }}" class="report-card" style="display: block; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-decoration: none; color: inherit;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: #ddd6fe; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        🔄
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">Customer Retention</h3>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">Repeat customer analysis</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .report-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Employee Performance Report" %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-6">
+        <h1>Employee Performance</h1>
+        <a href="{{ url('booked/reports') }}" class="btn">← Back to Reports</a>
+    </div>
+
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px;">
+        <h3 style="margin: 0 0 20px 0;">Bookings by Employee</h3>
+
+        {% if employeeBookings|length > 0 %}
+            <div style="display: grid; gap: 16px;">
+                {% for employeeId, data in employeeBookings %}
+                    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">
+                                    {{ data.employee ? data.employee.title : 'Employee #' ~ employeeId }}
+                                </div>
+                            </div>
+                            <div style="text-align: center; background: #dbeafe; padding: 12px 24px; border-radius: 8px;">
+                                <div style="font-size: 32px; font-weight: bold; color: #1e40af;">{{ data.count }}</div>
+                                <div style="font-size: 12px; color: #1e40af; text-transform: uppercase; font-weight: 500;">Bookings</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; color: #9ca3af; padding: 60px 0;">
+                No employee data available
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

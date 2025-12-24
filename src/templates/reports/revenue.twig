@@ -1,0 +1,81 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Revenue Report" %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-6">
+        <h1>Revenue Report</h1>
+        <a href="{{ url('booked/reports/export-csv', {type: 'revenue'}) }}" class="btn">Export CSV</a>
+    </div>
+
+    {# Date Range Filter #}
+    <form method="get" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end;">
+            {{ forms.dateField({
+                label: "Start Date",
+                name: "startDate",
+                value: startDate,
+            }) }}
+
+            {{ forms.dateField({
+                label: "End Date",
+                name: "endDate",
+                value: endDate,
+            }) }}
+
+            <button type="submit" class="btn submit">Filter</button>
+        </div>
+    </form>
+
+    {# Summary Card #}
+    <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 8px; padding: 32px; color: white; margin-bottom: 24px;">
+        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Revenue</div>
+        <div style="font-size: 48px; font-weight: bold;">{{ totalRevenue|currency('USD') }}</div>
+        <div style="font-size: 14px; opacity: 0.8; margin-top: 8px;">
+            {{ startDate|date('M d, Y') }} - {{ endDate|date('M d, Y') }}
+        </div>
+    </div>
+
+    {# Reservations Table #}
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Service</th>
+                    <th>Time</th>
+                    <th>Revenue</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reservations|length > 0 %}
+                    {% for reservation in reservations %}
+                        <tr>
+                            <td>{{ reservation.bookingDate|date('M d, Y') }}</td>
+                            <td>{{ reservation.customerEmail }}</td>
+                            <td>{{ reservation.serviceId ?? 'N/A' }}</td>
+                            <td>{{ reservation.startTime }} - {{ reservation.endTime }}</td>
+                            <td style="font-weight: 600;">{{ reservation.price|currency('USD') }}</td>
+                            <td>
+                                <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;
+                                    {% if reservation.status == 'confirmed' %}background: #d1fae5; color: #065f46;
+                                    {% else %}background: #e5e7eb; color: #374151;{% endif %}">
+                                    {{ reservation.status|upper }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            No reservations found for this date range
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
