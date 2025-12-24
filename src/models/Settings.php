@@ -217,6 +217,49 @@ class Settings extends Model
     }
 
     /**
+     * Get attributes that should be excluded from Project Config
+     * (sensitive or environment-specific values)
+     *
+     * @return array
+     */
+    public function getProjectConfigExcludedAttributes(): array
+    {
+        return [
+            // Sensitive API credentials
+            'googleCalendarClientSecret',
+            'outlookCalendarClientSecret',
+            'zoomClientSecret',
+            'twilioAuthToken',
+
+            // Environment-specific URLs
+            'googleRedirectUri',
+            'outlookRedirectUri',
+
+            // Database IDs (these are environment-specific)
+            'id',
+            'paymentQrAssetId',
+        ];
+    }
+
+    /**
+     * Get attributes for Project Config
+     * Excludes sensitive and environment-specific values
+     *
+     * @return array
+     */
+    public function getProjectConfigAttributes(): array
+    {
+        $attributes = $this->toArray();
+        $excluded = $this->getProjectConfigExcludedAttributes();
+
+        foreach ($excluded as $attribute) {
+            unset($attributes[$attribute]);
+        }
+
+        return $attributes;
+    }
+
+    /**
      * @inheritdoc
      */
     public function rules(): array

@@ -182,21 +182,29 @@ class BookingService extends Component
      */
     public function createReservation(array $data): Reservation
     {
-        // Rate limiting - check email
+        // Extract user email early for later use
         $userEmail = $data['userEmail'] ?? '';
-        if ($userEmail && !$this->checkEmailRateLimit($userEmail)) {
-            Craft::warning("Booking blocked: Email rate limit exceeded for {$userEmail}", __METHOD__);
-            throw new BookingRateLimitException('Sie haben zu viele Buchungen von dieser E-Mail-Adresse vorgenommen. Bitte versuchen Sie es später erneut.');
-        }
 
-        // Rate limiting - check IP (skip for console requests)
-        $ipAddress = $data['ipAddress'] ?? null;
-        if ($ipAddress === null && !$this->getRequestService()->getIsConsoleRequest()) {
-            $ipAddress = $this->getRequestService()->getUserIP();
-        }
-        if ($ipAddress && !$this->checkIPRateLimit($ipAddress)) {
-            Craft::warning("Booking blocked: IP rate limit exceeded for {$ipAddress}", __METHOD__);
-            throw new BookingRateLimitException('Sie haben zu viele Buchungen von dieser IP-Adresse vorgenommen. Bitte versuchen Sie es später erneut.');
+        // Rate limiting - skip in dev mode for easier testing
+        $settings = Booked::getInstance()->getSettings();
+        $isDevMode = Craft::$app->getConfig()->getGeneral()->devMode;
+
+        if (!$isDevMode && $settings->enableRateLimiting) {
+            // Rate limiting - check email
+            if ($userEmail && !$this->checkEmailRateLimit($userEmail)) {
+                Craft::warning("Booking blocked: Email rate limit exceeded for {$userEmail}", __METHOD__);
+                throw new BookingRateLimitException('Sie haben zu viele Buchungen von dieser E-Mail-Adresse vorgenommen. Bitte versuchen Sie es später erneut.');
+            }
+
+            // Rate limiting - check IP (skip for console requests)
+            $ipAddress = $data['ipAddress'] ?? null;
+            if ($ipAddress === null && !$this->getRequestService()->getIsConsoleRequest()) {
+                $ipAddress = $this->getRequestService()->getUserIP();
+            }
+            if ($ipAddress && !$this->checkIPRateLimit($ipAddress)) {
+                Craft::warning("Booking blocked: IP rate limit exceeded for {$ipAddress}", __METHOD__);
+                throw new BookingRateLimitException('Sie haben zu viele Buchungen von dieser IP-Adresse vorgenommen. Bitte versuchen Sie es später erneut.');
+            }
         }
 
         // CRITICAL: Acquire mutex lock to prevent race conditions with overlapping bookings
@@ -322,19 +330,6 @@ class BookingService extends Component
                     throw new BookingValidationException('Die Buchungsvalidierung ist fehlgeschlagen.', $reservation->getErrors());
                 }
 
-                // Phase 4.2 - Commerce Integration
-                if (Booked::getInstance()->isCommerceEnabled()) {
-                    $service = $reservation->getService();
-                    if ($service && $service->price > 0) {
-                        // For paid services, set status to pending until paid
-                        $reservation->status = ReservationRecord::STATUS_PENDING;
-                        $this->getElementsService()->saveElement($reservation);
-                        
-                        // Add to cart and link to order
-                        Booked::getInstance()->commerce->addReservationToCart($reservation);
-                    }
-                }
-
                 // Log successful booking with variation and quantity info
                 Craft::info(
                     "Reservation created: ID {$reservation->id} | " .
@@ -347,6 +342,19 @@ class BookingService extends Component
 
                 // Commit transaction first to ensure booking is saved
                 $transaction->commit();
+
+                // Phase 4.2 - Commerce Integration (AFTER commit)
+                if (Booked::getInstance()->isCommerceEnabled()) {
+                    $service = $reservation->getService();
+                    if ($service && $service->price > 0) {
+                        // For paid services, set status to pending until paid
+                        $reservation->status = ReservationRecord::STATUS_PENDING;
+                        $this->getElementsService()->saveElement($reservation);
+
+                        // Add to cart and link to order
+                        Booked::getInstance()->commerce->addReservationToCart($reservation);
+                    }
+                }
 
                 // Generate virtual meeting if needed
                 if ($reservation->getService() && $reservation->getService()->virtualMeetingProvider) {
@@ -858,7 +866,7 @@ class BookingService extends Component
     /**
      * Get queue service
      */
-    protected function getQueueService(): \craft\queue\Service
+    protected function getQueueService(): \craft\queue\QueueInterface
     {
         return Craft::$app->getQueue();
     }

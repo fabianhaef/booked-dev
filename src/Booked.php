@@ -68,6 +68,7 @@ class Booked extends Plugin
         $this->registerPermissions();
         $this->registerTemplateVariable();
         $this->registerCommerceListeners();
+        $this->registerProjectConfigListeners();
     }
 
     /**
@@ -361,7 +362,6 @@ class Booked extends Plugin
         $item['subnav'] = [
             'dashboard' => ['label' => Craft::t('booked', 'Dashboard'), 'url' => 'booked/dashboard'],
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
-            'reports' => ['label' => Craft::t('booked', 'Reports'), 'url' => 'booked/reports'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
@@ -423,5 +423,96 @@ class Booked extends Plugin
                 $variable->set('booking', \fabian\booked\variables\BookingVariable::class);
             }
         );
+    }
+
+    /**
+     * Register Project Config event listeners
+     * Handles synchronization of plugin settings across environments
+     */
+    private function registerProjectConfigListeners(): void
+    {
+        $projectConfigService = Craft::$app->getProjectConfig();
+
+        // Listen for settings changes in Project Config
+        $projectConfigService
+            ->onAdd('plugins.booked.settings', [$this, 'handleChangedSettings'])
+            ->onUpdate('plugins.booked.settings', [$this, 'handleChangedSettings'])
+            ->onRemove('plugins.booked.settings', [$this, 'handleRemovedSettings']);
+
+        // Listen for plugin install/uninstall to sync settings
+        Event::on(
+            \craft\services\Plugins::class,
+            \craft\services\Plugins::EVENT_AFTER_INSTALL_PLUGIN,
+            function(\craft\events\PluginEvent $event) {
+                if ($event->plugin === $this) {
+                    $this->syncSettingsToProjectConfig();
+                }
+            }
+        );
+
+        Event::on(
+            \craft\services\Plugins::class,
+            \craft\services\Plugins::EVENT_AFTER_SAVE_PLUGIN_SETTINGS,
+            function(\craft\events\PluginEvent $event) {
+                if ($event->plugin === $this) {
+                    $this->syncSettingsToProjectConfig();
+                }
+            }
+        );
+    }
+
+    /**
+     * Handle changed settings from Project Config
+     *
+     * @param \craft\events\ConfigEvent $event
+     */
+    public function handleChangedSettings(\craft\events\ConfigEvent $event): void
+    {
+        $settings = $this->getSettings();
+        $data = $event->newValue;
+
+        if (!is_array($data)) {
+            return;
+        }
+
+        // Apply non-sensitive settings from Project Config
+        foreach ($data as $key => $value) {
+            if (property_exists($settings, $key) && !in_array($key, $settings->getProjectConfigExcludedAttributes())) {
+                $settings->$key = $value;
+            }
+        }
+
+        // Save to database
+        $pluginsService = Craft::$app->getPlugins();
+        $pluginsService->savePluginSettings($this, $settings->toArray());
+    }
+
+    /**
+     * Handle removed settings from Project Config
+     *
+     * @param \craft\events\ConfigEvent $event
+     */
+    public function handleRemovedSettings(\craft\events\ConfigEvent $event): void
+    {
+        // Reset to default settings
+        $settings = new \fabian\booked\models\Settings();
+        $pluginsService = Craft::$app->getPlugins();
+        $pluginsService->savePluginSettings($this, $settings->toArray());
+    }
+
+    /**
+     * Sync current settings to Project Config
+     * Called after settings are saved in the CP
+     */
+    private function syncSettingsToProjectConfig(): void
+    {
+        $settings = $this->getSettings();
+        $projectConfigService = Craft::$app->getProjectConfig();
+
+        // Get settings without sensitive values
+        $configData = $settings->getProjectConfigAttributes();
+
+        // Save to Project Config (which will be written to YAML files)
+        $projectConfigService->set('plugins.booked.settings', $configData);
     }
 }

@@ -935,6 +935,14 @@ class Reservation extends Element implements PurchasableInterface
     /**
      * @inheritdoc
      */
+    public function getSales(): array
+    {
+        return Commerce::getInstance()->getSales()->getSalesForPurchasable($this);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getSku(): string
     {
         return 'BOOKING-' . ($this->id ?? 'NEW');
@@ -980,9 +988,9 @@ class Reservation extends Element implements PurchasableInterface
     public function populateLineItem(LineItem $lineItem): void
     {
         $lineItem->price = $this->getPrice();
-        $lineItem->saleAmount = $this->getPrice();
         $lineItem->sku = $this->getSku();
         $lineItem->description = $this->getDescription();
+        // Note: saleAmount is calculated automatically by Commerce based on getSales()
     }
 
     /**
@@ -1053,5 +1061,14 @@ class Reservation extends Element implements PurchasableInterface
     public function getPromotionRelationSource(): mixed
     {
         return null;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function hasInventory(): bool
+    {
+        // Bookings don't use inventory tracking
+        return false;
     }
 }

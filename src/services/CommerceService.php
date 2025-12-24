@@ -87,9 +87,19 @@ class CommerceService extends Component
     public function addReservationToCart(Reservation $reservation): bool
     {
         $cart = Commerce::getInstance()->getCarts()->getCart();
-        $lineItem = Commerce::getInstance()->getLineItems()->createLineItem($cart->id, $reservation->id, 1, '', '', []);
-        
-        if (Commerce::getInstance()->getLineItems()->saveLineItem($lineItem)) {
+
+        if (!$cart) {
+            return false;
+        }
+
+        // Create line item
+        $lineItem = Commerce::getInstance()->getLineItems()->createLineItem($cart, $reservation->id, [], 1, '');
+
+        // Add line item to cart
+        $cart->addLineItem($lineItem);
+
+        // Save the cart (which saves the line items)
+        if (Craft::$app->getElements()->saveElement($cart)) {
             return $this->linkOrderToReservation($cart->id, $reservation->id);
         }
 
