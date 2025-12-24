@@ -168,9 +168,11 @@ class AvailabilityService extends Component
             // Step 5: Subtract this employee's bookings with buffers
             $bufferBefore = $service->bufferBefore ?? 0;
             $bufferAfter = $service->bufferAfter ?? 0;
-            
+
             $bookings = $this->getReservationsForDate($date, $empId);
+            Craft::info("Employee $empId has " . count($bookings) . " bookings on $date", __METHOD__);
             foreach ($bookings as $booking) {
+                Craft::info("Booking: {$booking->startTime} - {$booking->endTime}, Status: {$booking->status}", __METHOD__);
                 // Expanding the blocked window: 
                 // A new booking starting at T must have T >= booking.end + bufferBefore
                 // and T + duration + bufferAfter <= booking.start

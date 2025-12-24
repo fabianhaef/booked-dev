@@ -141,8 +141,11 @@ class ReservationQuery extends ElementQuery
      */
     protected function beforePrepare(): bool
     {
-        // Join the bookings_reservations table
+        // Join the bookings_reservations table to both main query and subquery
         $this->joinElementTable('bookings_reservations');
+
+        // Join to subquery as well (needed for WHERE clauses to work)
+        $this->subQuery->leftJoin('{{%bookings_reservations}} bookings_reservations', '[[bookings_reservations.id]] = [[elements.id]]');
 
         $this->query->addSelect([
             'bookings_reservations.userName',

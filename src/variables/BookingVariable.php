@@ -76,24 +76,22 @@ class BookingVariable
 
     /**
      * Get the booking catalog HTML
+     * @deprecated Use custom templates with BookingVariable API instead
      * @return Markup
      */
     public function getCatalog(array $options = []): Markup
     {
-        return Template::raw(Craft::$app->view->renderTemplate('booked/frontend/catalog', [
-            'options' => $options
-        ]));
+        throw new \Exception('Catalog view has been removed. Please use craft.booked API to build custom booking UIs.');
     }
 
     /**
      * Get the booking search HTML
+     * @deprecated Use custom templates with BookingVariable API instead
      * @return Markup
      */
     public function getSearch(array $options = []): Markup
     {
-        return Template::raw(Craft::$app->view->renderTemplate('booked/frontend/search', [
-            'options' => $options
-        ]));
+        throw new \Exception('Search view has been removed. Please use craft.booked API to build custom booking UIs.');
     }
 
     /**

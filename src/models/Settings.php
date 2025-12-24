@@ -179,11 +179,11 @@ class Settings extends Model
     // ============================================================================
     // Frontend Settings
     // ============================================================================
-    
-    /** @var string Default booking view mode ('wizard', 'catalog', 'search') */
+
+    /** @var string Default booking view mode ('wizard' for example UI, 'custom' for own implementation) */
     public string $defaultViewMode = 'wizard';
 
-    /** @var string|null URL to the booking page */
+    /** @var string|null URL to the booking page (optional - users can create their own) */
     public ?string $bookingPageUrl = null;
     
     /** @var bool Enable real-time availability updates (AJAX) */
@@ -303,7 +303,7 @@ class Settings extends Model
             [['defaultPaymentGateway'], 'string'],
             
             // Frontend
-            [['defaultViewMode'], 'in', 'range' => ['wizard', 'catalog', 'search']],
+            [['defaultViewMode'], 'in', 'range' => ['wizard', 'custom']],
             [['bookingPageUrl'], 'string'],
             [['enableRealTimeAvailability', 'showEmployeeSelection', 'showLocationSelection'], 'boolean'],
             
