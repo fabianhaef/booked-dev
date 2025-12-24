@@ -192,18 +192,43 @@
                     customerPhone: this.customerPhone,
                     notes: this.notes
                 };
-                
+
                 try {
                     const result = await window.BookedAvailability.createBooking(data);
                     if (result.success) {
-                        alert('Buchung erfolgreich!');
-                        // Redirect or show success message
+                        // Move to success step (step 7)
+                        this.step = this.totalSteps + 1;
+                        this.reservationDetails = result.reservation;
+
+                        // Scroll to top of page
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else {
                         alert('Fehler: ' + result.message);
                     }
+                } catch (error) {
+                    alert('Ein unerwarteter Fehler ist aufgetreten: ' + error.message);
                 } finally {
                     this.loading = false;
                 }
+            },
+
+            resetWizard() {
+                // Reset all form data
+                this.step = 1;
+                this.serviceId = null;
+                this.employeeId = null;
+                this.locationId = null;
+                this.date = null;
+                this.time = null;
+                this.quantity = 1;
+                this.customerName = '';
+                this.customerEmail = '';
+                this.customerPhone = '';
+                this.notes = '';
+                this.selectedService = null;
+                this.selectedEmployee = null;
+                this.selectedLocation = null;
+                this.reservationDetails = null;
             }
         }));
     };
