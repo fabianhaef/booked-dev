@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\helpers\StringHelper;
 use craft\mail\Message;
 use fabian\booked\Booked;
+use fabian\booked\elements\Employee;
 use fabian\booked\elements\Reservation;
 use fabian\booked\exceptions\BookingConflictException;
 use fabian\booked\exceptions\BookingException;
@@ -284,12 +285,21 @@ class BookingService extends Component
                         $reservation->serviceId,
                         $reservation->quantity
                     );
-                    
+
                     foreach ($slots as $slot) {
                         if ($slot['time'] === $reservation->startTime && $slot['endTime'] === $reservation->endTime) {
                             $reservation->employeeId = $slot['employeeId'];
                             break;
                         }
+                    }
+                }
+
+                // Validate employee-service association
+                if ($reservation->employeeId && $reservation->serviceId) {
+                    $employee = Employee::findOne($reservation->employeeId);
+                    if ($employee && !$employee->hasService($reservation->serviceId)) {
+                        $transaction->rollBack();
+                        throw new BookingValidationException('Der ausgewählte Mitarbeiter kann diesen Service nicht durchführen.');
                     }
                 }
 

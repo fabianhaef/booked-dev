@@ -697,16 +697,32 @@ class AvailabilityService extends Component
             return [];
         }
 
-        if ($date > $today) {
+        // Get minimum advance booking hours from settings
+        $settings = Booked::getInstance()->getSettings();
+        $minAdvanceHours = $settings->minimumAdvanceBookingHours ?? 0;
+
+        // Calculate cutoff datetime (now + minimum advance hours)
+        $cutoffDateTime = clone $now;
+        if ($minAdvanceHours > 0) {
+            $cutoffDateTime->add(new \DateInterval("PT{$minAdvanceHours}H"));
+        }
+
+        $cutoffDate = $cutoffDateTime->format('Y-m-d');
+        $cutoffTime = $cutoffDateTime->format('H:i');
+
+        // If requested date is before cutoff date, no slots are available
+        if ($date < $cutoffDate) {
+            return [];
+        }
+
+        // If requested date is after cutoff date, all slots are available
+        if ($date > $cutoffDate) {
             return $slots;
         }
 
-        // For today, only show slots in the future
-        // TODO: Respect minimumAdvanceBookingHours from settings
-        $currentTime = $now->format('H:i');
-
-        return array_filter($slots, function($slot) use ($currentTime) {
-            return $slot['time'] >= $currentTime;
+        // For cutoff date, only show slots after cutoff time
+        return array_filter($slots, function($slot) use ($cutoffTime) {
+            return $slot['time'] >= $cutoffTime;
         });
     }
 

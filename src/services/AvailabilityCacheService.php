@@ -158,19 +158,64 @@ class AvailabilityCacheService extends Component
     }
 
     /**
-     * Warm cache for popular dates (next 30 days)
+     * Warm cache for popular dates (next N days)
      * This can be called via a queue job or cron
      *
-     * @param int|null $employeeId Optional employee ID to warm cache for
-     * @param int|null $serviceId Optional service ID to warm cache for
+     * @param int|null $employeeId Optional employee ID to warm cache for (null = all employees)
+     * @param int|null $serviceId Optional service ID to warm cache for (null = all services)
      * @param int $days Number of days to warm (default: 30)
-     * @return int Number of dates cached
+     * @return int Number of cache entries created
      */
     public function warmCache(?int $employeeId = null, ?int $serviceId = null, int $days = 30): int
     {
-        // Note: This method should be called via a queue job to avoid circular dependencies
-        // For now, return 0. This can be implemented when queue jobs are set up.
-        return 0;
+        $count = 0;
+        $startDate = new \DateTime();
+
+        // Get availability service (avoiding circular dependency by lazy loading)
+        $availabilityService = \fabian\booked\Booked::getInstance()->availability;
+
+        // Determine which employees to warm cache for
+        $employeeIds = [];
+        if ($employeeId !== null) {
+            $employeeIds = [$employeeId];
+        } else {
+            // Load all active employees
+            $employees = \fabian\booked\elements\Employee::find()->all();
+            $employeeIds = array_map(fn($emp) => $emp->id, $employees);
+        }
+
+        // Determine which services to warm cache for
+        $serviceIds = [];
+        if ($serviceId !== null) {
+            $serviceIds = [$serviceId];
+        } else {
+            // Load all active services
+            $services = \fabian\booked\elements\Service::find()->all();
+            $serviceIds = array_map(fn($svc) => $svc->id, $services);
+        }
+
+        // Warm cache for each combination
+        for ($i = 0; $i < $days; $i++) {
+            $date = $startDate->format('Y-m-d');
+
+            foreach ($employeeIds as $empId) {
+                foreach ($serviceIds as $svcId) {
+                    try {
+                        // Calculate availability (this will cache it)
+                        $availabilityService->getAvailableSlots($date, $empId, $svcId);
+                        $count++;
+                    } catch (\Exception $e) {
+                        \Craft::error("Failed to warm cache for date=$date, employee=$empId, service=$svcId: " . $e->getMessage(), __METHOD__);
+                    }
+                }
+            }
+
+            $startDate->add(new \DateInterval('P1D'));
+        }
+
+        \Craft::info("Warmed availability cache: {$count} entries for {$days} days", __METHOD__);
+
+        return $count;
     }
 
     /**

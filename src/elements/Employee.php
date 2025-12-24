@@ -465,6 +465,17 @@ class Employee extends Element
     }
 
     /**
+     * Check if employee can provide a specific service
+     *
+     * @param int $serviceId Service ID to check
+     * @return bool True if employee is assigned to this service
+     */
+    public function hasService(int $serviceId): bool
+    {
+        return in_array($serviceId, $this->getServiceIds(), true);
+    }
+
+    /**
      * @inheritdoc
      */
     public function afterDelete(): void

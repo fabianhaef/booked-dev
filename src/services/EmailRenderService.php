@@ -27,7 +27,6 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
-        $location = $reservation->getLocation();
 
         // Use custom template body if configured
         if ($settings->bookingConfirmationBody) {
@@ -35,7 +34,6 @@ class EmailRenderService extends Component
                 'reservation' => $reservation,
                 'service' => $service,
                 'employee' => $employee,
-                'location' => $location,
                 'settings' => $settings,
             ]);
         }
@@ -45,7 +43,6 @@ class EmailRenderService extends Component
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
-            'location' => $location,
             'settings' => $settings,
             'manageUrl' => $reservation->getManagementUrl(),
             'cancelUrl' => $reservation->getCancelUrl(),
@@ -65,13 +62,11 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
-        $location = $reservation->getLocation();
 
         return Craft::$app->view->renderTemplate('booked/emails/status-change', [
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
-            'location' => $location,
             'oldStatus' => $oldStatus,
             'newStatus' => $reservation->status,
             'settings' => $settings,
@@ -90,13 +85,11 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
-        $location = $reservation->getLocation();
 
         return Craft::$app->view->renderTemplate('booked/emails/cancellation', [
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
-            'location' => $location,
             'settings' => $settings,
             'cancelledAt' => new \DateTime(),
             'cancellationReason' => $reservation->cancellationReason ?? 'No reason provided',
@@ -115,13 +108,11 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
-        $location = $reservation->getLocation();
 
         return Craft::$app->view->renderTemplate('booked/emails/reminder', [
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
-            'location' => $location,
             'settings' => $settings,
             'hoursBefore' => $hoursBefore,
             'manageUrl' => $reservation->getManagementUrl(),
@@ -140,13 +131,11 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
-        $location = $reservation->getLocation();
 
         return Craft::$app->view->renderTemplate('booked/emails/owner-notification', [
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
-            'location' => $location,
             'settings' => $settings,
             'adminUrl' => \craft\helpers\UrlHelper::cpUrl('booked/reservations/' . $reservation->id),
         ]);

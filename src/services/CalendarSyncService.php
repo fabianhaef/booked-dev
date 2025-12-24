@@ -7,6 +7,7 @@ use craft\base\Component;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Reservation;
 use fabian\booked\records\CalendarTokenRecord;
+use fabian\booked\records\OAuthStateTokenRecord;
 use fabian\booked\Booked;
 use Google\Client as GoogleClient;
 use Google\Service\Calendar as GoogleCalendar;
@@ -20,24 +21,22 @@ class CalendarSyncService extends Component
 {
     /**
      * Get OAuth authorization URL for a provider
+     * Uses secure UUID-based state tokens instead of base64-encoded employeeId
      */
     public function getAuthUrl(Employee $employee, string $provider): string
     {
+        // Create secure state token and store in database
+        $stateRecord = OAuthStateTokenRecord::createToken($employee->id, $provider);
+
         if ($provider === 'google') {
             $client = $this->getGoogleClient();
-            $client->setState(base64_encode(json_encode([
-                'employeeId' => $employee->id,
-                'provider' => 'google',
-            ])));
+            $client->setState($stateRecord->token);
             return $client->createAuthUrl();
         }
         if ($provider === 'outlook') {
             $client = $this->getOutlookClient();
             return $client->getAuthorizationUrl([
-                'state' => base64_encode(json_encode([
-                    'employeeId' => $employee->id,
-                    'provider' => 'outlook',
-                ])),
+                'state' => $stateRecord->token,
                 'scope' => ['openid', 'offline_access', 'https://graph.microsoft.com/Calendars.ReadWrite'],
             ]);
         }
@@ -46,13 +45,76 @@ class CalendarSyncService extends Component
 
     /**
      * Handle OAuth callback
+     * Verifies state token and retrieves employeeId securely from database
+     *
+     * @param string $stateToken Secure UUID token from OAuth state parameter
+     * @param string $code Authorization code from OAuth provider
+     * @return bool Success status
      */
-    public function handleCallback(Employee $employee, string $provider, string $code): bool
+    public function handleCallback(string $stateToken, string $code): bool
     {
+        // Verify and consume state token (one-time use, prevents CSRF)
+        $stateData = OAuthStateTokenRecord::verifyAndConsume($stateToken);
+
+        if (!$stateData) {
+            Craft::error('Invalid or expired OAuth state token', __METHOD__);
+            return false;
+        }
+
+        $employeeId = $stateData['employeeId'];
+        $provider = $stateData['provider'];
+
         if ($provider === 'google') {
             $client = $this->getGoogleClient();
             $token = $client->fetchAccessTokenWithAuthCode($code);
-            
+
+            if (isset($token['error'])) {
+                Craft::error('Google OAuth error: ' . $token['error_description'], __METHOD__);
+                return false;
+            }
+
+            return $this->saveToken($employeeId, 'google', [
+                'accessToken' => $token['access_token'],
+                'refreshToken' => $token['refresh_token'] ?? null,
+                'expiresAt' => (new \DateTime())->modify('+' . $token['expires_in'] . ' seconds')->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if ($provider === 'outlook') {
+            $client = $this->getOutlookClient();
+            try {
+                $token = $client->getAccessToken('authorization_code', [
+                    'code' => $code,
+                ]);
+
+                return $this->saveToken($employeeId, 'outlook', [
+                    'accessToken' => $token->getToken(),
+                    'refreshToken' => $token->getRefreshToken(),
+                    'expiresAt' => (new \DateTime())->setTimestamp($token->getExpires())->format('Y-m-d H:i:s'),
+                ]);
+            } catch (\Exception $e) {
+                Craft::error('Outlook OAuth error: ' . $e->getMessage(), __METHOD__);
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle OAuth callback (DEPRECATED - for backward compatibility)
+     * Use handleCallback($stateToken, $code) instead
+     *
+     * @deprecated Use handleCallback($stateToken, $code) for secure state token verification
+     */
+    public function handleCallbackLegacy(Employee $employee, string $provider, string $code): bool
+    {
+        Craft::warning('handleCallbackLegacy() is deprecated. Use handleCallback($stateToken, $code) for secure state token verification.', __METHOD__);
+
+        if ($provider === 'google') {
+            $client = $this->getGoogleClient();
+            $token = $client->fetchAccessTokenWithAuthCode($code);
+
             if (isset($token['error'])) {
                 Craft::error('Google OAuth error: ' . $token['error_description'], __METHOD__);
                 return false;
@@ -82,7 +144,7 @@ class CalendarSyncService extends Component
                 return false;
             }
         }
-        
+
         return false;
     }
 
