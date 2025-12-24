@@ -45,13 +45,12 @@ class AvailabilityService extends Component
         Craft::info("Getting available slots for date: $date, employee: $employeeId, location: $locationId, service: $serviceId", __METHOD__);
 
         $cacheService = Booked::getInstance()->availabilityCache;
-        
-        // Skip cache for now while debugging
-        /*
+
+        // Check cache first (re-enabled after implementing efficient tag-based invalidation)
         $cached = $cacheService->getCachedAvailability($date, $employeeId, $serviceId);
-        
+
         if ($cached !== null) {
-            Craft::info("Returning cached slots for $date", __METHOD__);
+            Craft::info("Cache HIT: Returning cached slots for $date (employee: " . ($employeeId ?? 'all') . ", service: " . ($serviceId ?? 'all') . ")", __METHOD__);
             $slots = $cached;
             // Filter by location if specified
             if ($locationId !== null) {
@@ -61,15 +60,15 @@ class AvailabilityService extends Component
             }
             // Filter past slots (since "now" might have changed since caching)
             $slots = $this->filterPastSlots($slots, $date);
-            
+
             // Filter by quantity if specified
             if ($requestedQuantity > 1) {
                 $slots = $this->filterByQuantity($slots, $requestedQuantity);
             }
             return array_values($slots);
         }
-        */
 
+        Craft::info("Cache MISS: Calculating slots for $date", __METHOD__);
         $dateObj = DateTime::createFromFormat('Y-m-d', $date);
         if (!$dateObj) {
             Craft::warning("Invalid date format: {$date}", __METHOD__);
@@ -244,6 +243,13 @@ class AvailabilityService extends Component
         if ($userTimezone) {
             $timezoneService = new TimezoneService();
             $allSlots = $this->shiftAllSlots($allSlots, $date, $userTimezone, $timezoneService);
+        }
+
+        // Step 12: If no specific employee was requested, deduplicate slots by time
+        // (user selected "random employee" so they don't care which employee)
+        if ($employeeId === null && count($allSlots) > 0) {
+            $allSlots = $this->deduplicateSlotsByTime($allSlots);
+            Craft::info("Deduplicated slots to " . count($allSlots) . " unique times", __METHOD__);
         }
 
         $finalSlots = array_values($allSlots);
@@ -834,8 +840,35 @@ class AvailabilityService extends Component
     }
 
     /**
+     * Deduplicate slots by time when user doesn't care about specific employee
+     * Keeps the first slot for each unique time, removes duplicates
+     *
+     * @param array $slots
+     * @return array
+     */
+    protected function deduplicateSlotsByTime(array $slots): array
+    {
+        $uniqueSlots = [];
+        $seenTimes = [];
+
+        foreach ($slots as $slot) {
+            $timeKey = $slot['time'];
+
+            if (!isset($seenTimes[$timeKey])) {
+                $seenTimes[$timeKey] = true;
+                // Remove employee-specific info when showing "any employee" slots
+                $slot['employeeId'] = null;
+                $slot['employeeName'] = 'Beliebig';
+                $uniqueSlots[] = $slot;
+            }
+        }
+
+        return $uniqueSlots;
+    }
+
+    /**
      * Find matching availability for a specific slot
-     * 
+     *
      * @param string $date
      * @param string $startTime
      * @param string $endTime
@@ -845,7 +878,7 @@ class AvailabilityService extends Component
     {
         // This is a simplified version. In Phase 4.1, we might need more complex logic
         // to link a specific slot back to an Availability element if it's an event.
-        
+
         // For now, return first active availability that might cover this slot
         return Availability::find()
             ->status('active')

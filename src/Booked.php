@@ -140,6 +140,7 @@ class Booked extends Plugin
             'reminder' => \fabian\booked\services\ReminderService::class,
             'recurrence' => \fabian\booked\services\RecurrenceService::class,
             'timezone' => \fabian\booked\services\TimezoneService::class,
+            'emailRender' => \fabian\booked\services\EmailRenderService::class,
         ]);
     }
 
@@ -184,6 +185,11 @@ class Booked extends Plugin
     public function getVirtualMeeting(): \fabian\booked\services\VirtualMeetingService
     {
         return $this->get('virtualMeeting');
+    }
+
+    public function getEmailRender(): \fabian\booked\services\EmailRenderService
+    {
+        return $this->get('emailRender');
     }
 
     /**

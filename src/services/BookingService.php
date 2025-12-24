@@ -736,77 +736,31 @@ class BookingService extends Component
     /**
      * Render confirmation email template
      */
+    /**
+     * Render confirmation email template
+     * @deprecated Use EmailRenderService::renderConfirmationEmail() instead
+     */
     private function renderConfirmationEmail(Reservation $reservation, Settings $settings): string
     {
-        // Get variation information if available
-        $variationInfo = '';
-        if ($reservation->variationId) {
-            $variation = \fabian\booked\elements\BookingVariation::find()
-                ->id($reservation->variationId)
-                ->one();
-            if ($variation) {
-                $variationInfo = $variation->title;
-            }
-        }
-
-        // Format date nicely
-        $dateObj = \DateTime::createFromFormat('Y-m-d', $reservation->bookingDate);
-        $formattedDate = $dateObj ? $dateObj->format('d.m.Y') : $reservation->bookingDate;
-
-        $variables = [
-            'userName' => $reservation->userName,
-            'userEmail' => $reservation->userEmail,
-            'bookingDate' => $formattedDate,
-            'startTime' => $reservation->startTime,
-            'endTime' => $reservation->endTime,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'status' => $reservation->getStatusLabel(),
-            'notes' => $reservation->notes ?: '',
-            'variationName' => $variationInfo,
-            'quantity' => $reservation->quantity,
-            'quantityDisplay' => $reservation->quantity > 1,
-            'ownerName' => $settings->ownerName,
-            'managementUrl' => $reservation->getManagementUrl(),
-            'cancelUrl' => $reservation->getCancelUrl(),
-        ];
-
-        // Use custom template if defined in settings
-        if (!empty($settings->bookingConfirmationBody)) {
-            return Craft::$app->view->renderString($settings->bookingConfirmationBody, $variables);
-        }
-
-        return Craft::$app->view->renderTemplate('booked/emails/confirmation', $variables);
+        return Booked::getInstance()->emailRender->renderConfirmationEmail($reservation, $settings);
     }
 
     /**
      * Render status change email template
+     * @deprecated Use EmailRenderService::renderStatusChangeEmail() instead
      */
     private function renderStatusChangeEmail(Reservation $reservation, string $oldStatus, Settings $settings): string
     {
-        $variables = [
-            'userName' => $reservation->userName,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'oldStatus' => ucfirst($oldStatus),
-            'newStatus' => $reservation->getStatusLabel(),
-            'ownerName' => $settings->ownerName,
-            'managementUrl' => $reservation->getManagementUrl(),
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/status-change', $variables);
+        return Booked::getInstance()->emailRender->renderStatusChangeEmail($reservation, $oldStatus, $settings);
     }
 
     /**
      * Render cancellation email template
+     * @deprecated Use EmailRenderService::renderCancellationEmail() instead
      */
     private function renderCancellationEmail(Reservation $reservation, Settings $settings): string
     {
-        $variables = [
-            'userName' => $reservation->userName,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'ownerName' => $settings->ownerName,
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/cancellation', $variables);
+        return Booked::getInstance()->emailRender->renderCancellationEmail($reservation, $settings);
     }
 
     /**

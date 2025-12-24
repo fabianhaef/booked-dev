@@ -44,6 +44,7 @@ class AvailabilityCacheService extends Component
 
     /**
      * Set cached availability for a specific date, employee, and service
+     * Uses cache tagging for efficient invalidation
      *
      * @param string $date Date in Y-m-d format
      * @param array $slots Availability slots to cache
@@ -54,7 +55,39 @@ class AvailabilityCacheService extends Component
     public function setCachedAvailability(string $date, array $slots, ?int $employeeId = null, ?int $serviceId = null): bool
     {
         $cacheKey = $this->buildCacheKey($date, $employeeId, $serviceId);
-        return Craft::$app->cache->set($cacheKey, $slots, self::CACHE_TTL);
+
+        // Build dependency tags for efficient invalidation
+        $dependency = new \yii\caching\TagDependency([
+            'tags' => $this->buildCacheTags($date, $employeeId, $serviceId),
+        ]);
+
+        return Craft::$app->cache->set($cacheKey, $slots, self::CACHE_TTL, $dependency);
+    }
+
+    /**
+     * Build cache tags for a cache entry
+     * This allows efficient invalidation by tag
+     *
+     * @param string $date
+     * @param int|null $employeeId
+     * @param int|null $serviceId
+     * @return array
+     */
+    private function buildCacheTags(string $date, ?int $employeeId = null, ?int $serviceId = null): array
+    {
+        $tags = [
+            "availability:date:{$date}",  // Tag by date for invalidating entire day
+        ];
+
+        if ($employeeId !== null) {
+            $tags[] = "availability:employee:{$employeeId}";  // Tag by employee
+        }
+
+        if ($serviceId !== null) {
+            $tags[] = "availability:service:{$serviceId}";  // Tag by service
+        }
+
+        return $tags;
     }
 
     /**
@@ -78,47 +111,32 @@ class AvailabilityCacheService extends Component
      * @param string $date Date in Y-m-d format
      * @return bool Whether the cache was invalidated successfully
      */
+    /**
+     * Invalidate all cache entries for a specific date
+     * Uses cache tagging for O(1) invalidation instead of O(n²)
+     *
+     * @param string $date Date in Y-m-d format
+     * @return bool Whether the cache was invalidated successfully
+     */
     public function invalidateDateCache(string $date): bool
     {
-        // Invalidate cache for all possible employee/service combinations
-        // We use a pattern-based approach: delete all keys matching the date pattern
-        $pattern = self::CACHE_KEY_PREFIX . $date . '_*';
-        
-        // Since Craft's cache doesn't support pattern deletion directly,
-        // we'll need to track cache keys or use a different approach
-        // For now, we'll invalidate common combinations
-        
-        // Get all employees and services to invalidate their caches
-        $employees = \fabian\booked\elements\Employee::find()->all();
-        $services = \fabian\booked\elements\Service::find()->all();
-        
-        $invalidated = true;
-        
-        // Invalidate cache for all employees (no service filter)
-        foreach ($employees as $employee) {
-            $this->invalidateCache($date, $employee->id, null);
+        // Use cache tagging to invalidate all entries for this date at once
+        // This is O(1) instead of O(n*m) where n=employees, m=services
+        $tag = "availability:date:{$date}";
+
+        try {
+            \yii\caching\TagDependency::invalidate(\Craft::$app->cache, $tag);
+            \Craft::info("Invalidated availability cache for date: {$date} using tag: {$tag}", __METHOD__);
+            return true;
+        } catch (\Exception $e) {
+            \Craft::error("Failed to invalidate cache for date {$date}: " . $e->getMessage(), __METHOD__);
+            return false;
         }
-        
-        // Invalidate cache for all services (no employee filter)
-        foreach ($services as $service) {
-            $this->invalidateCache($date, null, $service->id);
-        }
-        
-        // Invalidate cache for all employee/service combinations
-        foreach ($employees as $employee) {
-            foreach ($services as $service) {
-                $this->invalidateCache($date, $employee->id, $service->id);
-            }
-        }
-        
-        // Also invalidate the "all" cache (null/null)
-        $this->invalidateCache($date, null, null);
-        
-        return $invalidated;
     }
 
     /**
      * Invalidate all availability cache for a specific employee
+     * Uses cache tagging for O(1) invalidation instead of O(n*m)
      * Useful when external calendar events are synced
      *
      * @param int $employeeId Employee ID
@@ -126,27 +144,17 @@ class AvailabilityCacheService extends Component
      */
     public function invalidateAllForEmployee(int $employeeId): bool
     {
-        // For now, we'll invalidate next 30 days
-        $startDate = new \DateTime();
-        $invalidated = true;
+        // Use cache tagging to invalidate all entries for this employee at once
+        $tag = "availability:employee:{$employeeId}";
 
-        for ($i = 0; $i < 30; $i++) {
-            $date = $startDate->format('Y-m-d');
-            $this->invalidateCache($date, $employeeId, null);
-            
-            // Also invalidate combined caches
-            $services = \fabian\booked\elements\Service::find()->all();
-            foreach ($services as $service) {
-                $this->invalidateCache($date, $employeeId, $service->id);
-            }
-            
-            // Invalidate the "all" employee cache for this date as it might include this employee
-            $this->invalidateCache($date, null, null);
-
-            $startDate->modify('+1 day');
+        try {
+            \yii\caching\TagDependency::invalidate(\Craft::$app->cache, $tag);
+            \Craft::info("Invalidated availability cache for employee: {$employeeId} using tag: {$tag}", __METHOD__);
+            return true;
+        } catch (\Exception $e) {
+            \Craft::error("Failed to invalidate cache for employee {$employeeId}: " . $e->getMessage(), __METHOD__);
+            return false;
         }
-
-        return $invalidated;
     }
 
     /**

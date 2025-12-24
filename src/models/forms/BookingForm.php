@@ -46,8 +46,28 @@ class BookingForm extends Model
             [['serviceId', 'employeeId', 'locationId', 'variationId'], 'integer'],
             [['quantity'], 'integer', 'min' => 1],
             [['userTimezone'], 'string', 'max' => 50],
+            [['userTimezone'], 'validateTimezone'],
             [['honeypot'], 'string'],
         ];
+    }
+
+    /**
+     * Validate timezone string against PHP's list of valid timezones
+     *
+     * @param string $attribute
+     * @param array $params
+     */
+    public function validateTimezone(string $attribute, array $params): void
+    {
+        if (empty($this->$attribute)) {
+            return; // Empty is allowed, will use system default
+        }
+
+        $validTimezones = \DateTimeZone::listIdentifiers();
+
+        if (!in_array($this->$attribute, $validTimezones, true)) {
+            $this->addError($attribute, 'Invalid timezone specified. Please use a valid PHP timezone identifier.');
+        }
     }
 
     /**

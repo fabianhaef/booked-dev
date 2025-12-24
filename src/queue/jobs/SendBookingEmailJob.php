@@ -173,203 +173,50 @@ class SendBookingEmailJob extends BaseJob
     /**
      * Render confirmation email body
      */
+    /**
+     * Render confirmation email body
+     * Uses centralized EmailRenderService
+     */
     private function renderConfirmationEmail(Reservation $reservation, Settings $settings): string
     {
-        // Get variation information if available
-        $variationInfo = '';
-        if ($reservation->variationId) {
-            $variation = \fabian\booked\elements\BookingVariation::find()
-                ->id($reservation->variationId)
-                ->one();
-            if ($variation) {
-                $variationInfo = $variation->title;
-            }
-        }
-
-        // Format date nicely
-        $dateObj = \DateTime::createFromFormat('Y-m-d', $reservation->bookingDate);
-        $formattedDate = $dateObj ? $dateObj->format('d.m.Y') : $reservation->bookingDate;
-
-        // Get source information
-        $sourceName = $reservation->getSourceName();
-
-        $variables = [
-            // Customer data
-            'userName' => $reservation->userName,
-            'userEmail' => $reservation->userEmail,
-            'userPhone' => $reservation->userPhone ?: '',
-            
-            // Booking details
-            'bookingDate' => $formattedDate,
-            'startTime' => $reservation->startTime,
-            'endTime' => $reservation->endTime,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'duration' => $reservation->getDurationMinutes(),
-            'status' => $reservation->getStatusLabel(),
-            'notes' => $reservation->notes ?: '',
-            
-            // Variation & quantity
-            'variationName' => $variationInfo,
-            'quantity' => $reservation->quantity,
-            'quantityDisplay' => $reservation->quantity > 1,
-            
-            // Source (what was booked)
-            'sourceName' => $sourceName ?: '',
-            'sourceType' => $reservation->sourceType ?: '',
-            
-            // Booking reference
-            'bookingId' => $reservation->id,
-            'confirmationToken' => $reservation->confirmationToken,
-            
-            // Custom Fields
-            'customFields' => $this->getCustomFieldData($reservation),
-            
-            // Sender info (uses Craft defaults if not overridden)
-            'ownerName' => $settings->getEffectiveName(),
-            'ownerEmail' => $settings->getEffectiveEmail(),
-            'siteName' => \Craft::$app->sites->getCurrentSite()->name,
-            
-            // Management URLs
-            'managementUrl' => $reservation->getManagementUrl(),
-            'cancelUrl' => $reservation->getCancelUrl(),
-            
-            // Virtual Meeting
-            'virtualMeetingUrl' => $reservation->virtualMeetingUrl ?: '',
-            'virtualMeetingProvider' => $reservation->virtualMeetingProvider ?: '',
-            'isVirtual' => !empty($reservation->virtualMeetingUrl),
-
-            // Date created
-            'dateCreated' => $reservation->dateCreated ? $reservation->dateCreated->format('d.m.Y H:i') : '',
-        ];
-
-        // Always use the Twig template
-        return Craft::$app->view->renderTemplate('booked/emails/confirmation', $variables);
+        return Booked::getInstance()->emailRender->renderConfirmationEmail($reservation, $settings);
     }
 
     /**
      * Render status change email body
+     * Uses centralized EmailRenderService
      */
     private function renderStatusChangeEmail(Reservation $reservation, ?string $oldStatus, Settings $settings): string
     {
-        $variables = [
-            'userName' => $reservation->userName,
-            'userEmail' => $reservation->userEmail,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'oldStatus' => $oldStatus ? ucfirst($oldStatus) : 'Unknown',
-            'newStatus' => $reservation->getStatusLabel(),
-            'ownerName' => $settings->getEffectiveName(),
-            'ownerEmail' => $settings->getEffectiveEmail(),
-            'siteName' => Craft::$app->sites->getCurrentSite()->name,
-            'managementUrl' => $reservation->getManagementUrl(),
-            'bookingId' => $reservation->id,
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/status-change', $variables);
+        return Booked::getInstance()->emailRender->renderStatusChangeEmail($reservation, $oldStatus ?? 'unknown', $settings);
     }
 
     /**
      * Render cancellation email body
+     * Uses centralized EmailRenderService
      */
     private function renderCancellationEmail(Reservation $reservation, Settings $settings): string
     {
-        $variables = [
-            'userName' => $reservation->userName,
-            'userEmail' => $reservation->userEmail,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'ownerName' => $settings->getEffectiveName(),
-            'ownerEmail' => $settings->getEffectiveEmail(),
-            'siteName' => Craft::$app->sites->getCurrentSite()->name,
-            'bookingId' => $reservation->id,
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/cancellation', $variables);
+        return Booked::getInstance()->emailRender->renderCancellationEmail($reservation, $settings);
     }
 
     /**
      * Render owner notification email body
+     * Uses centralized EmailRenderService
      */
     private function renderOwnerNotificationEmail(Reservation $reservation, Settings $settings): string
     {
-        // Get variation information if available
-        $variationInfo = '';
-        if ($reservation->variationId) {
-            $variation = \fabian\booked\elements\BookingVariation::find()
-                ->id($reservation->variationId)
-                ->one();
-            if ($variation) {
-                $variationInfo = $variation->title;
-            }
-        }
-
-        // Format date nicely
-        $dateObj = \DateTime::createFromFormat('Y-m-d', $reservation->bookingDate);
-        $formattedDate = $dateObj ? $dateObj->format('d.m.Y') : $reservation->bookingDate;
-
-        // Get source information
-        $sourceName = $reservation->getSourceName();
-
-        // Build CP edit URL
-        $cpEditUrl = UrlHelper::cpUrl('booked/bookings/edit/' . $reservation->id);
-
-        $variables = [
-            // Customer data
-            'userName' => $reservation->userName,
-            'userEmail' => $reservation->userEmail,
-            'userPhone' => $reservation->userPhone ?: '',
-            
-            // Booking details
-            'bookingDate' => $formattedDate,
-            'startTime' => $reservation->startTime,
-            'endTime' => $reservation->endTime,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'duration' => $reservation->getDurationMinutes(),
-            'status' => $reservation->getStatusLabel(),
-            'notes' => $reservation->notes ?: '',
-            
-            // Variation & quantity
-            'variationName' => $variationInfo,
-            'quantity' => $reservation->quantity,
-            'quantityDisplay' => $reservation->quantity > 1,
-            
-            // Source (what was booked)
-            'sourceName' => $sourceName ?: '',
-            'sourceType' => $reservation->sourceType ?: '',
-            
-            // Booking reference
-            'bookingId' => $reservation->id,
-            
-            // Site info
-            'ownerName' => $settings->getEffectiveName(),
-            'ownerEmail' => $settings->getEffectiveEmail(),
-            'siteName' => Craft::$app->sites->getCurrentSite()->name,
-            
-            // CP URL for management
-            'cpEditUrl' => $cpEditUrl,
-            
-            // Date created
-            'dateCreated' => $reservation->dateCreated ? $reservation->dateCreated->format('d.m.Y H:i') : '',
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/owner-notification', $variables);
+        return Booked::getInstance()->emailRender->renderOwnerNotificationEmail($reservation, $settings);
     }
 
     /**
      * Render reminder email body
+     * Uses centralized EmailRenderService
      */
     private function renderReminderEmail(Reservation $reservation, string $type, Settings $settings): string
     {
-        $variables = [
-            'userName' => $reservation->userName,
-            'formattedDateTime' => $reservation->getFormattedDateTime(),
-            'reminderType' => $type,
-            'ownerName' => $settings->getEffectiveName(),
-            'managementUrl' => $reservation->getManagementUrl(),
-            'virtualMeetingUrl' => $reservation->virtualMeetingUrl ?: '',
-            'virtualMeetingProvider' => $reservation->virtualMeetingProvider ?: '',
-            'isVirtual' => !empty($reservation->virtualMeetingUrl),
-        ];
-
-        return Craft::$app->view->renderTemplate('booked/emails/reminder', $variables);
+        $hoursBefore = ($type === '24h') ? 24 : 1;
+        return Booked::getInstance()->emailRender->renderReminderEmail($reservation, $settings, $hoursBefore);
     }
 
     /**
