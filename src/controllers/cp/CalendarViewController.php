@@ -40,6 +40,7 @@ class CalendarViewController extends Controller
 
         $reservations = Reservation::find()
             ->bookingDate(['and', '>= ' . $startDate->format('Y-m-d'), '<= ' . $endDate->format('Y-m-d')])
+            ->withRelations() // Eager load employee, service, location to avoid N+1
             ->orderBy(['bookingDate' => SORT_ASC, 'startTime' => SORT_ASC])
             ->all();
 
@@ -79,6 +80,7 @@ class CalendarViewController extends Controller
 
         $reservations = Reservation::find()
             ->bookingDate(['and', '>= ' . $startDate->format('Y-m-d'), '<= ' . $endDate->format('Y-m-d')])
+            ->withRelations() // Eager load employee, service, location to avoid N+1
             ->orderBy(['bookingDate' => SORT_ASC, 'startTime' => SORT_ASC])
             ->all();
 
@@ -119,6 +121,7 @@ class CalendarViewController extends Controller
 
         $reservations = Reservation::find()
             ->bookingDate($selectedDate->format('Y-m-d'))
+            ->withRelations() // Eager load to avoid N+1
             ->orderBy(['startTime' => SORT_ASC])
             ->all();
 

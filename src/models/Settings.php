@@ -24,22 +24,28 @@ class Settings extends Model
     // ============================================================================
     // General Settings
     // ============================================================================
-    
+
     /** @var int Soft lock duration in minutes (default: 15) */
     public int $softLockDurationMinutes = 15;
-    
+
     /** @var int Availability cache TTL in seconds (default: 3600 = 1 hour) */
     public int $availabilityCacheTtl = 3600;
-    
+
+    /** @var int Minimum advance booking hours - how far in advance users must book (default: 0 = no minimum) */
+    public int $minimumAdvanceBookingHours = 0;
+
+    /** @var int Maximum advance booking days - how far in advance users can book (default: 90) */
+    public int $maximumAdvanceBookingDays = 90;
+
     /** @var string Default timezone (e.g., 'America/New_York') */
     public ?string $defaultTimezone = null;
-    
+
     /** @var bool Enable rate limiting for booking submissions */
     public bool $enableRateLimiting = true;
-    
+
     /** @var int Rate limit: max bookings per email per hour */
     public int $rateLimitPerEmail = 5;
-    
+
     /** @var int Rate limit: max bookings per IP per hour */
     public int $rateLimitPerIp = 10;
 
@@ -275,8 +281,11 @@ class Settings extends Model
         return [
             // General settings
             [['softLockDurationMinutes', 'availabilityCacheTtl', 'rateLimitPerEmail', 'rateLimitPerIp'], 'integer', 'min' => 1],
+            [['minimumAdvanceBookingHours', 'maximumAdvanceBookingDays'], 'integer', 'min' => 0],
             [['softLockDurationMinutes'], 'default', 'value' => 15],
             [['availabilityCacheTtl'], 'default', 'value' => 3600],
+            [['minimumAdvanceBookingHours'], 'default', 'value' => 0],
+            [['maximumAdvanceBookingDays'], 'default', 'value' => 90],
             [['rateLimitPerEmail'], 'default', 'value' => 5],
             [['rateLimitPerIp'], 'default', 'value' => 10],
             [['defaultTimezone'], 'string'],

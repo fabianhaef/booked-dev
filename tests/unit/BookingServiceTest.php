@@ -98,10 +98,19 @@ class TestableBookingService extends BookingService {
         };
     }
 
-    protected function getQueueService(): \craft\queue\Service {
-        return new class extends \craft\queue\Service {
+    protected function getQueueService(): \craft\queue\QueueInterface {
+        return new class implements \craft\queue\QueueInterface {
             public function priority($p) { return $this; }
             public function push($job) { return true; }
+            public function run() { return null; }
+            public function retry($id) { return null; }
+            public function status($id) { return null; }
+            public function getTotalDelayed(): int { return 0; }
+            public function getTotalReserved(): int { return 0; }
+            public function getTotalFailed(): int { return 0; }
+            public function getTotalWaiting(): int { return 0; }
+            public function getTtr(): int { return 300; }
+            public function canRetry($attempt, $error): bool { return true; }
         };
     }
 

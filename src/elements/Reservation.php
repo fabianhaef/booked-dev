@@ -441,6 +441,22 @@ class Reservation extends Element implements PurchasableInterface
     }
 
     /**
+     * Get customer email (alias for userEmail for backward compatibility)
+     */
+    public function customerEmail(): string
+    {
+        return $this->userEmail;
+    }
+
+    /**
+     * Get customer name (alias for userName for backward compatibility)
+     */
+    public function customerName(): string
+    {
+        return $this->userName;
+    }
+
+    /**
      * @inheritdoc
      */
     public function beforeValidate(): bool

@@ -5,7 +5,7 @@
  *
  * A comprehensive booking system for Craft CMS 
  *
- * @link      https://zeix.com
+ * @link      https://fabianhaefliger.ch
  * @copyright Copyright (c) 2025
  */
 
@@ -131,6 +131,7 @@ class Booked extends Plugin
         $this->setComponents([
             'availability' => \fabian\booked\services\AvailabilityService::class,
             'availabilityCache' => \fabian\booked\services\AvailabilityCacheService::class,
+            'performanceCache' => \fabian\booked\services\PerformanceCacheService::class,
             'booking' => \fabian\booked\services\BookingService::class,
             'blackoutDate' => \fabian\booked\services\BlackoutDateService::class,
             'softLock' => \fabian\booked\services\SoftLockService::class,

@@ -9,6 +9,10 @@ use craft\mail\Message;
 use fabian\booked\Booked;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Reservation;
+use fabian\booked\events\AfterBookingCancelEvent;
+use fabian\booked\events\AfterBookingSaveEvent;
+use fabian\booked\events\BeforeBookingCancelEvent;
+use fabian\booked\events\BeforeBookingSaveEvent;
 use fabian\booked\exceptions\BookingConflictException;
 use fabian\booked\exceptions\BookingException;
 use fabian\booked\exceptions\BookingNotFoundException;
@@ -24,6 +28,26 @@ use fabian\booked\records\ReservationRecord;
  */
 class BookingService extends Component
 {
+    /**
+     * @event BeforeBookingSaveEvent Triggered before a booking is saved
+     */
+    const EVENT_BEFORE_BOOKING_SAVE = 'beforeBookingSave';
+
+    /**
+     * @event AfterBookingSaveEvent Triggered after a booking is saved
+     */
+    const EVENT_AFTER_BOOKING_SAVE = 'afterBookingSave';
+
+    /**
+     * @event BeforeBookingCancelEvent Triggered before a booking is cancelled
+     */
+    const EVENT_BEFORE_BOOKING_CANCEL = 'beforeBookingCancel';
+
+    /**
+     * @event AfterBookingCancelEvent Triggered after a booking is cancelled
+     */
+    const EVENT_AFTER_BOOKING_CANCEL = 'afterBookingCancel';
+
     /**
      * Get all reservations
      */
@@ -332,7 +356,24 @@ class BookingService extends Component
                         ' (variation: ' . ($reservation->variationId ?? 'none') . ', quantity: ' . $reservation->quantity . ')', __METHOD__);
                     throw new BookingConflictException('Der gewählte Zeitslot hat nicht genügend Kapazität für die angeforderte Anzahl.');
                 }
-                
+
+                // Fire BEFORE_BOOKING_SAVE event
+                $beforeSaveEvent = new BeforeBookingSaveEvent([
+                    'reservation' => $reservation,
+                    'bookingData' => $data,
+                    'source' => $data['source'] ?? 'web',
+                    'isNew' => true,
+                ]);
+                $this->trigger(self::EVENT_BEFORE_BOOKING_SAVE, $beforeSaveEvent);
+
+                // Check if event was cancelled
+                if (!$beforeSaveEvent->isValid) {
+                    $transaction->rollBack();
+                    $errorMessage = $beforeSaveEvent->data['errorMessage'] ?? 'Booking was cancelled by event handler';
+                    Craft::warning("Booking cancelled by event handler: {$errorMessage}", __METHOD__);
+                    throw new BookingValidationException($errorMessage);
+                }
+
                 // Save reservation - unique constraint will catch any race conditions
                 if (!$this->getElementsService()->saveElement($reservation)) {
                     $transaction->rollBack();
@@ -353,13 +394,27 @@ class BookingService extends Component
                 // Commit transaction first to ensure booking is saved
                 $transaction->commit();
 
+                // Fire AFTER_BOOKING_SAVE event
+                $afterSaveEvent = new AfterBookingSaveEvent([
+                    'reservation' => $reservation,
+                    'isNew' => true,
+                    'success' => true,
+                ]);
+                $this->trigger(self::EVENT_AFTER_BOOKING_SAVE, $afterSaveEvent);
+
                 // Phase 4.2 - Commerce Integration (AFTER commit)
                 if (Booked::getInstance()->isCommerceEnabled()) {
                     $service = $reservation->getService();
                     if ($service && $service->price > 0) {
-                        // For paid services, set status to pending until paid
-                        $reservation->status = ReservationRecord::STATUS_PENDING;
-                        $this->getElementsService()->saveElement($reservation);
+                        $settings = $this->getSettings();
+
+                        // Only set to pending if requirePaymentBeforeConfirmation is enabled
+                        if ($settings->requirePaymentBeforeConfirmation) {
+                            // For paid services, set status to pending until paid
+                            $reservation->status = ReservationRecord::STATUS_PENDING;
+                            $this->getElementsService()->saveElement($reservation);
+                        }
+                        // Otherwise booking stays confirmed and payment is optional
 
                         // Add to cart and link to order
                         Booked::getInstance()->commerce->addReservationToCart($reservation);
@@ -511,6 +566,30 @@ class BookingService extends Component
             return false;
         }
 
+        // Fire BEFORE_BOOKING_CANCEL event
+        $beforeCancelEvent = new BeforeBookingCancelEvent([
+            'reservation' => $reservation,
+            'cancellationReason' => $reason,
+            'cancelledBy' => Craft::$app->user->identity->email ?? 'system',
+            'sendNotification' => true,
+            'isNew' => false,
+        ]);
+        $this->trigger(self::EVENT_BEFORE_BOOKING_CANCEL, $beforeCancelEvent);
+
+        // Check if event was cancelled
+        if (!$beforeCancelEvent->isValid) {
+            $errorMessage = $beforeCancelEvent->data['errorMessage'] ?? 'Cancellation was prevented by event handler';
+            Craft::warning("Cancellation prevented by event handler: {$errorMessage}", __METHOD__);
+            return false;
+        }
+
+        // Check if service was paid (for refund decision)
+        $wasPaid = false;
+        $service = $reservation->getService();
+        if ($service && $service->price > 0 && $reservation->status !== ReservationRecord::STATUS_PENDING) {
+            $wasPaid = true;
+        }
+
         $reservation->status = ReservationRecord::STATUS_CANCELLED;
         if ($reason) {
             $reservation->notes = ($reservation->notes ? $reservation->notes . "\n\n" : '') .
@@ -518,8 +597,21 @@ class BookingService extends Component
         }
 
         if (Craft::$app->elements->saveElement($reservation)) {
-            // Queue cancellation notification
-            $this->queueBookingEmail($reservation->id, 'cancellation');
+            // Fire AFTER_BOOKING_CANCEL event
+            $afterCancelEvent = new AfterBookingCancelEvent([
+                'reservation' => $reservation,
+                'wasPaid' => $wasPaid,
+                'shouldRefund' => $wasPaid, // Default to refund if paid
+                'cancellationReason' => $reason,
+                'isNew' => false,
+            ]);
+            $this->trigger(self::EVENT_AFTER_BOOKING_CANCEL, $afterCancelEvent);
+
+            // Queue cancellation notification if enabled in event
+            if ($beforeCancelEvent->sendNotification) {
+                $this->queueBookingEmail($reservation->id, 'cancellation');
+            }
+
             return true;
         }
 

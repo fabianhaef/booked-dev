@@ -59,6 +59,7 @@ class DashboardController extends Controller
 
         // Recent activity (last 10 bookings)
         $recentActivity = Reservation::find()
+            ->withRelations() // Eager load to avoid N+1 in templates
             ->orderBy(['dateCreated' => SORT_DESC])
             ->limit(10)
             ->all();

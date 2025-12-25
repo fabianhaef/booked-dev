@@ -6,6 +6,8 @@ use Craft;
 use craft\base\Component;
 use fabian\booked\elements\Employee;
 use fabian\booked\elements\Reservation;
+use fabian\booked\events\AfterCalendarSyncEvent;
+use fabian\booked\events\BeforeCalendarSyncEvent;
 use fabian\booked\records\CalendarTokenRecord;
 use fabian\booked\records\OAuthStateTokenRecord;
 use fabian\booked\Booked;
@@ -19,6 +21,11 @@ use Microsoft\Graph\Model;
  */
 class CalendarSyncService extends Component
 {
+    /**
+     * Event constants
+     */
+    const EVENT_BEFORE_CALENDAR_SYNC = 'beforeCalendarSync';
+    const EVENT_AFTER_CALENDAR_SYNC = 'afterCalendarSync';
     /**
      * Get OAuth authorization URL for a provider
      * Uses secure UUID-based state tokens instead of base64-encoded employeeId
@@ -196,11 +203,13 @@ class CalendarSyncService extends Component
      */
     protected function syncToGoogle(Reservation $reservation, string $token): bool
     {
+        $startTime = microtime(true);
+
         $client = $this->getGoogleClient();
         $client->setAccessToken($token);
         $service = new GoogleCalendar($client);
-        
-        $event = new \Google\Service\Calendar\Event([
+
+        $eventData = [
             'summary' => $reservation->getService()->title ?? 'Buchung',
             'description' => 'Kunde: ' . $reservation->userName . "\n" .
                              'E-Mail: ' . $reservation->userEmail . "\n" .
@@ -213,13 +222,77 @@ class CalendarSyncService extends Component
                 'dateTime' => $reservation->bookingDate . 'T' . $reservation->endTime,
                 'timeZone' => 'Europe/Zurich',
             ],
+        ];
+
+        // Fire BEFORE_CALENDAR_SYNC event
+        $beforeSyncEvent = new BeforeCalendarSyncEvent([
+            'reservation' => $reservation,
+            'provider' => 'google',
+            'action' => 'create',
+            'eventData' => $eventData,
+            'employeeId' => $reservation->employeeId,
         ]);
+        $this->trigger(self::EVENT_BEFORE_CALENDAR_SYNC, $beforeSyncEvent);
+
+        // Check if event was cancelled
+        if (!$beforeSyncEvent->isValid) {
+            $errorMessage = $beforeSyncEvent->errorMessage ?? 'Calendar sync was cancelled by event handler';
+            Craft::warning("Calendar sync cancelled by event handler: {$errorMessage}", __METHOD__);
+
+            // Fire AFTER event with failure
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'google',
+                'action' => 'create',
+                'success' => false,
+                'errorMessage' => $errorMessage,
+                'duration' => microtime(true) - $startTime,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
+            return false;
+        }
+
+        // Use potentially modified event data
+        $event = new \Google\Service\Calendar\Event($beforeSyncEvent->eventData);
 
         try {
-            $service->events->insert('primary', $event);
+            $createdEvent = $service->events->insert('primary', $event);
+            $duration = microtime(true) - $startTime;
+
+            // Fire AFTER_CALENDAR_SYNC event
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'google',
+                'action' => 'create',
+                'success' => true,
+                'externalEventId' => $createdEvent->getId(),
+                'response' => [
+                    'id' => $createdEvent->getId(),
+                    'htmlLink' => $createdEvent->getHtmlLink(),
+                ],
+                'duration' => $duration,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
             return true;
         } catch (\Exception $e) {
-            Craft::error('Failed to sync booking to Google Calendar: ' . $e->getMessage(), __METHOD__);
+            $duration = microtime(true) - $startTime;
+            $errorMessage = $e->getMessage();
+
+            Craft::error('Failed to sync booking to Google Calendar: ' . $errorMessage, __METHOD__);
+
+            // Fire AFTER_CALENDAR_SYNC event with failure
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'google',
+                'action' => 'create',
+                'success' => false,
+                'errorMessage' => $errorMessage,
+                'duration' => $duration,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
             return false;
         }
     }
@@ -229,10 +302,12 @@ class CalendarSyncService extends Component
      */
     protected function syncToOutlook(Reservation $reservation, string $token): bool
     {
+        $startTime = microtime(true);
+
         $graph = new \Microsoft\Graph\Graph();
         $graph->setAccessToken($token);
 
-        $event = [
+        $eventData = [
             'subject' => $reservation->getService()->title ?? 'Buchung',
             'body' => [
                 'contentType' => 'HTML',
@@ -250,13 +325,74 @@ class CalendarSyncService extends Component
             ],
         ];
 
+        // Fire BEFORE_CALENDAR_SYNC event
+        $beforeSyncEvent = new BeforeCalendarSyncEvent([
+            'reservation' => $reservation,
+            'provider' => 'outlook',
+            'action' => 'create',
+            'eventData' => $eventData,
+            'employeeId' => $reservation->employeeId,
+        ]);
+        $this->trigger(self::EVENT_BEFORE_CALENDAR_SYNC, $beforeSyncEvent);
+
+        // Check if event was cancelled
+        if (!$beforeSyncEvent->isValid) {
+            $errorMessage = $beforeSyncEvent->errorMessage ?? 'Calendar sync was cancelled by event handler';
+            Craft::warning("Calendar sync cancelled by event handler: {$errorMessage}", __METHOD__);
+
+            // Fire AFTER event with failure
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'outlook',
+                'action' => 'create',
+                'success' => false,
+                'errorMessage' => $errorMessage,
+                'duration' => microtime(true) - $startTime,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
+            return false;
+        }
+
         try {
-            $graph->createRequest('POST', '/me/events')
-                ->attachBody($event)
+            $response = $graph->createRequest('POST', '/me/events')
+                ->attachBody($beforeSyncEvent->eventData)
                 ->execute();
+            $duration = microtime(true) - $startTime;
+
+            // Fire AFTER_CALENDAR_SYNC event
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'outlook',
+                'action' => 'create',
+                'success' => true,
+                'externalEventId' => $response->getId() ?? null,
+                'response' => [
+                    'id' => $response->getId() ?? null,
+                    'webLink' => $response->getWebLink() ?? null,
+                ],
+                'duration' => $duration,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
             return true;
         } catch (\Exception $e) {
-            Craft::error('Failed to sync booking to Outlook Calendar: ' . $e->getMessage(), __METHOD__);
+            $duration = microtime(true) - $startTime;
+            $errorMessage = $e->getMessage();
+
+            Craft::error('Failed to sync booking to Outlook Calendar: ' . $errorMessage, __METHOD__);
+
+            // Fire AFTER_CALENDAR_SYNC event with failure
+            $afterSyncEvent = new AfterCalendarSyncEvent([
+                'reservation' => $reservation,
+                'provider' => 'outlook',
+                'action' => 'create',
+                'success' => false,
+                'errorMessage' => $errorMessage,
+                'duration' => $duration,
+            ]);
+            $this->trigger(self::EVENT_AFTER_CALENDAR_SYNC, $afterSyncEvent);
+
             return false;
         }
     }

@@ -33,6 +33,11 @@ class SendBookingEmailJob extends BaseJob
     public ?string $oldStatus = null;
 
     /**
+     * @var string|null Optional recipient email override (for testing or special cases)
+     */
+    public ?string $recipientEmail = null;
+
+    /**
      * @var int Current attempt number (for tracking)
      */
     public int $attempt = 1;

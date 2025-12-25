@@ -12,18 +12,25 @@ use fabian\booked\elements\Schedule;
 use fabian\booked\elements\Location;
 use fabian\booked\elements\Reservation;
 use fabian\booked\elements\Availability;
+use fabian\booked\events\AfterAvailabilityCheckEvent;
+use fabian\booked\events\BeforeAvailabilityCheckEvent;
 use fabian\booked\records\ReservationRecord;
 use fabian\booked\records\ExternalEventRecord;
 use fabian\booked\Booked;
 
 /**
  * Availability Service
- * 
+ *
  * Implements subtractive availability model:
  * Availability(W) = WorkingHours(W) \ (Bookings(W) ∪ Buffers(W) ∪ Exclusions(W))
  */
 class AvailabilityService extends Component
 {
+    /**
+     * Event constants
+     */
+    const EVENT_BEFORE_AVAILABILITY_CHECK = 'beforeAvailabilityCheck';
+    const EVENT_AFTER_AVAILABILITY_CHECK = 'afterAvailabilityCheck';
     /**
      * Get available time slots for a specific date
      *
@@ -840,6 +847,16 @@ class AvailabilityService extends Component
         ?int $serviceId = null,
         int $requestedQuantity = 1
     ): bool {
+        // First check if requested quantity is valid for this service/variation
+        if (!$this->isQuantityAllowed($requestedQuantity, $serviceId)) {
+            return false;
+        }
+
+        // Then check if slot exists and has available capacity
+        if (!$this->hasAvailableCapacity($date, $startTime, $endTime, $employeeId, $serviceId, $requestedQuantity)) {
+            return false;
+        }
+
         $slots = $this->getAvailableSlots($date, $employeeId, $locationId, $serviceId, $requestedQuantity);
 
         foreach ($slots as $slot) {
@@ -899,5 +916,128 @@ class AvailabilityService extends Component
         return Availability::find()
             ->status('active')
             ->one();
+    }
+
+    /**
+     * Check if requested quantity is allowed for this service
+     *
+     * @param int $requestedQuantity Quantity requested
+     * @param int|null $serviceId Service ID
+     * @return bool True if quantity is allowed
+     */
+    protected function isQuantityAllowed(int $requestedQuantity, ?int $serviceId = null): bool
+    {
+        // Negative or zero quantity is never allowed
+        if ($requestedQuantity <= 0) {
+            return false;
+        }
+
+        // If no service specified, assume quantity is allowed (backward compatibility)
+        if ($serviceId === null) {
+            return true;
+        }
+
+        // Get service/variation to check maxCapacity
+        $service = $this->getService($serviceId);
+        if (!$service) {
+            return true; // Service not found, allow (fail open for backward compatibility)
+        }
+
+        // Check if service allows quantity selection
+        if (property_exists($service, 'allowQuantitySelection') && !$service->allowQuantitySelection && $requestedQuantity > 1) {
+            return false;
+        }
+
+        // Check if requested quantity exceeds max capacity
+        if (property_exists($service, 'maxCapacity') && $requestedQuantity > $service->maxCapacity) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if slot has available capacity for requested quantity
+     *
+     * @param string $date Date in Y-m-d format
+     * @param string $startTime Start time in H:i format
+     * @param string $endTime End time in H:i format
+     * @param int|null $employeeId Employee ID
+     * @param int|null $serviceId Service ID
+     * @param int $requestedQuantity Quantity requested
+     * @return bool True if capacity is available
+     */
+    protected function hasAvailableCapacity(
+        string $date,
+        string $startTime,
+        string $endTime,
+        ?int $employeeId,
+        ?int $serviceId,
+        int $requestedQuantity
+    ): bool {
+        // If no service specified, assume capacity is available (backward compatibility)
+        if ($serviceId === null) {
+            return true;
+        }
+
+        // Get service/variation to check maxCapacity
+        $service = $this->getService($serviceId);
+        if (!$service || !property_exists($service, 'maxCapacity')) {
+            return true; // No capacity limit configured
+        }
+
+        $maxCapacity = $service->maxCapacity;
+
+        // Calculate already booked quantity for this slot
+        $existingBookedQuantity = $this->getBookedQuantityForSlot($date, $startTime, $endTime, $employeeId, $serviceId);
+
+        // Check if requested quantity + existing bookings exceeds capacity
+        $totalQuantity = $requestedQuantity + $existingBookedQuantity;
+        if ($totalQuantity > $maxCapacity) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get already booked quantity for a specific slot
+     *
+     * @param string $date Date in Y-m-d format
+     * @param string $startTime Start time in H:i format
+     * @param string $endTime End time in H:i format
+     * @param int|null $employeeId Employee ID
+     * @param int|null $serviceId Service ID
+     * @return int Total quantity already booked
+     */
+    protected function getBookedQuantityForSlot(
+        string $date,
+        string $startTime,
+        string $endTime,
+        ?int $employeeId,
+        ?int $serviceId
+    ): int {
+        $query = Reservation::find()
+            ->bookingDate($date)
+            ->startTime($startTime)
+            ->status(['confirmed', 'pending']); // Only count confirmed/pending bookings
+
+        if ($employeeId !== null) {
+            $query->employeeId($employeeId);
+        }
+
+        if ($serviceId !== null) {
+            $query->serviceId($serviceId);
+        }
+
+        $reservations = $query->all();
+
+        // Sum up quantities from all matching reservations
+        $totalQuantity = 0;
+        foreach ($reservations as $reservation) {
+            $totalQuantity += $reservation->quantity ?? 1;
+        }
+
+        return $totalQuantity;
     }
 }

@@ -137,15 +137,49 @@ class ReservationQuery extends ElementQuery
     }
 
     /**
+     * Eager load employee relation to avoid N+1 queries
+     */
+    public function withEmployee(): static
+    {
+        $this->with(['employee']);
+        return $this;
+    }
+
+    /**
+     * Eager load service relation to avoid N+1 queries
+     */
+    public function withService(): static
+    {
+        $this->with(['service']);
+        return $this;
+    }
+
+    /**
+     * Eager load location relation to avoid N+1 queries
+     */
+    public function withLocation(): static
+    {
+        $this->with(['location']);
+        return $this;
+    }
+
+    /**
+     * Eager load all common relations
+     */
+    public function withRelations(): static
+    {
+        $this->with(['employee', 'service', 'location']);
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     protected function beforePrepare(): bool
     {
-        // Join the bookings_reservations table to both main query and subquery
+        // Join the bookings_reservations table
+        // This automatically joins to both main query and subquery
         $this->joinElementTable('bookings_reservations');
-
-        // Join to subquery as well (needed for WHERE clauses to work)
-        $this->subQuery->leftJoin('{{%bookings_reservations}} bookings_reservations', '[[bookings_reservations.id]] = [[elements.id]]');
 
         $this->query->addSelect([
             'bookings_reservations.userName',

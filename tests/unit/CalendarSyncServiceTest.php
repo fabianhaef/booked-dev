@@ -37,11 +37,18 @@ class TestableCalendarSyncService extends CalendarSyncService
         return null;
     }
 
-    public function handleCallback($employee, string $provider, string $code): bool
+    public function handleCallback(string $stateToken, string $code): bool
     {
         if ($code === 'auth-code') {
+            // Parse state token to get employee and provider info
+            // In real implementation this would verify the state token
+            // For tests, we'll assume stateToken format: "employeeId_provider"
+            $parts = explode('_', $stateToken);
+            $employeeId = (int)($parts[0] ?? 1);
+            $provider = $parts[1] ?? 'google';
+
             $token = $provider === 'google' ? 'exchanged-access-token' : 'exchanged-outlook-token';
-            return $this->saveToken($employee->id, $provider, [
+            return $this->saveToken($employeeId, $provider, [
                 'accessToken' => $token,
                 'refreshToken' => 'new-refresh-token',
                 'expiresAt' => (new \DateTime('+1 hour'))->format('Y-m-d H:i:s'),
@@ -145,9 +152,10 @@ class CalendarSyncServiceTest extends Unit
             ->getMock();
         $employee->id = 1;
 
-        // We need to override getOutlookToken in TestableCalendarSyncService
-        $result = $this->service->handleCallback($employee, 'outlook', 'auth-code');
-        
+        // Use state token format: "employeeId_provider"
+        $stateToken = '1_outlook';
+        $result = $this->service->handleCallback($stateToken, 'auth-code');
+
         $this->assertTrue($result);
         $this->assertArrayHasKey('1_outlook', $this->service->mockTokens);
         $this->assertEquals('exchanged-outlook-token', $this->service->mockTokens['1_outlook']['accessToken']);
@@ -201,10 +209,10 @@ class CalendarSyncServiceTest extends Unit
             ->getMock();
         $employee->id = 1;
 
-        // Mock the exchange of code for tokens
-        // We need to override handleCallback in TestableCalendarSyncService to avoid real calls
-        $result = $this->service->handleCallback($employee, 'google', 'auth-code');
-        
+        // Use state token format: "employeeId_provider"
+        $stateToken = '1_google';
+        $result = $this->service->handleCallback($stateToken, 'auth-code');
+
         $this->assertTrue($result);
         $this->assertArrayHasKey('1_google', $this->service->mockTokens);
         $this->assertEquals('exchanged-access-token', $this->service->mockTokens['1_google']['accessToken']);

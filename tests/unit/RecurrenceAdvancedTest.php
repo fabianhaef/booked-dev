@@ -4,6 +4,7 @@ namespace fabian\booked\tests\unit;
 
 use Codeception\Test\Unit;
 use fabian\booked\services\RecurrenceService;
+use fabian\booked\tests\_support\Mocks\ServiceMockFactory;
 use UnitTester;
 
 /**
@@ -32,7 +33,8 @@ class RecurrenceAdvancedTest extends Unit
     protected function _before()
     {
         parent::_before();
-        $this->recurrenceService = new RecurrenceService();
+        // Use ServiceMockFactory for consistent test mocks
+        $this->recurrenceService = ServiceMockFactory::createRecurrenceService();
     }
 
     /**
