@@ -108,6 +108,22 @@
 
         <div class="highlight-box">
             <div class="date-time">📅 {{ formattedDateTime }}</div>
+            {% if sourceName %}
+                <div style="font-size: 16px; color: #1e40af; margin-top: 8px;">{{ sourceName }}</div>
+            {% endif %}
+            {% set reservationExtras = reservation.getExtras() %}
+            {% if reservationExtras|length %}
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #bfdbfe;">
+                    <div style="font-size: 12px; color: #3b82f6; text-transform: uppercase; margin-bottom: 8px;">Inkl. Extras:</div>
+                    {% for item in reservationExtras %}
+                        {% set extra = item.extra %}
+                        {% set quantity = item.quantity %}
+                        <div style="font-size: 14px; color: #1e40af;">
+                            {{ extra.name }}{% if quantity > 1 %} ({{ quantity }}x){% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         {% if isVirtual %}

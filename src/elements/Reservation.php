@@ -441,6 +441,23 @@ class Reservation extends Element implements PurchasableInterface
     }
 
     /**
+     * Define extra fields for GraphQL and API responses
+     *
+     * @inheritdoc
+     */
+    public function extraFields(): array
+    {
+        return [
+            'extras' => 'getExtras',
+            'extrasPrice' => 'getExtrasPrice',
+            'extrasSummary' => 'getExtrasSummary',
+            'totalPrice' => 'getTotalPrice',
+            'totalDuration' => 'getTotalDuration',
+            'hasExtras' => 'hasExtras',
+        ];
+    }
+
+    /**
      * Get customer email (alias for userEmail for backward compatibility)
      */
     public function customerEmail(): string

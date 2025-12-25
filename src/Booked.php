@@ -69,6 +69,7 @@ class Booked extends Plugin
         $this->registerTemplateVariable();
         $this->registerCommerceListeners();
         $this->registerProjectConfigListeners();
+        $this->registerGraphQl();
     }
 
     /**
@@ -142,6 +143,7 @@ class Booked extends Plugin
             'recurrence' => \fabian\booked\services\RecurrenceService::class,
             'timezone' => \fabian\booked\services\TimezoneService::class,
             'emailRender' => \fabian\booked\services\EmailRenderService::class,
+            'serviceExtra' => \fabian\booked\services\ServiceExtraService::class,
         ]);
     }
 
@@ -521,5 +523,30 @@ class Booked extends Plugin
 
         // Save to Project Config (which will be written to YAML files)
         $projectConfigService->set('plugins.booked.settings', $configData);
+    }
+
+    /**
+     * Get the service extra service
+     */
+    public function getServiceExtra(): \fabian\booked\services\ServiceExtraService
+    {
+        return $this->get('serviceExtra');
+    }
+
+    /**
+     * Register GraphQL queries and types
+     */
+    private function registerGraphQl(): void
+    {
+        Event::on(
+            \craft\services\Gql::class,
+            \craft\services\Gql::EVENT_REGISTER_GQL_QUERIES,
+            function(\craft\events\RegisterGqlQueriesEvent $event) {
+                $event->queries = array_merge(
+                    $event->queries,
+                    \fabian\booked\gql\queries\ServiceExtrasQuery::getQueries()
+                );
+            }
+        );
     }
 }

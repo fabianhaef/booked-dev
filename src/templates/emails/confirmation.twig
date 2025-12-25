@@ -298,6 +298,34 @@
             </div>
         </div>
 
+        {% set reservationExtras = reservation.getExtras() %}
+        {% if reservationExtras|length %}
+        <div class="section">
+            <div class="section-title">Service-Extras</div>
+            <div class="info-grid">
+                {% for item in reservationExtras %}
+                    {% set extra = item.extra %}
+                    {% set quantity = item.quantity %}
+                    <div class="info-row">
+                        <span class="info-label">
+                            {{ extra.name }}
+                            {% if quantity > 1 %} <span style="color: #9ca3af;">({{ quantity }}x)</span>{% endif %}
+                        </span>
+                        <span class="info-value">{{ (extra.price * quantity)|currency }}</span>
+                    </div>
+                {% endfor %}
+                <div class="info-row" style="border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 8px;">
+                    <span class="info-label" style="font-weight: 700;">Extras Gesamt</span>
+                    <span class="info-value" style="color: #3b82f6; font-size: 16px;">{{ reservation.getExtrasPrice()|currency }}</span>
+                </div>
+                <div class="info-row" style="border-top: 2px solid #3b82f6; padding-top: 16px; margin-top: 8px;">
+                    <span class="info-label" style="font-weight: 700; font-size: 16px;">Gesamtpreis</span>
+                    <span class="info-value" style="color: #166534; font-size: 18px; font-weight: 700;">{{ reservation.getTotalPrice()|currency }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if notes %}
         <div class="section">
             <div class="section-title">Ihre Notizen</div>

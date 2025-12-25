@@ -1,0 +1,242 @@
+{#
+/**
+ * Service Extra Edit
+ *
+ * Create or edit a service extra
+ */
+#}
+
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = isNew ? "New Service Extra" : extra.name %}
+
+{% set crumbs = [
+    { label: "Booked", url: url('booked') },
+    { label: "Service Extras", url: url('booked/service-extras') }
+] %}
+
+{% set fullPageForm = true %}
+{% set saveShortcutRedirect = 'booked/service-extras' %}
+
+{% block content %}
+    {{ actionInput('booked/service-extra/save') }}
+    {{ redirectInput('booked/service-extras') }}
+
+    {% if not isNew %}
+        {{ hiddenInput('id', extra.id) }}
+    {% endif %}
+
+    <div id="fields">
+        {# Basic Information #}
+        {{ forms.textField({
+            first: true,
+            label: "Name"|t('booked'),
+            instructions: "The name of this extra (e.g., 'Extended Session +30min', 'Premium Products')"|t('booked'),
+            id: 'name',
+            name: 'name',
+            value: extra.name,
+            errors: extra.getErrors('name'),
+            autofocus: true,
+            required: true
+        }) }}
+
+        {{ forms.textareaField({
+            label: "Description"|t('booked'),
+            instructions: "Optional description shown to customers during booking"|t('booked'),
+            id: 'description',
+            name: 'description',
+            value: extra.description,
+            errors: extra.getErrors('description'),
+            rows: 3
+        }) }}
+
+        <hr>
+
+        {# Pricing & Duration #}
+        <h2>Pricing & Duration</h2>
+
+        <div class="field">
+            <div class="heading">
+                <label for="price">{{ "Price"|t('booked') }}</label>
+                <div class="instructions">
+                    <p>Additional cost for this extra</p>
+                </div>
+            </div>
+            <div class="input ltr">
+                <div class="flex">
+                    <div class="textwrapper">
+                        <span class="currency-symbol">{{ craft.app.locale.getCurrencySymbol() }}</span>
+                    </div>
+                    {{ forms.text({
+                        id: 'price',
+                        name: 'price',
+                        value: extra.price,
+                        type: 'number',
+                        step: '0.01',
+                        min: '0',
+                        size: 10
+                    }) }}
+                </div>
+            </div>
+        </div>
+
+        {{ forms.textField({
+            label: "Additional Duration (minutes)"|t('booked'),
+            instructions: "How many minutes this extra adds to the appointment (0 = no additional time)"|t('booked'),
+            id: 'duration',
+            name: 'duration',
+            value: extra.duration,
+            type: 'number',
+            min: 0,
+            size: 10
+        }) }}
+
+        <hr>
+
+        {# Quantity & Requirements #}
+        <h2>Quantity & Requirements</h2>
+
+        {{ forms.textField({
+            label: "Maximum Quantity"|t('booked'),
+            instructions: "Maximum number of this extra allowed per booking (1 = checkbox, 2+ = quantity selector)"|t('booked'),
+            id: 'maxQuantity',
+            name: 'maxQuantity',
+            value: extra.maxQuantity,
+            type: 'number',
+            min: 1,
+            size: 10
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Required"|t('booked'),
+            instructions: "If enabled, customers must select this extra when booking"|t('booked'),
+            id: 'isRequired',
+            name: 'isRequired',
+            on: extra.isRequired
+        }) }}
+
+        <hr>
+
+        {# Service Assignment #}
+        <h2>Available for Services</h2>
+
+        <div class="field">
+            <div class="heading">
+                <label>{{ "Services"|t('booked') }}</label>
+                <div class="instructions">
+                    <p>Select which services should offer this extra. Leave empty to offer for all services.</p>
+                </div>
+            </div>
+            <div class="input">
+                {% if services|length %}
+                    <div class="checkbox-select">
+                        {% for service in services %}
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    name="services[]"
+                                    value="{{ service.id }}"
+                                    {% if assignedServiceIds is defined and service.id in assignedServiceIds %}checked{% endif %}
+                                >
+                                {{ service.title }}
+                                <span class="light">({{ service.duration }} min, {{ service.price|currency }})</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="light">No services created yet. <a href="{{ url('booked/services/new') }}">Create a service</a> first.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        {# Settings #}
+        <h2>Settings</h2>
+
+        {{ forms.textField({
+            label: "Sort Order"|t('booked'),
+            instructions: "Display order (lower numbers appear first)"|t('booked'),
+            id: 'sortOrder',
+            name: 'sortOrder',
+            value: extra.sortOrder,
+            type: 'number',
+            size: 10
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Enabled"|t('booked'),
+            instructions: "Whether this extra is currently available for selection"|t('booked'),
+            id: 'enabled',
+            name: 'enabled',
+            on: extra.enabled
+        }) }}
+    </div>
+{% endblock %}
+
+{% block details %}
+    <div class="meta">
+        {% if not isNew %}
+            <div class="data">
+                <h5 class="heading">ID</h5>
+                <div class="value">{{ extra.id }}</div>
+            </div>
+        {% endif %}
+
+        <div class="data">
+            <h5 class="heading">Preview</h5>
+            <div class="value">
+                <div class="extra-preview">
+                    <strong>{{ extra.name }}</strong>
+                    {% if extra.price > 0 %}
+                        <div class="light">+{{ extra.price|currency }}</div>
+                    {% endif %}
+                    {% if extra.duration > 0 %}
+                        <div class="light">+{{ extra.duration }} min</div>
+                    {% endif %}
+                    {% if extra.isRequired %}
+                        <span class="status on">Required</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% css %}
+.checkbox-select label {
+    display: block;
+    padding: 8px 0;
+}
+
+.checkbox-select input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.extra-preview {
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.extra-preview strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.extra-preview .light {
+    font-size: 13px;
+    margin-top: 3px;
+}
+
+.currency-symbol {
+    padding: 0 8px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-right: none;
+    border-radius: 3px 0 0 3px;
+    line-height: 28px;
+    display: inline-block;
+}
+{% endcss %}

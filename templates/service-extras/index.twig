@@ -1,0 +1,124 @@
+{#
+/**
+ * Service Extras Index
+ *
+ * Lists all service extras with options to create, edit, and delete
+ */
+#}
+
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Service Extras" %}
+
+{% set crumbs = [
+    { label: "Booked", url: url('booked') }
+] %}
+
+{% block actionButton %}
+    <div class="btngroup">
+        <a href="{{ url('booked/service-extras/new') }}" class="btn submit add icon">
+            New Extra
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% if extras|length %}
+        <div class="tableview">
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Max Qty</th>
+                        <th scope="col">Required</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="thin"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for extra in extras %}
+                        <tr data-id="{{ extra.id }}" data-name="{{ extra.name }}">
+                            <td>
+                                <a href="{{ url('booked/service-extras/edit/' ~ extra.id) }}">
+                                    <strong>{{ extra.name }}</strong>
+                                </a>
+                                {% if extra.description %}
+                                    <br>
+                                    <span class="light">{{ extra.description|slice(0, 100) }}{% if extra.description|length > 100 %}...{% endif %}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ extra.price|currency }}
+                            </td>
+                            <td>
+                                {% if extra.duration > 0 %}
+                                    +{{ extra.duration }} min
+                                {% else %}
+                                    <span class="light">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ extra.maxQuantity }}
+                            </td>
+                            <td>
+                                {% if extra.isRequired %}
+                                    <span class="status on"></span> Required
+                                {% else %}
+                                    <span class="light">Optional</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if extra.enabled %}
+                                    <span class="status on"></span> Enabled
+                                {% else %}
+                                    <span class="status"></span> Disabled
+                                {% endif %}
+                            </td>
+                            <td class="thin">
+                                <a class="delete icon"
+                                   title="Delete"
+                                   role="button"
+                                   data-extra-id="{{ extra.id }}"
+                                   data-extra-name="{{ extra.name }}"></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <form id="delete-form" method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('booked/service-extra/delete') }}
+            <input type="hidden" name="id" id="delete-id">
+        </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.delete').forEach(function(deleteBtn) {
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        const extraId = this.dataset.extraId;
+                        const extraName = this.dataset.extraName;
+
+                        if (confirm('Are you sure you want to delete "' + extraName + '"? This cannot be undone.')) {
+                            document.getElementById('delete-id').value = extraId;
+                            document.getElementById('delete-form').submit();
+                        }
+                    });
+                });
+            });
+        </script>
+    {% else %}
+        <div class="zilch">
+            <p>No service extras exist yet.</p>
+            <a href="{{ url('booked/service-extras/new') }}" class="btn submit add">
+                Create your first extra
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}
