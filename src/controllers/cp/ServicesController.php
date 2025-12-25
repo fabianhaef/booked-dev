@@ -5,6 +5,7 @@ namespace fabian\booked\controllers\cp;
 use Craft;
 use craft\web\Controller;
 use craft\web\Response;
+use fabian\booked\Booked;
 use fabian\booked\elements\Service;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
@@ -107,6 +108,17 @@ class ServicesController extends Controller
                 'service' => $service,
             ]);
             return null;
+        }
+
+        // Save service extras assignments
+        $selectedExtras = $request->getBodyParam('extras', []);
+        if (is_array($selectedExtras) && !empty($selectedExtras)) {
+            // Convert array values to integers
+            $selectedExtras = array_map('intval', $selectedExtras);
+            Booked::getInstance()->serviceExtra->setExtrasForService($service->id, $selectedExtras);
+        } else {
+            // If no extras selected, clear all assignments for this service
+            Booked::getInstance()->serviceExtra->setExtrasForService($service->id, []);
         }
 
         Craft::$app->session->setNotice(Craft::t('booked', 'Service saved.'));

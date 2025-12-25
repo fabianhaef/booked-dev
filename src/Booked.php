@@ -300,6 +300,11 @@ class Booked extends Plugin
                     'booked/schedules/new' => 'booked/cp/schedules/edit',
                     'booked/schedules/<id:\d+>' => 'booked/cp/schedules/edit',
 
+                    // Service Extras (Phase 5.4)
+                    'booked/service-extras' => 'booked/cp/service-extra/index',
+                    'booked/service-extras/new' => 'booked/cp/service-extra/new',
+                    'booked/service-extras/<id:\d+>' => 'booked/cp/service-extra/edit',
+
                     // Settings - with sidebar navigation
                     'booked/settings' => 'booked/cp/settings/general',
                     'booked/settings/general' => 'booked/cp/settings/general',

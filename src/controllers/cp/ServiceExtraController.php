@@ -1,6 +1,6 @@
 <?php
 
-namespace fabian\booked\controllers;
+namespace fabian\booked\controllers\cp;
 
 use Craft;
 use craft\web\Controller;

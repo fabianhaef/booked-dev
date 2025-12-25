@@ -51,7 +51,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {{ extra.price|currency }}
+                                {{ extra.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.settings.currency ?? 'CHF') }}
                             </td>
                             <td>
                                 {% if extra.duration > 0 %}

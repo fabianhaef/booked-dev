@@ -66,7 +66,7 @@
             <div class="input ltr">
                 <div class="flex">
                     <div class="textwrapper">
-                        <span class="currency-symbol">{{ craft.app.locale.getCurrencySymbol() }}</span>
+                        <span class="currency-symbol">{{ craft.app.locale.getCurrencySymbol(craft.booked.settings.currency ?? 'CHF') }}</span>
                     </div>
                     {{ forms.text({
                         id: 'price',
@@ -140,7 +140,7 @@
                                     {% if assignedServiceIds is defined and service.id in assignedServiceIds %}checked{% endif %}
                                 >
                                 {{ service.title }}
-                                <span class="light">({{ service.duration }} min, {{ service.price|currency }})</span>
+                                <span class="light">({{ service.duration }} min, {{ service.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.settings.currency ?? 'CHF') }})</span>
                             </label>
                         {% endfor %}
                     </div>
@@ -190,7 +190,7 @@
                 <div class="extra-preview">
                     <strong>{{ extra.name }}</strong>
                     {% if extra.price > 0 %}
-                        <div class="light">+{{ extra.price|currency }}</div>
+                        <div class="light">+{{ extra.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.settings.currency ?? 'CHF') }}</div>
                     {% endif %}
                     {% if extra.duration > 0 %}
                         <div class="light">+{{ extra.duration }} min</div>

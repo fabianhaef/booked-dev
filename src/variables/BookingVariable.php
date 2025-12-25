@@ -7,6 +7,7 @@ use craft\helpers\Template;
 use fabian\booked\Booked;
 use fabian\booked\services\AvailabilityService;
 use fabian\booked\services\BookingService;
+use fabian\booked\services\ServiceExtraService;
 use fabian\booked\models\Settings;
 use Twig\Markup;
 
@@ -169,5 +170,28 @@ class BookingVariable
     public function getStats(): array
     {
         return Booked::getInstance()->getBooking()->getBookingStats();
+    }
+
+    /**
+     * Get service extra service component
+     *
+     * @return ServiceExtraService
+     */
+    public function getServiceExtra(): ServiceExtraService
+    {
+        return Booked::getInstance()->serviceExtra;
+    }
+
+    /**
+     * Magic getter for serviceExtra (allows craft.booked.serviceExtra)
+     *
+     * @return ServiceExtraService
+     */
+    public function __get($name)
+    {
+        if ($name === 'serviceExtra') {
+            return $this->getServiceExtra();
+        }
+        return null;
     }
 }
