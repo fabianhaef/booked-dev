@@ -48,22 +48,22 @@
             errors: blackoutDate ? blackoutDate.getErrors('endDate') : []
         }) }}
 
-        {{ forms.selectField({
-            label: 'Location'|t('booked'),
-            id: 'locationId',
-            name: 'locationId',
-            options: [{ label: 'Global (All Locations)'|t('booked'), value: '' }] | merge(locations|map(l => { label: l.title, value: l.id })),
-            value: blackoutDate.locationId ?? '',
-            instructions: 'Limit this blackout to a specific location.'|t('booked')
+        {{ forms.elementSelectField({
+            label: 'Locations'|t('booked'),
+            id: 'locationIds',
+            name: 'locationIds',
+            elementType: 'fabian\\booked\\elements\\Location',
+            elements: blackoutDate ? blackoutDate.getLocations() : [],
+            limit: null,
         }) }}
 
-        {{ forms.selectField({
-            label: 'Employee'|t('booked'),
-            id: 'employeeId',
-            name: 'employeeId',
-            options: [{ label: 'All Employees'|t('booked'), value: '' }] | merge(employees|map(e => { label: e.title, value: e.id })),
-            value: blackoutDate.employeeId ?? '',
-            instructions: 'Limit this blackout to a specific employee.'|t('booked')
+        {{ forms.elementSelectField({
+            label: 'Employees'|t('booked'),
+            id: 'employeeIds',
+            name: 'employeeIds',
+            elementType: 'fabian\\booked\\elements\\Employee',
+            elements: blackoutDate ? blackoutDate.getEmployees() : [],
+            limit: null,
         }) }}
     </div>
 {% endblock %}

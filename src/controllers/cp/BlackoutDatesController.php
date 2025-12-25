@@ -8,8 +8,6 @@ use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\Booked;
 use fabian\booked\elements\BlackoutDate;
-use fabian\booked\elements\Employee;
-use fabian\booked\elements\Location;
 use fabian\booked\services\BlackoutDateService;
 use yii\web\NotFoundHttpException;
 
@@ -44,8 +42,6 @@ class BlackoutDatesController extends Controller
         return $this->renderTemplate('booked/blackout-dates/edit', [
             'blackoutDate' => null,
             'title' => 'New Blackout Date',
-            'locations' => Location::find()->all(),
-            'employees' => Employee::find()->all(),
         ]);
     }
 
@@ -63,8 +59,6 @@ class BlackoutDatesController extends Controller
         return $this->renderTemplate('booked/blackout-dates/edit', [
             'blackoutDate' => $blackoutDate,
             'title' => 'Edit Blackout Date',
-            'locations' => Location::find()->all(),
-            'employees' => Employee::find()->all(),
         ]);
     }
 
@@ -98,8 +92,9 @@ class BlackoutDatesController extends Controller
         $endDateTime = DateTimeHelper::toDateTime($endDateValue);
         $blackoutDate->endDate = $endDateTime ? $endDateTime->format('Y-m-d') : '';
 
-        $blackoutDate->locationId = $request->getBodyParam('locationId') ?: null;
-        $blackoutDate->employeeId = $request->getBodyParam('employeeId') ?: null;
+        // Handle multiple locations and employees
+        $blackoutDate->locationIds = $request->getBodyParam('locationIds', []);
+        $blackoutDate->employeeIds = $request->getBodyParam('employeeIds', []);
         $blackoutDate->isActive = (bool) $request->getBodyParam('isActive', true);
 
         if (!Craft::$app->elements->saveElement($blackoutDate)) {
@@ -107,8 +102,6 @@ class BlackoutDatesController extends Controller
             return $this->renderTemplate('booked/blackout-dates/edit', [
                 'blackoutDate' => $blackoutDate,
                 'title' => $id ? 'Edit Blackout Date' : 'New Blackout Date',
-                'locations' => Location::find()->all(),
-                'employees' => Employee::find()->all(),
             ]);
         }
 

@@ -17,8 +17,8 @@ class BlackoutDateQuery extends ElementQuery
     public ?string $startDate = null;
     public ?string $endDate = null;
     public ?bool $isActive = null;
-    public ?int $locationId = null;
-    public ?int $employeeId = null;
+    public array|int|null $locationId = null;
+    public array|int|null $employeeId = null;
 
     /**
      * Filter by start date
@@ -48,18 +48,22 @@ class BlackoutDateQuery extends ElementQuery
     }
 
     /**
-     * Filter by location ID
+     * Filter by location ID(s)
+     *
+     * @param int|array|null $value Single ID, array of IDs, or null
      */
-    public function locationId(?int $value): static
+    public function locationId(array|int|null $value): static
     {
         $this->locationId = $value;
         return $this;
     }
 
     /**
-     * Filter by employee ID
+     * Filter by employee ID(s)
+     *
+     * @param int|array|null $value Single ID, array of IDs, or null
      */
-    public function employeeId(?int $value): static
+    public function employeeId(array|int|null $value): static
     {
         $this->employeeId = $value;
         return $this;
@@ -73,12 +77,11 @@ class BlackoutDateQuery extends ElementQuery
         // Join the bookings_blackout_dates table
         $this->joinElementTable('bookings_blackout_dates');
 
+        // Select only the columns that exist in the table
         $this->query->addSelect([
             'bookings_blackout_dates.startDate',
             'bookings_blackout_dates.endDate',
             'bookings_blackout_dates.isActive',
-            'bookings_blackout_dates.locationId',
-            'bookings_blackout_dates.employeeId',
         ]);
 
         // Apply filters
@@ -94,12 +97,32 @@ class BlackoutDateQuery extends ElementQuery
             $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.isActive', $this->isActive));
         }
 
+        // Filter by location using junction table
         if ($this->locationId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.locationId', $this->locationId));
+            $locationIds = is_array($this->locationId) ? $this->locationId : [$this->locationId];
+
+            $this->subQuery->andWhere([
+                'in',
+                'elements.id',
+                (new \craft\db\Query())
+                    ->select(['blackoutDateId'])
+                    ->from('{{%bookings_blackout_dates_locations}}')
+                    ->where(['in', 'locationId', $locationIds])
+            ]);
         }
 
+        // Filter by employee using junction table
         if ($this->employeeId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('bookings_blackout_dates.employeeId', $this->employeeId));
+            $employeeIds = is_array($this->employeeId) ? $this->employeeId : [$this->employeeId];
+
+            $this->subQuery->andWhere([
+                'in',
+                'elements.id',
+                (new \craft\db\Query())
+                    ->select(['blackoutDateId'])
+                    ->from('{{%bookings_blackout_dates_employees}}')
+                    ->where(['in', 'employeeId', $employeeIds])
+            ]);
         }
 
         return parent::beforePrepare();

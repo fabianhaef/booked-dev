@@ -16,17 +16,20 @@ use fabian\booked\records\BlackoutDateRecord;
  *
  * @property string $startDate
  * @property string $endDate
- * @property int|null $locationId
- * @property int|null $employeeId
+ * @property array $locationIds
+ * @property array $employeeIds
  * @property bool $isActive
  */
 class BlackoutDate extends Element
 {
     public string $startDate = '';
     public string $endDate = '';
-    public ?int $locationId = null;
-    public ?int $employeeId = null;
+    public array $locationIds = [];
+    public array $employeeIds = [];
     public bool $isActive = true;
+
+    private ?array $_locations = null;
+    private ?array $_employees = null;
 
     /**
      * @inheritdoc
@@ -216,18 +219,20 @@ class BlackoutDate extends Element
                 return Html::encode($this->getFormattedDateRange());
 
             case 'location':
-                if ($this->locationId) {
-                    $location = Location::findOne($this->locationId);
-                    return $location ? Html::encode($location->title) : Html::tag('span', 'Deleted', ['class' => 'error']);
+                $locations = $this->getLocations();
+                if (empty($locations)) {
+                    return Html::tag('span', 'All Locations', ['class' => 'light']);
                 }
-                return Html::tag('span', 'Global', ['class' => 'light']);
+                $names = array_map(fn($loc) => Html::encode($loc->title), $locations);
+                return implode(', ', $names);
 
             case 'employee':
-                if ($this->employeeId) {
-                    $employee = Employee::findOne($this->employeeId);
-                    return $employee ? Html::encode($employee->title) : Html::tag('span', 'Deleted', ['class' => 'error']);
+                $employees = $this->getEmployees();
+                if (empty($employees)) {
+                    return Html::tag('span', 'All Employees', ['class' => 'light']);
                 }
-                return Html::tag('span', 'All', ['class' => 'light']);
+                $names = array_map(fn($emp) => Html::encode($emp->title), $employees);
+                return implode(', ', $names);
 
             case 'duration':
                 $days = $this->getDurationDays();
@@ -308,6 +313,29 @@ class BlackoutDate extends Element
     /**
      * @inheritdoc
      */
+    public function afterPropagate(bool $isNew): void
+    {
+        parent::afterPropagate($isNew);
+
+        // Load the relationship IDs after the element is loaded
+        if (!$isNew && $this->id) {
+            $this->locationIds = (new \craft\db\Query())
+                ->select(['locationId'])
+                ->from('{{%bookings_blackout_dates_locations}}')
+                ->where(['blackoutDateId' => $this->id])
+                ->column();
+
+            $this->employeeIds = (new \craft\db\Query())
+                ->select(['employeeId'])
+                ->from('{{%bookings_blackout_dates_employees}}')
+                ->where(['blackoutDateId' => $this->id])
+                ->column();
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function afterSave(bool $isNew): void
     {
         if (!$isNew) {
@@ -323,11 +351,43 @@ class BlackoutDate extends Element
         $record->name = $this->title;
         $record->startDate = $this->startDate;
         $record->endDate = $this->endDate;
-        $record->locationId = $this->locationId;
-        $record->employeeId = $this->employeeId;
         $record->isActive = $this->isActive;
 
         $record->save(false);
+
+        // Save location relationships
+        Craft::$app->db->createCommand()
+            ->delete('{{%bookings_blackout_dates_locations}}', ['blackoutDateId' => $this->id])
+            ->execute();
+
+        if (!empty($this->locationIds)) {
+            foreach ($this->locationIds as $locationId) {
+                Craft::$app->db->createCommand()->insert('{{%bookings_blackout_dates_locations}}', [
+                    'blackoutDateId' => $this->id,
+                    'locationId' => $locationId,
+                    'dateCreated' => date('Y-m-d H:i:s'),
+                    'dateUpdated' => date('Y-m-d H:i:s'),
+                    'uid' => \craft\helpers\StringHelper::UUID(),
+                ])->execute();
+            }
+        }
+
+        // Save employee relationships
+        Craft::$app->db->createCommand()
+            ->delete('{{%bookings_blackout_dates_employees}}', ['blackoutDateId' => $this->id])
+            ->execute();
+
+        if (!empty($this->employeeIds)) {
+            foreach ($this->employeeIds as $employeeId) {
+                Craft::$app->db->createCommand()->insert('{{%bookings_blackout_dates_employees}}', [
+                    'blackoutDateId' => $this->id,
+                    'employeeId' => $employeeId,
+                    'dateCreated' => date('Y-m-d H:i:s'),
+                    'dateUpdated' => date('Y-m-d H:i:s'),
+                    'uid' => \craft\helpers\StringHelper::UUID(),
+                ])->execute();
+            }
+        }
 
         parent::afterSave($isNew);
     }
@@ -433,5 +493,57 @@ class BlackoutDate extends Element
         $end = new \DateTime($this->endDate);
 
         return $checkDate >= $start && $checkDate <= $end;
+    }
+
+    /**
+     * Get locations associated with this blackout date
+     *
+     * @return Location[]
+     */
+    public function getLocations(): array
+    {
+        if ($this->_locations === null) {
+            if (!$this->id) {
+                $this->_locations = [];
+            } else {
+                $locationIds = (new \craft\db\Query())
+                    ->select(['locationId'])
+                    ->from('{{%bookings_blackout_dates_locations}}')
+                    ->where(['blackoutDateId' => $this->id])
+                    ->column();
+
+                $this->_locations = $locationIds
+                    ? Location::find()->id($locationIds)->all()
+                    : [];
+            }
+        }
+
+        return $this->_locations;
+    }
+
+    /**
+     * Get employees associated with this blackout date
+     *
+     * @return Employee[]
+     */
+    public function getEmployees(): array
+    {
+        if ($this->_employees === null) {
+            if (!$this->id) {
+                $this->_employees = [];
+            } else {
+                $employeeIds = (new \craft\db\Query())
+                    ->select(['employeeId'])
+                    ->from('{{%bookings_blackout_dates_employees}}')
+                    ->where(['blackoutDateId' => $this->id])
+                    ->column();
+
+                $this->_employees = $employeeIds
+                    ? Employee::find()->id($employeeIds)->all()
+                    : [];
+            }
+        }
+
+        return $this->_employees;
     }
 }

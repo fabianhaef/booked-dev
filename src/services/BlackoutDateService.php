@@ -150,10 +150,7 @@ class BlackoutDateService extends Component
 
     /**
      * Check if a date falls within any active blackout period
-     */
-    /**
-     * Check if a date falls within any active blackout period
-     * 
+     *
      * @param string $date Date in Y-m-d format
      * @param int|null $employeeId Optional employee ID
      * @param int|null $locationId Optional location ID
@@ -161,36 +158,59 @@ class BlackoutDateService extends Component
      */
     public function isDateBlackedOut(string $date, ?int $employeeId = null, ?int $locationId = null): bool
     {
-        $query = $this->getBlackoutQuery()
+        // Get all active blackout dates that cover this date
+        $blackoutIds = BlackoutDateRecord::find()
+            ->select(['id'])
             ->where(['isActive' => true])
             ->andWhere(['<=', 'startDate', $date])
-            ->andWhere(['>=', 'endDate', $date]);
+            ->andWhere(['>=', 'endDate', $date])
+            ->column();
 
-        // If employee specified, check for global OR employee-specific OR location-specific blackouts
-        if ($employeeId !== null || $locationId !== null) {
-            $orConditions = [['locationId' => null, 'employeeId' => null]];
-            
-            if ($employeeId !== null) {
-                $orConditions[] = ['employeeId' => $employeeId];
-            }
-            
-            if ($locationId !== null) {
-                $orConditions[] = ['locationId' => $locationId];
-            }
-            
-            $query->andWhere(['or', ...$orConditions]);
-        } else {
-            // Only global blackouts if no scope provided
-            $query->andWhere(['locationId' => null, 'employeeId' => null]);
+        if (empty($blackoutIds)) {
+            return false;
         }
 
-        $isBlackedOut = $query->exists();
-        
-        if ($isBlackedOut) {
-            Craft::info("Date $date is blacked out (Employee: $employeeId, Location: $locationId)", __METHOD__);
+        // Check each blackout to see if it applies to this employee/location
+        foreach ($blackoutIds as $blackoutId) {
+            // Get locations for this blackout
+            $blackoutLocationIds = (new \craft\db\Query())
+                ->select(['locationId'])
+                ->from('{{%bookings_blackout_dates_locations}}')
+                ->where(['blackoutDateId' => $blackoutId])
+                ->column();
+
+            // Get employees for this blackout
+            $blackoutEmployeeIds = (new \craft\db\Query())
+                ->select(['employeeId'])
+                ->from('{{%bookings_blackout_dates_employees}}')
+                ->where(['blackoutDateId' => $blackoutId])
+                ->column();
+
+            // Empty arrays mean "all locations" or "all employees"
+            $appliesToAllLocations = empty($blackoutLocationIds);
+            $appliesToAllEmployees = empty($blackoutEmployeeIds);
+
+            // Check if this blackout applies
+            $locationMatches = $appliesToAllLocations || ($locationId && in_array($locationId, $blackoutLocationIds));
+            $employeeMatches = $appliesToAllEmployees || ($employeeId && in_array($employeeId, $blackoutEmployeeIds));
+
+            // If checking specific employee/location, both must match
+            // If no employee/location specified, just check if blackout is global
+            if ($employeeId !== null || $locationId !== null) {
+                if ($locationMatches && $employeeMatches) {
+                    Craft::info("Date $date is blacked out (Employee: $employeeId, Location: $locationId)", __METHOD__);
+                    return true;
+                }
+            } else {
+                // No filters specified - only match global blackouts
+                if ($appliesToAllLocations && $appliesToAllEmployees) {
+                    Craft::info("Date $date is blacked out (global)", __METHOD__);
+                    return true;
+                }
+            }
         }
-        
-        return $isBlackedOut;
+
+        return false;
     }
 
     /**
