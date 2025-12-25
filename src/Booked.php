@@ -371,12 +371,12 @@ class Booked extends Plugin
     {
         $item = parent::getCpNavItem();
         $item['icon'] = '@booked/icon.svg';
-        // Use base URL so nav stays open for all subnav items
-        $item['url'] = 'booked';
+        // Main plugin URL goes directly to dashboard
+        $item['url'] = 'booked/dashboard';
         $item['subnav'] = [
-            'dashboard' => ['label' => Craft::t('booked', 'Dashboard'), 'url' => 'booked/dashboard'],
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
+            'service-extras' => ['label' => Craft::t('booked', 'Service Extras'), 'url' => 'booked/service-extras'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
             'blackout-dates' => ['label' => Craft::t('booked', 'Blackout Dates'), 'url' => 'booked/blackout-dates'],

@@ -142,7 +142,7 @@
                                 <span class="light">{{ extra.description|slice(0, 100) }}{% if extra.description|length > 100 %}...{% endif %}</span>
                             {% endif %}
                             <div class="extra-meta">
-                                <span class="price">{{ extra.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.settings.currency ?? 'CHF') }}</span>
+                                <span class="price">{{ extra.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.currency) }}</span>
                                 {% if extra.duration > 0 %}
                                     <span class="duration">+{{ extra.duration }} min</span>
                                 {% endif %}

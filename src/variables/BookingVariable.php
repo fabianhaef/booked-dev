@@ -194,4 +194,27 @@ class BookingVariable
         }
         return null;
     }
+
+    /**
+     * Get currency code (from Commerce if available, otherwise default to CHF)
+     *
+     * @return string
+     */
+    public function getCurrency(): string
+    {
+        // Try to get from Craft Commerce if installed
+        if (Craft::$app->plugins->isPluginEnabled('commerce')) {
+            try {
+                $paymentCurrency = \craft\commerce\Plugin::getInstance()->getPaymentCurrencies()->getPrimaryPaymentCurrency();
+                if ($paymentCurrency) {
+                    return $paymentCurrency->iso;
+                }
+            } catch (\Exception $e) {
+                // Commerce might not be configured yet
+            }
+        }
+
+        // Default to CHF (Swiss Franc)
+        return 'CHF';
+    }
 }
