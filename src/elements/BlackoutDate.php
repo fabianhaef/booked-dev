@@ -320,6 +320,7 @@ class BlackoutDate extends Element
             $record->id = (int)$this->id;
         }
 
+        $record->name = $this->title;
         $record->startDate = $this->startDate;
         $record->endDate = $this->endDate;
         $record->locationId = $this->locationId;

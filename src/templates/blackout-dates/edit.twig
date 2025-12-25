@@ -13,6 +13,13 @@
     {% endif %}
 
     <div id="fields">
+        {{ forms.lightswitchField({
+            label: 'Active'|t('booked'),
+            id: 'isActive',
+            name: 'isActive',
+            on: blackoutDate ? blackoutDate.isActive : true
+        }) }}
+
         {{ forms.textField({
             label: 'Title'|t('app'),
             id: 'title',
@@ -57,13 +64,6 @@
             options: [{ label: 'All Employees'|t('booked'), value: '' }] | merge(employees|map(e => { label: e.title, value: e.id })),
             value: blackoutDate.employeeId ?? '',
             instructions: 'Limit this blackout to a specific employee.'|t('booked')
-        }) }}
-
-        {{ forms.lightswitchField({
-            label: 'Active'|t('booked'),
-            id: 'isActive',
-            name: 'isActive',
-            on: blackoutDate ? blackoutDate.isActive : true
         }) }}
     </div>
 {% endblock %}

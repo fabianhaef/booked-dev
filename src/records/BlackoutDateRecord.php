@@ -10,6 +10,7 @@ use craft\db\ActiveRecord;
  * @property int $id
  * @property int|null $locationId
  * @property int|null $employeeId
+ * @property string $name
  * @property string $startDate
  * @property string $endDate
  * @property string|null $reason
@@ -34,7 +35,8 @@ class BlackoutDateRecord extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['startDate', 'endDate'], 'required'],
+            [['name', 'startDate', 'endDate'], 'required'],
+            [['name'], 'string', 'max' => 255],
             [['startDate', 'endDate'], 'date', 'format' => 'php:Y-m-d'],
             [['reason'], 'string'],
             [['locationId', 'employeeId'], 'integer'],

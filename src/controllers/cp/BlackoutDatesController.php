@@ -3,6 +3,7 @@
 namespace fabian\booked\controllers\cp;
 
 use Craft;
+use craft\helpers\DateTimeHelper;
 use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\Booked;
@@ -87,8 +88,16 @@ class BlackoutDatesController extends Controller
         }
 
         $blackoutDate->title = $request->getRequiredBodyParam('title');
-        $blackoutDate->startDate = $request->getRequiredBodyParam('startDate');
-        $blackoutDate->endDate = $request->getRequiredBodyParam('endDate');
+
+        // Handle date fields - use DateTimeHelper to convert from any format to Y-m-d
+        $startDateValue = $request->getRequiredBodyParam('startDate');
+        $startDateTime = DateTimeHelper::toDateTime($startDateValue);
+        $blackoutDate->startDate = $startDateTime ? $startDateTime->format('Y-m-d') : '';
+
+        $endDateValue = $request->getRequiredBodyParam('endDate');
+        $endDateTime = DateTimeHelper::toDateTime($endDateValue);
+        $blackoutDate->endDate = $endDateTime ? $endDateTime->format('Y-m-d') : '';
+
         $blackoutDate->locationId = $request->getBodyParam('locationId') ?: null;
         $blackoutDate->employeeId = $request->getBodyParam('employeeId') ?: null;
         $blackoutDate->isActive = (bool) $request->getBodyParam('isActive', true);
@@ -97,7 +106,9 @@ class BlackoutDatesController extends Controller
             Craft::$app->session->setError('Could not save blackout date.');
             return $this->renderTemplate('booked/blackout-dates/edit', [
                 'blackoutDate' => $blackoutDate,
-                'title' => $id ? 'Edit Blackout Date' : 'New Blackout Date'
+                'title' => $id ? 'Edit Blackout Date' : 'New Blackout Date',
+                'locations' => Location::find()->all(),
+                'employees' => Employee::find()->all(),
             ]);
         }
 
