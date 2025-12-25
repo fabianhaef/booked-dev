@@ -31,7 +31,8 @@ spl_autoload_register(function ($class) {
 });
 
 // Mock Craft class for pure PHP unit tests
-if (!class_exists('Craft')) {
+// Only create mock if real Craft isn't already loaded
+if (!class_exists('Craft', false)) {
     class Craft {
         public static $app;
 
@@ -55,6 +56,10 @@ if (!class_exists('Craft')) {
 
         public static function getAlias($alias) {
             return $alias;
+        }
+
+        public static function setAlias($alias, $path) {
+            // Mock implementation - does nothing
         }
     }
 

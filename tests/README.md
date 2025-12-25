@@ -220,19 +220,23 @@ $reservation = $this->tester->createReservation([
 
 ## Running Tests
 
-### All Tests
+### Unit Tests (Default - Recommended)
 ```bash
 ddev composer test
+# or
+ddev composer test:unit
 ```
 
-### Unit Tests Only (Fast)
+### All Tests (Unit + Integration)
+```bash
+ddev composer test:all
+```
+
+**Note**: Integration tests require additional Craft CMS configuration and are currently being refined. Use unit tests for fast development feedback.
+
+### Unit Tests with Codecept Directly
 ```bash
 ddev exec "./vendor/bin/codecept run unit -c plugins/booked/codeception.yml"
-```
-
-### Integration Tests Only
-```bash
-ddev exec "./vendor/bin/codecept run integration -c plugins/booked/codeception.yml"
 ```
 
 ### With Verbose Output

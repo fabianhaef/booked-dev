@@ -54,4 +54,5 @@ spl_autoload_register(function ($class) {
 });
 
 // Initialize Craft for integration testing
-TestSetup::configureCraft();
+// Note: Craft's Codeception module will handle initialization
+// TestSetup::configureCraft() is called by the \craft\test\Craft module
