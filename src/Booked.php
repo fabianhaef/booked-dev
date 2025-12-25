@@ -305,6 +305,13 @@ class Booked extends Plugin
                     'booked/service-extras/new' => 'booked/cp/service-extra/new',
                     'booked/service-extras/<id:\d+>' => 'booked/cp/service-extra/edit',
 
+                    // Bookings
+                    'booked/bookings' => 'booked/cp/bookings/index',
+                    'booked/bookings/new' => 'booked/cp/bookings/edit',
+                    'booked/bookings/<id:\d+>' => 'booked/cp/bookings/edit',
+                    'booked/bookings/<id:\d+>/view' => 'booked/cp/bookings/view',
+                    'booked/bookings/export' => 'booked/cp/bookings/export',
+
                     // Settings - with sidebar navigation
                     'booked/settings' => 'booked/cp/settings/general',
                     'booked/settings/general' => 'booked/cp/settings/general',
@@ -375,6 +382,7 @@ class Booked extends Plugin
         $item['url'] = 'booked/dashboard';
         $item['subnav'] = [
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
+            'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'service-extras' => ['label' => Craft::t('booked', 'Service Extras'), 'url' => 'booked/service-extras'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],

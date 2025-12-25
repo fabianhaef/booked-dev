@@ -27,14 +27,14 @@
                 <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Pending Review</div>
                 <div style="font-size: 32px; font-weight: bold; color: #f59e0b;">{{ pendingBookings }}</div>
                 <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">
-                    <a href="{{ url('booked/bookings', {status: 'pending'}) }}">Review now →</a>
+                    <a href="{{ url('booked/bookings', {source: 'pending'}) }}">Review now →</a>
                 </div>
             </div>
 
             {# Total Revenue Card #}
             <div class="kpi-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
                 <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Total Revenue</div>
-                <div style="font-size: 32px; font-weight: bold; color: #059669;">{{ totalRevenue|currency('USD') }}</div>
+                <div style="font-size: 32px; font-weight: bold; color: #059669;">{{ totalRevenue|number(2) }} {{ craft.app.locale.getCurrencySymbol(currency) }}</div>
                 <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">All confirmed bookings</div>
             </div>
         </div>
@@ -112,7 +112,7 @@
             {# Average Booking Value Widget #}
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; text-align: center;">
                 <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">Avg Booking Value</div>
-                <div style="font-size: 48px; font-weight: bold; color: #059669;">{{ averageBookingValue|currency('USD') }}</div>
+                <div style="font-size: 48px; font-weight: bold; color: #059669;">{{ averageBookingValue|number(2) }} {{ craft.app.locale.getCurrencySymbol(currency) }}</div>
                 <div style="color: #9ca3af; font-size: 12px; margin-top: 12px;">Per confirmed booking</div>
             </div>
 
@@ -121,7 +121,7 @@
                 <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">Quick Actions</div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <a href="{{ url('booked/bookings/new') }}" class="btn submit" style="width: 100%;">New Booking</a>
-                    <a href="{{ url('booked/calendar/month') }}" class="btn" style="width: 100%;">View Calendar</a>
+                    <a href="{{ url('booked/calendar-view/month') }}" class="btn" style="width: 100%;">View Calendar</a>
                     <a href="{{ url('booked/reports') }}" class="btn" style="width: 100%;">Reports</a>
                 </div>
             </div>

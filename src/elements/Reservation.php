@@ -361,7 +361,7 @@ class Reservation extends Element implements PurchasableInterface
      */
     public function getCpEditUrl(): ?string
     {
-        return UrlHelper::cpUrl('booking/bookings/edit/' . $this->id);
+        return UrlHelper::cpUrl('booked/bookings/' . $this->id);
     }
 
     /**

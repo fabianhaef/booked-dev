@@ -20,7 +20,7 @@ class ReservationQuery extends ElementQuery
     public array|string|null $bookingDate = null;
     public ?string $startTime = null;
     public ?string $endTime = null;
-    public array|string|null $status = null;
+    public array|string|null $reservationStatus = null;
     public ?int $variationId = null;
     public ?int $employeeId = null;
     public ?int $locationId = null;
@@ -101,11 +101,12 @@ class ReservationQuery extends ElementQuery
     }
 
     /**
-     * Filter by status
+     * Filter by reservation status (confirmed, pending, cancelled)
+     * Note: This overrides the parent status() to filter by our custom status field
      */
     public function status(array|string|null $value): static
     {
-        $this->status = $value;
+        $this->reservationStatus = $value;
         return $this;
     }
 
@@ -224,8 +225,8 @@ class ReservationQuery extends ElementQuery
             $this->subQuery->andWhere(Db::parseParam('bookings_reservations.endTime', $this->endTime));
         }
 
-        if ($this->status) {
-            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.status', $this->status));
+        if ($this->reservationStatus) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.status', $this->reservationStatus));
         }
 
         if ($this->variationId) {

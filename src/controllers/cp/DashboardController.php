@@ -25,27 +25,28 @@ class DashboardController extends Controller
      */
     public function actionIndex(): mixed
     {
-        $today = new \DateTime();
+        $today = new \DateTime('now', new \DateTimeZone('Europe/Zurich'));
+        $today->setTime(0, 0, 0); // Start of day
         $weekFromNow = (clone $today)->modify('+7 days');
 
-        // Today's bookings
+        // Today's bookings (confirmed only)
         $todayBookings = Reservation::find()
             ->bookingDate($today->format('Y-m-d'))
             ->status('confirmed')
             ->count();
 
-        // Upcoming week bookings
+        // Upcoming week bookings (next 7 days from today, confirmed only)
         $upcomingBookings = Reservation::find()
             ->bookingDate(['and', '>= ' . $today->format('Y-m-d'), '<= ' . $weekFromNow->format('Y-m-d')])
             ->status('confirmed')
             ->count();
 
-        // Pending review
+        // Pending review (all pending regardless of date)
         $pendingBookings = Reservation::find()
             ->status('pending')
             ->count();
 
-        // Total revenue (confirmed bookings)
+        // Total revenue (all confirmed bookings ever)
         $reservations = Reservation::find()
             ->status('confirmed')
             ->all();
@@ -64,7 +65,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->all();
 
-        // Popular services
+        // Popular services (top 3 by booking count)
         $allReservations = Reservation::find()
             ->status('confirmed')
             ->all();
@@ -93,7 +94,7 @@ class DashboardController extends Controller
             }
         }
 
-        // Occupancy rate (simple calculation)
+        // Occupancy rate (simplified calculation - should be based on actual capacity)
         $totalSlots = 100; // This should be calculated based on actual schedules
         $bookedSlots = Reservation::find()
             ->status('confirmed')
@@ -104,6 +105,19 @@ class DashboardController extends Controller
         $confirmedCount = count($reservations);
         $averageBookingValue = $confirmedCount > 0 ? $totalRevenue / $confirmedCount : 0;
 
+        // Get currency from Commerce or default to CHF
+        $currency = 'CHF';
+        if (Craft::$app->plugins->isPluginEnabled('commerce')) {
+            try {
+                $paymentCurrency = \craft\commerce\Plugin::getInstance()->getPaymentCurrencies()->getPrimaryPaymentCurrency();
+                if ($paymentCurrency) {
+                    $currency = $paymentCurrency->iso;
+                }
+            } catch (\Exception $e) {
+                // Commerce might not be configured yet
+            }
+        }
+
         return $this->renderTemplate('booked/dashboard/index', [
             'todayBookings' => $todayBookings,
             'upcomingBookings' => $upcomingBookings,
@@ -113,6 +127,7 @@ class DashboardController extends Controller
             'popularServices' => $popularServices,
             'occupancyRate' => $occupancyRate,
             'averageBookingValue' => $averageBookingValue,
+            'currency' => $currency,
         ]);
     }
 }
