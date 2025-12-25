@@ -273,13 +273,21 @@ class BookingService extends Component
                     }
                 }
 
-                // Calculate end time based on service duration if not provided
+                // Calculate end time based on service duration + extras duration if not provided
                 $endTime = $data['endTime'] ?? '';
                 if (empty($endTime) && $serviceId) {
                     $service = $this->getServiceById($serviceId);
                     if ($service) {
+                        $totalDuration = $service->duration;
+
+                        // Add extras duration if extras are selected
+                        if (!empty($data['extras']) && is_array($data['extras'])) {
+                            $extrasDuration = Booked::getInstance()->serviceExtra->calculateExtrasDuration($data['extras']);
+                            $totalDuration += $extrasDuration;
+                        }
+
                         $startDateTime = new \DateTime($bookingDate . ' ' . $startTime);
-                        $endDateTime = (clone $startDateTime)->modify("+{$service->duration} minutes");
+                        $endDateTime = (clone $startDateTime)->modify("+{$totalDuration} minutes");
                         $endTime = $endDateTime->format('H:i');
                     }
                 }
@@ -379,6 +387,33 @@ class BookingService extends Component
                     $transaction->rollBack();
                     Craft::error('Failed to save reservation: ' . json_encode($reservation->getErrors()), __METHOD__);
                     throw new BookingValidationException('Die Buchungsvalidierung ist fehlgeschlagen.', $reservation->getErrors());
+                }
+
+                // Save selected service extras
+                if (!empty($data['extras']) && is_array($data['extras'])) {
+                    // Validate required extras if service is specified
+                    if ($reservation->serviceId) {
+                        $missingRequired = Booked::getInstance()->serviceExtra->validateRequiredExtras(
+                            $reservation->serviceId,
+                            $data['extras']
+                        );
+
+                        if (!empty($missingRequired)) {
+                            $transaction->rollBack();
+                            throw new BookingValidationException(
+                                'Erforderliche Extras fehlen: ' . implode(', ', $missingRequired)
+                            );
+                        }
+                    }
+
+                    // Save the extras
+                    if (!Booked::getInstance()->serviceExtra->saveExtrasForReservation($reservation->id, $data['extras'])) {
+                        $transaction->rollBack();
+                        Craft::error('Failed to save reservation extras', __METHOD__);
+                        throw new BookingException('Fehler beim Speichern der Service-Extras.');
+                    }
+
+                    Craft::info("Saved " . count($data['extras']) . " extras for reservation #{$reservation->id}", __METHOD__);
                 }
 
                 // Log successful booking with variation and quantity info

@@ -49,6 +49,49 @@ class AvailabilityService extends Component
         int $requestedQuantity = 1,
         ?string $userTimezone = null
     ): array {
+        $startTime = microtime(true);
+
+        // Fire BEFORE_AVAILABILITY_CHECK event
+        $beforeCheckEvent = new BeforeAvailabilityCheckEvent([
+            'date' => $date,
+            'serviceId' => $serviceId,
+            'employeeId' => $employeeId,
+            'locationId' => $locationId,
+            'quantity' => $requestedQuantity,
+            'criteria' => [
+                'userTimezone' => $userTimezone,
+            ],
+        ]);
+        $this->trigger(self::EVENT_BEFORE_AVAILABILITY_CHECK, $beforeCheckEvent);
+
+        // Check if event was cancelled
+        if (!$beforeCheckEvent->isValid) {
+            $errorMessage = $beforeCheckEvent->errorMessage ?? 'Availability check was cancelled by event handler';
+            Craft::warning("Availability check cancelled by event handler: {$errorMessage}", __METHOD__);
+
+            // Fire AFTER event with failure
+            $afterCheckEvent = new AfterAvailabilityCheckEvent([
+                'date' => $date,
+                'serviceId' => $serviceId,
+                'employeeId' => $employeeId,
+                'locationId' => $locationId,
+                'slots' => [],
+                'slotCount' => 0,
+                'calculationTime' => microtime(true) - $startTime,
+                'fromCache' => false,
+            ]);
+            $this->trigger(self::EVENT_AFTER_AVAILABILITY_CHECK, $afterCheckEvent);
+
+            return [];
+        }
+
+        // Use potentially modified criteria
+        $date = $beforeCheckEvent->date;
+        $serviceId = $beforeCheckEvent->serviceId;
+        $employeeId = $beforeCheckEvent->employeeId;
+        $locationId = $beforeCheckEvent->locationId;
+        $requestedQuantity = $beforeCheckEvent->quantity;
+
         Craft::info("Getting available slots for date: $date, employee: $employeeId, location: $locationId, service: $serviceId", __METHOD__);
 
         $cacheService = Booked::getInstance()->availabilityCache;
@@ -72,7 +115,23 @@ class AvailabilityService extends Component
             if ($requestedQuantity > 1) {
                 $slots = $this->filterByQuantity($slots, $requestedQuantity);
             }
-            return array_values($slots);
+
+            $finalSlots = array_values($slots);
+
+            // Fire AFTER_AVAILABILITY_CHECK event
+            $afterCheckEvent = new AfterAvailabilityCheckEvent([
+                'date' => $date,
+                'serviceId' => $serviceId,
+                'employeeId' => $employeeId,
+                'locationId' => $locationId,
+                'slots' => $finalSlots,
+                'slotCount' => count($finalSlots),
+                'calculationTime' => microtime(true) - $startTime,
+                'fromCache' => true,
+            ]);
+            $this->trigger(self::EVENT_AFTER_AVAILABILITY_CHECK, $afterCheckEvent);
+
+            return $afterCheckEvent->slots;
         }
 
         Craft::info("Cache MISS: Calculating slots for $date", __METHOD__);
@@ -114,6 +173,20 @@ class AvailabilityService extends Component
         if (empty($schedules) && empty($expandedAvailabilities)) {
             Craft::info("No schedules or availabilities found for $date", __METHOD__);
             $cacheService->setCachedAvailability($date, [], $employeeId, $serviceId);
+
+            // Fire AFTER_AVAILABILITY_CHECK event
+            $afterCheckEvent = new AfterAvailabilityCheckEvent([
+                'date' => $date,
+                'serviceId' => $serviceId,
+                'employeeId' => $employeeId,
+                'locationId' => $locationId,
+                'slots' => [],
+                'slotCount' => 0,
+                'calculationTime' => microtime(true) - $startTime,
+                'fromCache' => false,
+            ]);
+            $this->trigger(self::EVENT_AFTER_AVAILABILITY_CHECK, $afterCheckEvent);
+
             return [];
         }
 
@@ -261,7 +334,21 @@ class AvailabilityService extends Component
 
         $finalSlots = array_values($allSlots);
         Craft::info("Returning " . count($finalSlots) . " available slots for $date", __METHOD__);
-        return $finalSlots;
+
+        // Fire AFTER_AVAILABILITY_CHECK event
+        $afterCheckEvent = new AfterAvailabilityCheckEvent([
+            'date' => $date,
+            'serviceId' => $serviceId,
+            'employeeId' => $employeeId,
+            'locationId' => $locationId,
+            'slots' => $finalSlots,
+            'slotCount' => count($finalSlots),
+            'calculationTime' => microtime(true) - $startTime,
+            'fromCache' => false,
+        ]);
+        $this->trigger(self::EVENT_AFTER_AVAILABILITY_CHECK, $afterCheckEvent);
+
+        return $afterCheckEvent->slots;
     }
 
     /**

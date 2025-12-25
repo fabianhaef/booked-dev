@@ -1,4 +1,4 @@
-# Booked Plugin - Complete Implementation Plan
+   # Booked Plugin - Complete Implementation Plan
 
 A comprehensive booking system for Craft CMS - an alternative to WordPress "Bookly"
 
@@ -665,7 +665,7 @@ The front-end will support three primary view modes:
 - ✅ Real-time updates
 - ✅ Modern UI
 
-#### 4.2 Craft Commerce Integration (Purchasables)
+#### 4.2 Craft Commerce Integration (Purchasables) [completed]
 
 For systems requiring payment, the Appointment element will implement the Purchasable interface. This allows the booking to be added directly to the Craft Commerce cart, inheriting all the benefits of a full e-commerce platform:
 
@@ -715,7 +715,7 @@ For systems requiring payment, the Appointment element will implement the Purcha
 - ✅ Order-reservation linking
 - ✅ Payment handling
 
-#### 4.3 Administrative Control Panel Sections
+#### 4.3 Administrative Control Panel Sections [completed]
 
 The plugin will add a dedicated section to the Craft Control Panel, featuring a central calendar view and a KPI dashboard. This interface will allow managers to approve pending appointments, manage staff schedules, and view revenue reports.
 
@@ -763,30 +763,6 @@ The plugin will add a dedicated section to the Craft Control Panel, featuring a 
 - ✅ KPI dashboard
 - ✅ Reports system
 - ✅ Export functionality
-
-#### 4.4 Deployment and Project Config Synchronization
-
-To ensure stability across environments, the plugin's configuration (field layouts, element types, and site settings) will be synchronized via Craft's Project Config. This allows for a "dev-to-live" workflow where schema changes are committed to version control and applied automatically on the production server.
-
-**Tasks:**
-1. Implement Project Config support:
-   - Field layouts
-   - Element type configs
-   - Settings (non-sensitive)
-
-2. Create config handlers:
-   ```php
-   // src/config/FieldLayoutConfigHandler.php
-   // src/config/ElementTypeConfigHandler.php
-   ```
-
-3. Test sync:
-   - Dev to staging
-   - Staging to production
-
-**Deliverables:**
-- ✅ Project Config support
-- ✅ Environment sync working
 
 ### Phase 5: Advanced Logic and Architectural Refinements
 

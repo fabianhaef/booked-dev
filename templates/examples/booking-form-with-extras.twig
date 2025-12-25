@@ -1,0 +1,602 @@
+{#
+/**
+ * Booking Form with Service Extras
+ *
+ * Example template showing how to display and select service extras during booking.
+ * This template includes:
+ * - Service selection
+ * - Date/time selection
+ * - Service extras selection with quantity and pricing
+ * - Total price calculation
+ * - Customer information
+ */
+#}
+
+{% set services = craft.booked.services().enabled().all() %}
+
+<div class="booking-form-container">
+    <h2>Book an Appointment</h2>
+
+    <form action="{{ actionUrl('booked/booking/create') }}" method="post" id="booking-form">
+        {{ csrfInput() }}
+
+        {# Step 1: Service Selection #}
+        <div class="form-section">
+            <h3>Select Service</h3>
+
+            <div class="service-selection">
+                {% for service in services %}
+                    <label class="service-option">
+                        <input
+                            type="radio"
+                            name="serviceId"
+                            value="{{ service.id }}"
+                            data-price="{{ service.price }}"
+                            data-duration="{{ service.duration }}"
+                            required
+                        >
+                        <div class="service-info">
+                            <h4>{{ service.title }}</h4>
+                            <p>{{ service.description }}</p>
+                            <div class="service-meta">
+                                <span class="duration">{{ service.duration }} minutes</span>
+                                <span class="price">{{ service.price|currency }}</span>
+                            </div>
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Step 2: Date & Time Selection #}
+        <div class="form-section">
+            <h3>Select Date & Time</h3>
+
+            <div class="date-time-selection">
+                <div class="form-group">
+                    <label for="booking-date">Date</label>
+                    <input
+                        type="date"
+                        id="booking-date"
+                        name="date"
+                        min="{{ now|date('Y-m-d') }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label>Available Times</label>
+                    <div id="available-slots" class="time-slots">
+                        <p class="help-text">Select a service and date to see available times</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Step 3: Service Extras #}
+        <div class="form-section" id="extras-section" style="display: none;">
+            <h3>Add Extras <span class="optional">(Optional)</span></h3>
+
+            <div id="service-extras" class="extras-list">
+                {# Populated dynamically via JavaScript #}
+            </div>
+
+            <div class="extras-summary">
+                <div class="summary-row">
+                    <span>Service Base Price:</span>
+                    <span id="base-price">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Extras Total:</span>
+                    <span id="extras-total">$0.00</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total Price:</span>
+                    <span id="total-price">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Duration:</span>
+                    <span id="total-duration">0 min</span>
+                </div>
+            </div>
+        </div>
+
+        {# Step 4: Customer Information #}
+        <div class="form-section">
+            <h3>Your Information</h3>
+
+            <div class="form-group">
+                <label for="user-name">Name *</label>
+                <input type="text" id="user-name" name="userName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="user-email">Email *</label>
+                <input type="email" id="user-email" name="userEmail" required>
+            </div>
+
+            <div class="form-group">
+                <label for="user-phone">Phone</label>
+                <input type="tel" id="user-phone" name="userPhone">
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+        </div>
+
+        {# Submit Button #}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Book Appointment
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.booking-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.form-section {
+    margin-bottom: 40px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.form-section h3 {
+    margin-top: 0;
+}
+
+.service-option {
+    display: block;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.service-option:hover {
+    border-color: #0d78f2;
+}
+
+.service-option input[type="radio"] {
+    margin-right: 10px;
+}
+
+.service-option input[type="radio"]:checked + .service-info {
+    color: #0d78f2;
+}
+
+.service-meta {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.time-slot {
+    padding: 10px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-slot:hover {
+    border-color: #0d78f2;
+}
+
+.time-slot.selected {
+    background: #0d78f2;
+    color: white;
+    border-color: #0d78f2;
+}
+
+.extra-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.extra-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.extra-name {
+    font-weight: 600;
+}
+
+.extra-price {
+    color: #0d78f2;
+    font-weight: 600;
+}
+
+.extra-description {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.extra-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-control button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.quantity-control button:hover {
+    background: #f0f0f0;
+}
+
+.quantity-control input {
+    width: 50px;
+    text-align: center;
+    border: 1px solid #ddd;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.extras-summary {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 4px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row.total {
+    font-weight: 600;
+    font-size: 18px;
+    color: #0d78f2;
+    border-top: 2px solid #0d78f2;
+    border-bottom: none;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #0d78f2;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0b5fc7;
+}
+
+.optional {
+    font-size: 14px;
+    color: #999;
+    font-weight: normal;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #ffd700;
+    color: #333;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('booking-form');
+    const serviceInputs = document.querySelectorAll('input[name="serviceId"]');
+    const dateInput = document.getElementById('booking-date');
+    const slotsContainer = document.getElementById('available-slots');
+    const extrasSection = document.getElementById('extras-section');
+    const extrasContainer = document.getElementById('service-extras');
+
+    let selectedServiceId = null;
+    let selectedDate = null;
+    let selectedTime = null;
+    let serviceExtras = [];
+    let basePrice = 0;
+    let baseDuration = 0;
+
+    // Service selection
+    serviceInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            selectedServiceId = this.value;
+            basePrice = parseFloat(this.dataset.price) || 0;
+            baseDuration = parseInt(this.dataset.duration) || 0;
+
+            updateBasePrice();
+            loadExtrasForService();
+
+            if (selectedDate) {
+                loadAvailableSlots();
+            }
+        });
+    });
+
+    // Date selection
+    dateInput.addEventListener('change', function() {
+        selectedDate = this.value;
+
+        if (selectedServiceId) {
+            loadAvailableSlots();
+        }
+    });
+
+    // Load available slots
+    function loadAvailableSlots() {
+        slotsContainer.innerHTML = '<p class="loading">Loading available times...</p>';
+
+        fetch(`/actions/booked/availability/get-slots?serviceId=${selectedServiceId}&date=${selectedDate}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.slots && data.slots.length > 0) {
+                    renderTimeSlots(data.slots);
+                } else {
+                    slotsContainer.innerHTML = '<p class="no-slots">No available times for this date</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading slots:', error);
+                slotsContainer.innerHTML = '<p class="error">Error loading times. Please try again.</p>';
+            });
+    }
+
+    // Render time slots
+    function renderTimeSlots(slots) {
+        slotsContainer.innerHTML = '';
+
+        slots.forEach(slot => {
+            const button = document.createElement('div');
+            button.className = 'time-slot';
+            button.textContent = slot.time;
+            button.dataset.time = slot.time;
+            button.dataset.endTime = slot.endTime;
+
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedTime = this.dataset.time;
+
+                // Add hidden inputs for booking
+                document.querySelector('input[name="startTime"]')?.remove();
+                document.querySelector('input[name="endTime"]')?.remove();
+
+                const startTimeInput = document.createElement('input');
+                startTimeInput.type = 'hidden';
+                startTimeInput.name = 'startTime';
+                startTimeInput.value = this.dataset.time;
+                form.appendChild(startTimeInput);
+
+                const endTimeInput = document.createElement('input');
+                endTimeInput.type = 'hidden';
+                endTimeInput.name = 'endTime';
+                endTimeInput.value = this.dataset.endTime;
+                form.appendChild(endTimeInput);
+            });
+
+            slotsContainer.appendChild(button);
+        });
+    }
+
+    // Load extras for selected service
+    function loadExtrasForService() {
+        fetch(`/actions/booked/service-extra/get-for-service?serviceId=${selectedServiceId}`)
+            .then(response => response.json())
+            .then(data => {
+                serviceExtras = data.extras || [];
+
+                if (serviceExtras.length > 0) {
+                    renderExtras();
+                    extrasSection.style.display = 'block';
+                } else {
+                    extrasSection.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading extras:', error);
+                extrasSection.style.display = 'none';
+            });
+    }
+
+    // Render extras
+    function renderExtras() {
+        extrasContainer.innerHTML = '';
+
+        serviceExtras.forEach(extra => {
+            const item = document.createElement('div');
+            item.className = 'extra-item';
+            item.innerHTML = `
+                <div class="extra-header">
+                    <div class="extra-name">
+                        ${extra.name}
+                        ${extra.isRequired ? '<span class="badge">Required</span>' : ''}
+                    </div>
+                    <div class="extra-price">+${formatCurrency(extra.price)}</div>
+                </div>
+                ${extra.description ? `<div class="extra-description">${extra.description}</div>` : ''}
+                ${extra.duration > 0 ? `<div class="extra-duration">+${extra.duration} min</div>` : ''}
+                <div class="extra-controls">
+                    ${extra.maxQuantity > 1 ? `
+                        <div class="quantity-control">
+                            <button type="button" class="qty-decrease" data-extra-id="${extra.id}">-</button>
+                            <input
+                                type="number"
+                                name="extras[${extra.id}]"
+                                value="${extra.isRequired ? 1 : 0}"
+                                min="${extra.isRequired ? 1 : 0}"
+                                max="${extra.maxQuantity}"
+                                data-extra-id="${extra.id}"
+                                data-price="${extra.price}"
+                                data-duration="${extra.duration}"
+                                class="extra-quantity"
+                            >
+                            <button type="button" class="qty-increase" data-extra-id="${extra.id}">+</button>
+                        </div>
+                    ` : `
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="extras[${extra.id}]"
+                                value="1"
+                                ${extra.isRequired ? 'checked disabled' : ''}
+                                data-extra-id="${extra.id}"
+                                data-price="${extra.price}"
+                                data-duration="${extra.duration}"
+                                class="extra-checkbox"
+                            >
+                            Add this extra
+                        </label>
+                    `}
+                </div>
+            `;
+
+            extrasContainer.appendChild(item);
+        });
+
+        // Add event listeners for quantity controls
+        document.querySelectorAll('.qty-decrease').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const extraId = this.dataset.extraId;
+                const input = document.querySelector(`input[name="extras[${extraId}]"]`);
+                const min = parseInt(input.min);
+                const current = parseInt(input.value);
+                if (current > min) {
+                    input.value = current - 1;
+                    updateTotals();
+                }
+            });
+        });
+
+        document.querySelectorAll('.qty-increase').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const extraId = this.dataset.extraId;
+                const input = document.querySelector(`input[name="extras[${extraId}]"]`);
+                const max = parseInt(input.max);
+                const current = parseInt(input.value);
+                if (current < max) {
+                    input.value = current + 1;
+                    updateTotals();
+                }
+            });
+        });
+
+        document.querySelectorAll('.extra-quantity, .extra-checkbox').forEach(input => {
+            input.addEventListener('change', updateTotals);
+        });
+
+        updateTotals();
+    }
+
+    // Update price totals
+    function updateBasePrice() {
+        document.getElementById('base-price').textContent = formatCurrency(basePrice);
+        updateTotals();
+    }
+
+    function updateTotals() {
+        let extrasTotal = 0;
+        let extrasDuration = 0;
+
+        // Calculate from quantity inputs
+        document.querySelectorAll('.extra-quantity').forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price) || 0;
+            const duration = parseInt(input.dataset.duration) || 0;
+            extrasTotal += price * quantity;
+            extrasDuration += duration * quantity;
+        });
+
+        // Calculate from checkboxes
+        document.querySelectorAll('.extra-checkbox:checked').forEach(input => {
+            const price = parseFloat(input.dataset.price) || 0;
+            const duration = parseInt(input.dataset.duration) || 0;
+            extrasTotal += price;
+            extrasDuration += duration;
+        });
+
+        const totalPrice = basePrice + extrasTotal;
+        const totalDuration = baseDuration + extrasDuration;
+
+        document.getElementById('extras-total').textContent = formatCurrency(extrasTotal);
+        document.getElementById('total-price').textContent = formatCurrency(totalPrice);
+        document.getElementById('total-duration').textContent = totalDuration + ' min';
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('de-CH', {
+            style: 'currency',
+            currency: 'CHF'
+        }).format(amount);
+    }
+});
+</script>

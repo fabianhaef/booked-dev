@@ -896,6 +896,97 @@ class Reservation extends Element implements PurchasableInterface
     }
 
     /**
+     * Get selected extras for this reservation
+     *
+     * @return array Array of extras with quantity and price info
+     */
+    public function getExtras(): array
+    {
+        if (!$this->id) {
+            return [];
+        }
+
+        return \fabian\booked\Booked::getInstance()->serviceExtra->getExtrasForReservation($this->id);
+    }
+
+    /**
+     * Get total price of selected extras
+     *
+     * @return float
+     */
+    public function getExtrasPrice(): float
+    {
+        if (!$this->id) {
+            return 0.0;
+        }
+
+        return \fabian\booked\Booked::getInstance()->serviceExtra->getTotalExtrasPrice($this->id);
+    }
+
+    /**
+     * Get formatted extras summary for display
+     *
+     * @return string
+     */
+    public function getExtrasSummary(): string
+    {
+        if (!$this->id) {
+            return '';
+        }
+
+        return \fabian\booked\Booked::getInstance()->serviceExtra->getExtrasSummary($this->id);
+    }
+
+    /**
+     * Get total price including service and extras
+     *
+     * @return float
+     */
+    public function getTotalPrice(): float
+    {
+        $servicePrice = 0.0;
+
+        $service = $this->getService();
+        if ($service && isset($service->price)) {
+            $servicePrice = (float)$service->price * $this->quantity;
+        }
+
+        return $servicePrice + $this->getExtrasPrice();
+    }
+
+    /**
+     * Get total duration including service and extras
+     *
+     * @return int Total minutes
+     */
+    public function getTotalDuration(): int
+    {
+        $baseDuration = $this->getDurationMinutes();
+        $extrasDuration = 0;
+
+        $extras = $this->getExtras();
+        foreach ($extras as $item) {
+            $extra = $item['extra'];
+            $quantity = $item['quantity'];
+            if ($extra && $extra->duration > 0) {
+                $extrasDuration += $extra->duration * $quantity;
+            }
+        }
+
+        return $baseDuration + $extrasDuration;
+    }
+
+    /**
+     * Check if this reservation has any extras
+     *
+     * @return bool
+     */
+    public function hasExtras(): bool
+    {
+        return count($this->getExtras()) > 0;
+    }
+
+    /**
      * Find reservation by confirmation token
      */
     public static function findByToken(string $token): ?self
