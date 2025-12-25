@@ -46,6 +46,8 @@ use fabian\booked\records\ReservationRecord;
  * @property string|null $virtualMeetingUrl
  * @property string|null $virtualMeetingProvider
  * @property string|null $virtualMeetingId
+ * @property int|null $sequenceId
+ * @property int $sequenceOrder
  */
 class Reservation extends Element implements PurchasableInterface
 {
@@ -75,6 +77,10 @@ class Reservation extends Element implements PurchasableInterface
     public ?int $locationId = null;
     public ?int $serviceId = null;
     public int $quantity = 1;
+    public ?int $sequenceId = null;
+    public int $sequenceOrder = 0;
+
+    private ?BookingSequence $_sequence = null;
 
     /**
      * @inheritdoc
@@ -653,6 +659,8 @@ class Reservation extends Element implements PurchasableInterface
         $record->locationId = $this->locationId;
         $record->serviceId = $this->serviceId;
         $record->quantity = $this->quantity;
+        $record->sequenceId = $this->sequenceId;
+        $record->sequenceOrder = $this->sequenceOrder;
 
         $record->save(false);
 
@@ -910,6 +918,25 @@ class Reservation extends Element implements PurchasableInterface
             return null;
         }
         return Service::find()->id($this->serviceId)->siteId('*')->one();
+    }
+
+    /**
+     * Get the booking sequence this reservation belongs to
+     */
+    public function getSequence(): ?BookingSequence
+    {
+        if ($this->_sequence === null && $this->sequenceId) {
+            $this->_sequence = BookingSequence::find()->id($this->sequenceId)->one();
+        }
+        return $this->_sequence;
+    }
+
+    /**
+     * Check if this reservation is part of a sequential booking
+     */
+    public function isPartOfSequence(): bool
+    {
+        return $this->sequenceId !== null;
     }
 
     /**

@@ -55,9 +55,9 @@ class BookingForm extends Model
      * Validate timezone string against PHP's list of valid timezones
      *
      * @param string $attribute
-     * @param array $params
+     * @param array|null $params
      */
-    public function validateTimezone(string $attribute, array $params): void
+    public function validateTimezone(string $attribute, ?array $params = null): void
     {
         if (empty($this->$attribute)) {
             return; // Empty is allowed, will use system default

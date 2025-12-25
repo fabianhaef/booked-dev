@@ -1,0 +1,338 @@
+{#
+/**
+ * Sequential Booking Wizard Template
+ * Multi-step wizard for booking multiple services in sequence
+ */
+#}
+{% do view.registerAssetBundle("fabian\\booked\\assetbundles\\BookedAsset") %}
+
+<div class="booked-sequential-wizard" x-data="sequentialBookingWizard()" :class="{ 'booked-loading': loading }">
+    <!-- Step Indicator -->
+    <div class="booked-step-indicator">
+        <div class="booked-step" :class="{ 'active': step >= 1 }">1. Services</div>
+        <div class="booked-step" :class="{ 'active': step >= 2 }">2. Order</div>
+        <div class="booked-step" :class="{ 'active': step >= 3 }">3. Employee & Location</div>
+        <div class="booked-step" :class="{ 'active': step >= 4 }">4. Date & Time</div>
+        <div class="booked-step" :class="{ 'active': step >= 5 }">5. Info</div>
+        <div class="booked-step" :class="{ 'active': step >= 6 }">6. Confirm</div>
+    </div>
+
+    <!-- Step 1: Select Multiple Services -->
+    <div x-show="step === 1">
+        <h3>Select Services</h3>
+        <p class="text-gray-600 mb-4">Choose the services you want to book in sequence. You can select multiple services.</p>
+
+        <div class="booked-grid">
+            <template x-for="service in services" :key="service.id">
+                <div
+                    class="booked-card"
+                    :class="{ 'selected': isServiceSelected(service.id) }"
+                    @click="toggleService(service)"
+                >
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 x-text="service.title"></h4>
+                            <p x-text="service.description"></p>
+                            <div class="light" x-text="service.duration + ' min | CHF ' + service.price"></div>
+                        </div>
+                        <span
+                            x-show="isServiceSelected(service.id)"
+                            class="check-icon">✓</span>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div class="mt-4 p-4 bg-blue-50 rounded" x-show="selectedServices.length > 0">
+            <p class="font-semibold">Selected: <span x-text="selectedServices.length"></span> service(s)</p>
+            <p class="text-sm">Total duration: <span x-text="calculateTotalDuration()"></span> min</p>
+            <p class="text-sm">Total price: CHF <span x-text="calculateTotalPrice()"></span></p>
+        </div>
+
+        <button
+            class="btn btn-primary mt-4"
+            @click="nextStep()"
+            :disabled="selectedServices.length === 0"
+        >Continue</button>
+    </div>
+
+    <!-- Step 2: Order Services -->
+    <div x-show="step === 2">
+        <h3>Order Your Services</h3>
+        <p class="text-gray-600 mb-4">Drag and drop to arrange the order in which you want the services performed.</p>
+
+        <div class="booked-sequence-order">
+            <template x-for="(service, index) in selectedServices" :key="service.id">
+                <div
+                    class="booked-order-item"
+                    draggable="true"
+                    @dragstart="dragStart(index)"
+                    @dragover.prevent
+                    @drop="drop(index)"
+                >
+                    <div class="flex items-center gap-4">
+                        <span class="drag-handle">☰</span>
+                        <span class="order-number" x-text="index + 1"></span>
+                        <div class="flex-1">
+                            <h4 x-text="service.title"></h4>
+                            <p class="text-sm light">
+                                <span x-text="service.duration"></span> min |
+                                CHF <span x-text="service.price"></span>
+                                <span x-if="service.bufferAfter && index < selectedServices.length - 1">
+                                    | Buffer: <span x-text="service.bufferAfter"></span> min
+                                </span>
+                            </p>
+                        </div>
+                        <button
+                            class="btn-icon"
+                            @click="removeService(index)"
+                            title="Remove service"
+                        >✕</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Back</button>
+            <button class="btn btn-primary" @click="nextStep()">Continue</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Employee and Location Selection -->
+    <div x-show="step === 3">
+        <h3>Select Employee and Location</h3>
+
+        <div class="mb-6">
+            <h4 class="font-semibold mb-2">Choose an Employee (optional)</h4>
+            <div class="booked-grid">
+                <div class="booked-card" @click="employeeId = null" :class="{ 'selected': employeeId === null }">
+                    <h4>Any Available</h4>
+                    <p>Next available employee</p>
+                </div>
+                <template x-for="employee in employees" :key="employee.id">
+                    <div
+                        class="booked-card"
+                        @click="selectEmployee(employee)"
+                        :class="{ 'selected': employeeId === employee.id }"
+                    >
+                        <h4 x-text="employee.name"></h4>
+                        <p x-text="employee.bio"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div>
+            <h4 class="font-semibold mb-2">Choose a Location</h4>
+            <div class="booked-grid">
+                <template x-for="location in locations" :key="location.id">
+                    <div
+                        class="booked-card"
+                        @click="selectLocation(location)"
+                        :class="{ 'selected': locationId === location.id }"
+                    >
+                        <h4 x-text="location.name"></h4>
+                        <p x-text="location.address"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Back</button>
+            <button class="btn btn-primary" @click="nextStep()" :disabled="!locationId">Continue</button>
+        </div>
+    </div>
+
+    <!-- Step 4: Date & Time Selection -->
+    <div x-show="step === 4">
+        <h3>Select Date and Time</h3>
+        <p class="text-gray-600 mb-4">Choose when you want to start your sequential booking.</p>
+
+        <div class="flex gap-8">
+            <div class="w-1/2">
+                <label class="font-semibold mb-2 block">Select Date</label>
+                <input
+                    type="date"
+                    x-model="date"
+                    @change="loadSequentialSlots()"
+                    class="text-input"
+                    :min="minDate"
+                >
+
+                <div class="mt-4 p-4 bg-gray-50 rounded">
+                    <h4 class="font-semibold mb-2">Your Sequence Timeline:</h4>
+                    <div class="text-sm space-y-1">
+                        <template x-for="(service, index) in selectedServices" :key="index">
+                            <div>
+                                <span class="font-medium" x-text="service.title"></span>:
+                                <span x-text="service.duration"></span> min
+                                <span x-if="service.bufferAfter && index < selectedServices.length - 1" class="text-gray-500">
+                                    + <span x-text="service.bufferAfter"></span> min buffer
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-1/2">
+                <label class="font-semibold mb-2 block">Available Start Times</label>
+                <div class="booked-slots">
+                    <template x-for="slot in availableSlots" :key="slot.time">
+                        <div
+                            class="booked-slot"
+                            @click="selectSlot(slot)"
+                            :class="{ 'selected': time === slot.time }"
+                        >
+                            <div x-text="slot.time"></div>
+                            <div class="text-xs light">Ends: <span x-text="slot.endTime"></span></div>
+                        </div>
+                    </template>
+                    <template x-if="availableSlots.length === 0 && date && !loading">
+                        <p class="light">No available time slots for this sequence on this date.</p>
+                    </template>
+                    <template x-if="!date">
+                        <p class="light">Please select a date first.</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Back</button>
+        </div>
+    </div>
+
+    <!-- Step 5: Customer Information -->
+    <div x-show="step === 5">
+        <h3>Your Information</h3>
+        <div class="form-group">
+            <label>Name *</label>
+            <input type="text" x-model="customerName" class="text-input" required>
+        </div>
+        <div class="form-group">
+            <label>Email *</label>
+            <input type="email" x-model="customerEmail" class="text-input" required>
+        </div>
+        <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" x-model="customerPhone" class="text-input">
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea x-model="notes" class="text-input" rows="3"></textarea>
+        </div>
+
+        <!-- Honeypot spam field (hidden) -->
+        <input type="text" x-model="website" style="display: none;" tabindex="-1" autocomplete="off">
+
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Back</button>
+            <button
+                class="btn btn-primary"
+                @click="nextStep()"
+                :disabled="!customerName || !customerEmail"
+            >Continue</button>
+        </div>
+    </div>
+
+    <!-- Step 6: Review and Confirm -->
+    <div x-show="step === 6">
+        <h3>Confirm Your Sequential Booking</h3>
+
+        <div class="booked-summary p-6 bg-gray-50 rounded mb-4">
+            <h4 class="font-semibold mb-4">Booking Details</h4>
+
+            <div class="mb-4">
+                <p class="font-semibold mb-2">Services in sequence:</p>
+                <ol class="list-decimal list-inside space-y-1">
+                    <template x-for="(service, index) in selectedServices" :key="index">
+                        <li>
+                            <span x-text="service.title"></span>
+                            (<span x-text="service.duration"></span> min,
+                            CHF <span x-text="service.price"></span>)
+                        </li>
+                    </template>
+                </ol>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <p><strong>Employee:</strong> <span x-text="selectedEmployee?.name || 'Any available'"></span></p>
+                    <p><strong>Location:</strong> <span x-text="selectedLocation?.name"></span></p>
+                </div>
+                <div>
+                    <p><strong>Date:</strong> <span x-text="date"></span></p>
+                    <p><strong>Start Time:</strong> <span x-text="time"></span></p>
+                    <p><strong>Estimated End:</strong> <span x-text="calculateEndTime()"></span></p>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p><strong>Name:</strong> <span x-text="customerName"></span></p>
+                    <p><strong>Email:</strong> <span x-text="customerEmail"></span></p>
+                    <p x-if="customerPhone"><strong>Phone:</strong> <span x-text="customerPhone"></span></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-2xl font-bold">CHF <span x-text="calculateTotalPrice()"></span></p>
+                    <p class="text-sm text-gray-600">Total duration: <span x-text="calculateTotalDuration()"></span> min</p>
+                </div>
+            </div>
+        </div>
+
+        <div x-if="errorMessage" class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mb-4">
+            <p x-text="errorMessage"></p>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <button class="btn" @click="prevStep()">Back</button>
+            <button
+                class="btn btn-primary"
+                @click="submitBooking()"
+                :disabled="loading"
+            >
+                <span x-show="!loading">Book Now</span>
+                <span x-show="loading">Processing...</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 7: Success -->
+    <div x-show="step === 7">
+        <div class="booked-success text-center py-8">
+            <svg class="mx-auto mb-4" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #10b981;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m9 12 2 2 4-4"></path>
+            </svg>
+
+            <h3 class="text-2xl font-bold mb-2">Booking Successful!</h3>
+            <p class="text-gray-600 mb-6">Your sequential booking has been created successfully.</p>
+
+            <div class="booked-success-details p-6 bg-gray-50 rounded-lg mb-6 text-left max-w-2xl mx-auto">
+                <p class="mb-2"><strong>Booking ID:</strong> #<span x-text="sequenceDetails?.id"></span></p>
+                <p class="mb-2"><strong>Status:</strong> <span x-text="sequenceDetails?.status || 'Pending'"></span></p>
+                <p class="mb-4"><strong>Total Services:</strong> <span x-text="selectedServices.length"></span></p>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm">
+                    <p class="font-semibold text-blue-900 mb-1">Next Steps:</p>
+                    <p class="text-blue-800">You will receive a confirmation email at <strong x-text="customerEmail"></strong> with all the details of your sequential booking.</p>
+                </div>
+            </div>
+
+            <div class="flex gap-4 justify-center">
+                <button class="btn btn-primary" @click="resetWizard()">Create New Booking</button>
+                <a href="/" class="btn">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% js %}
+    window.csrfTokenName = "{{ craft.app.config.general.csrfTokenName }}";
+    window.csrfTokenValue = "{{ craft.app.request.csrfToken }}";
+{% endjs %}

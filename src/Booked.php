@@ -144,6 +144,7 @@ class Booked extends Plugin
             'timezone' => \fabian\booked\services\TimezoneService::class,
             'emailRender' => \fabian\booked\services\EmailRenderService::class,
             'serviceExtra' => \fabian\booked\services\ServiceExtraService::class,
+            'sequentialBooking' => \fabian\booked\services\SequentialBookingService::class,
         ]);
     }
 
@@ -240,6 +241,7 @@ class Booked extends Plugin
                 $event->types[] = \fabian\booked\elements\Employee::class;
                 $event->types[] = \fabian\booked\elements\Location::class;
                 $event->types[] = \fabian\booked\elements\Schedule::class;
+                $event->types[] = \fabian\booked\elements\BookingSequence::class;
             }
         );
     }
@@ -312,6 +314,10 @@ class Booked extends Plugin
                     'booked/bookings/<id:\d+>/view' => 'booked/cp/bookings/view',
                     'booked/bookings/export' => 'booked/cp/bookings/export',
 
+                    // Sequential Booking Sequences
+                    'booked/sequences' => 'booked/cp/sequences/index',
+                    'booked/sequences/<id:\d+>' => 'booked/cp/sequences/view',
+
                     // Settings - with sidebar navigation
                     'booked/settings' => 'booked/cp/settings/general',
                     'booked/settings/general' => 'booked/cp/settings/general',
@@ -383,6 +389,7 @@ class Booked extends Plugin
         $item['subnav'] = [
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
             'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
+            'sequences' => ['label' => Craft::t('booked', 'Sequential Bookings'), 'url' => 'booked/sequences'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'service-extras' => ['label' => Craft::t('booked', 'Service Extras'), 'url' => 'booked/service-extras'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
@@ -544,6 +551,14 @@ class Booked extends Plugin
     public function getServiceExtra(): \fabian\booked\services\ServiceExtraService
     {
         return $this->get('serviceExtra');
+    }
+
+    /**
+     * Get the sequential booking service
+     */
+    public function getSequentialBooking(): \fabian\booked\services\SequentialBookingService
+    {
+        return $this->get('sequentialBooking');
     }
 
     /**

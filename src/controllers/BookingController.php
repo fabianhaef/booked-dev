@@ -26,16 +26,19 @@ use yii\web\NotFoundHttpException;
 class BookingController extends Controller
 {
     protected array|bool|int $allowAnonymous = [
-        'get-available-slots', 
-        'get-available-variations', 
-        'get-event-dates', 
-        'get-availability-calendar', 
-        'create-booking', 
-        'manage-booking', 
+        'get-available-slots',
+        'get-available-variations',
+        'get-event-dates',
+        'get-availability-calendar',
+        'create-booking',
+        'manage-booking',
         'cancel-booking-by-token',
         'get-services',
         'get-employees',
-        'get-locations'
+        'get-locations',
+        'get-sequential-slots',
+        'create-sequential-booking',
+        'cancel-sequence'
     ];
 
     private AvailabilityService $availabilityService;
@@ -672,6 +675,156 @@ class BookingController extends Controller
         $sanitized = trim($sanitized);
 
         return $sanitized;
+    }
+
+    /**
+     * Get available slots for sequential booking
+     */
+    public function actionGetSequentialSlots(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $serviceIds = Craft::$app->request->getRequiredBodyParam('serviceIds');
+        $date = Craft::$app->request->getRequiredBodyParam('date');
+        $employeeId = Craft::$app->request->getBodyParam('employeeId');
+        $locationId = Craft::$app->request->getBodyParam('locationId');
+
+        // Validate inputs
+        if (!is_array($serviceIds) || empty($serviceIds)) {
+            throw new BadRequestHttpException('serviceIds must be a non-empty array');
+        }
+
+        if (!\DateTime::createFromFormat('Y-m-d', $date)) {
+            throw new BadRequestHttpException('Invalid date format');
+        }
+
+        // Convert to integers
+        $serviceIds = array_map('intval', $serviceIds);
+        $employeeIdInt = $employeeId ? (int)$employeeId : null;
+        $locationIdInt = $locationId ? (int)$locationId : null;
+
+        try {
+            $sequentialService = Booked::getInstance()->sequentialBooking;
+            $slots = $sequentialService->getAvailableSequenceSlots(
+                $serviceIds,
+                $date,
+                $employeeIdInt,
+                $locationIdInt
+            );
+
+            return $this->asJson([
+                'success' => true,
+                'slots' => $slots
+            ]);
+        } catch (\Throwable $e) {
+            Craft::error('Error getting sequential slots: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Create a sequential booking
+     */
+    public function actionCreateSequentialBooking(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $request = Craft::$app->request;
+
+        // Get form data
+        $data = [
+            'serviceIds' => $request->getRequiredBodyParam('serviceIds'),
+            'date' => $request->getRequiredBodyParam('date'),
+            'startTime' => $request->getRequiredBodyParam('startTime'),
+            'customerName' => $request->getRequiredBodyParam('customerName'),
+            'customerEmail' => $request->getRequiredBodyParam('customerEmail'),
+            'customerPhone' => $request->getBodyParam('customerPhone'),
+            'employeeId' => $request->getBodyParam('employeeId') ? (int)$request->getBodyParam('employeeId') : null,
+            'locationId' => $request->getBodyParam('locationId') ? (int)$request->getBodyParam('locationId') : null,
+            'notes' => $request->getBodyParam('notes'),
+            'userId' => Craft::$app->getUser()->id,
+        ];
+
+        // Honeypot spam check
+        $honeypot = $request->getBodyParam('website');
+        if (!empty($honeypot)) {
+            Craft::warning('Sequential booking blocked: Honeypot field was filled (spam bot detected)', __METHOD__);
+            return $this->asJson([
+                'success' => false,
+                'message' => 'Booking could not be created.'
+            ]);
+        }
+
+        try {
+            $sequentialService = Booked::getInstance()->sequentialBooking;
+            $sequence = $sequentialService->createSequentialBooking($data);
+
+            return $this->asJson([
+                'success' => true,
+                'message' => 'Sequential booking created successfully',
+                'sequence' => [
+                    'id' => $sequence->id,
+                    'status' => $sequence->status,
+                    'totalPrice' => $sequence->totalPrice,
+                    'totalDuration' => $sequence->getTotalDuration(),
+                    'itemCount' => count($sequence->getItems()),
+                ]
+            ]);
+        } catch (BookingException $e) {
+            Craft::error('Sequential booking error: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        } catch (\Throwable $e) {
+            Craft::error('Unexpected error creating sequential booking: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please try again.'
+            ]);
+        }
+    }
+
+    /**
+     * Cancel a booking sequence
+     */
+    public function actionCancelSequence(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $sequenceId = Craft::$app->request->getRequiredBodyParam('sequenceId');
+
+        try {
+            $sequence = \fabian\booked\elements\BookingSequence::findOne($sequenceId);
+
+            if (!$sequence) {
+                throw new NotFoundHttpException('Booking sequence not found');
+            }
+
+            if ($sequence->cancel()) {
+                return $this->asJson([
+                    'success' => true,
+                    'message' => 'Booking sequence cancelled successfully'
+                ]);
+            } else {
+                return $this->asJson([
+                    'success' => false,
+                    'message' => 'Failed to cancel booking sequence'
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Craft::error('Error cancelling sequence: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     /**

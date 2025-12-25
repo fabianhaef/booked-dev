@@ -27,6 +27,16 @@ class ReservationQuery extends ElementQuery
     public ?int $serviceId = null;
     public ?string $sourceType = null;
     public ?int $sourceId = null;
+    public ?int $sequenceId = null;
+
+    /**
+     * Filter by sequence ID
+     */
+    public function sequenceId(?int $value): static
+    {
+        $this->sequenceId = $value;
+        return $this;
+    }
 
     /**
      * Filter by employee ID
@@ -202,6 +212,8 @@ class ReservationQuery extends ElementQuery
             'bookings_reservations.locationId',
             'bookings_reservations.serviceId',
             'bookings_reservations.quantity',
+            'bookings_reservations.sequenceId',
+            'bookings_reservations.sequenceOrder',
         ]);
 
         // Apply filters
@@ -251,6 +263,10 @@ class ReservationQuery extends ElementQuery
 
         if ($this->sourceId) {
             $this->subQuery->andWhere(Db::parseParam('bookings_reservations.sourceId', $this->sourceId));
+        }
+
+        if ($this->sequenceId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('bookings_reservations.sequenceId', $this->sequenceId));
         }
 
         return parent::beforePrepare();

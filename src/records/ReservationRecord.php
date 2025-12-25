@@ -35,6 +35,8 @@ use craft\db\ActiveRecord;
  * @property bool $emailReminder1hSent
  * @property bool $smsReminder24hSent
  * @property bool $smsReminder1hSent
+ * @property int|null $sequenceId
+ * @property int $sequenceOrder
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
@@ -74,8 +76,9 @@ class ReservationRecord extends ActiveRecord
             [['status'], 'default', 'value' => self::STATUS_CONFIRMED],
             [['notificationSent'], 'default', 'value' => false],
             [['sourceType'], 'in', 'range' => ['entry', 'section']],
-            [['sourceId', 'variationId', 'employeeId', 'locationId', 'serviceId', 'quantity'], 'integer'],
+            [['sourceId', 'variationId', 'employeeId', 'locationId', 'serviceId', 'quantity', 'sequenceId', 'sequenceOrder'], 'integer'],
             [['quantity'], 'default', 'value' => 1],
+            [['sequenceOrder'], 'default', 'value' => 0],
             [['sourceHandle'], 'string', 'max' => 255],
         ];
     }
