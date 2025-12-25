@@ -335,16 +335,22 @@ class TestSoftLockService extends SoftLockService
 {
     private array $locks = [];
 
-    public function createLock(
-        string $date,
-        string $startTime,
-        string $endTime,
-        int $serviceId,
-        ?int $employeeId = null,
-        int $ttl = 900
-    ): string {
+    public function createLock(array $data, int $durationMinutes = 15): string|false
+    {
+        // Extract parameters from data array
+        $date = $data['date'] ?? '';
+        $startTime = $data['startTime'] ?? '';
+        $serviceId = $data['serviceId'] ?? 0;
+        $employeeId = $data['employeeId'] ?? null;
+        $ttl = $durationMinutes * 60; // Convert minutes to seconds
+
+        // Check if already locked
+        if ($this->isLocked($date, $startTime, $serviceId, $employeeId)) {
+            return false;
+        }
+
         $token = bin2hex(random_bytes(16));
-        $key = $this->getLockKey($date, $startTime, $endTime, $serviceId, $employeeId);
+        $key = $this->getLockKey($date, $startTime, $serviceId, $employeeId);
 
         $this->locks[$key] = [
             'token' => $token,
@@ -357,11 +363,10 @@ class TestSoftLockService extends SoftLockService
     public function isLocked(
         string $date,
         string $startTime,
-        string $endTime,
         int $serviceId,
         ?int $employeeId = null
     ): bool {
-        $key = $this->getLockKey($date, $startTime, $endTime, $serviceId, $employeeId);
+        $key = $this->getLockKey($date, $startTime, $serviceId, $employeeId);
 
         if (!isset($this->locks[$key])) {
             return false;
@@ -403,11 +408,10 @@ class TestSoftLockService extends SoftLockService
     private function getLockKey(
         string $date,
         string $startTime,
-        string $endTime,
         int $serviceId,
         ?int $employeeId
     ): string {
-        return "{$date}_{$startTime}_{$endTime}_{$serviceId}_{$employeeId}";
+        return "{$date}_{$startTime}_{$serviceId}_{$employeeId}";
     }
 }
 

@@ -19,11 +19,6 @@ abstract class BookingEvent extends CancelableEvent
     public Reservation $reservation;
 
     /**
-     * @var array Additional data that can be passed to event handlers
-     */
-    public array $data = [];
-
-    /**
      * @var bool Whether this is a new reservation (vs updating existing)
      */
     public bool $isNew = true;

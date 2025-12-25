@@ -4,7 +4,6 @@ namespace fabian\booked\services;
 
 use Craft;
 use craft\base\Component;
-use craft\helpers\StringHelper;
 use yii\caching\TagDependency;
 
 /**
@@ -181,8 +180,8 @@ class PerformanceCacheService extends Component
         $availabilityService = \fabian\booked\Booked::getInstance()->availability;
 
         // Get active employees and services
-        $employees = \fabian\booked\elements\Employee::find()->enabled(true)->all();
-        $services = \fabian\booked\elements\Service::find()->enabled(true)->all();
+        $employees = \fabian\booked\elements\Employee::find()->status('enabled')->all();
+        $services = \fabian\booked\elements\Service::find()->status('enabled')->all();
 
         $today = new \DateTime();
 

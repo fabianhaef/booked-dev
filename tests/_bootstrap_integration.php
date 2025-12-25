@@ -1,4 +1,10 @@
 <?php
+/**
+ * Integration Test Bootstrap
+ *
+ * Full Craft CMS bootstrap for integration tests
+ * Use this for testing complete workflows with database, elements, and services
+ */
 
 use craft\test\TestSetup;
 
@@ -47,5 +53,5 @@ spl_autoload_register(function ($class) {
     if (file_exists($file)) require_once $file;
 });
 
-// Initialize Craft for testing
+// Initialize Craft for integration testing
 TestSetup::configureCraft();

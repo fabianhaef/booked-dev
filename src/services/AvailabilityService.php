@@ -31,6 +31,12 @@ class AvailabilityService extends Component
      */
     const EVENT_BEFORE_AVAILABILITY_CHECK = 'beforeAvailabilityCheck';
     const EVENT_AFTER_AVAILABILITY_CHECK = 'afterAvailabilityCheck';
+
+    /**
+     * @var DateTime|null Current date/time for testing purposes (null = use real time)
+     */
+    protected ?DateTime $currentDateTime = null;
+
     /**
      * Get available time slots for a specific date
      *
@@ -834,7 +840,7 @@ class AvailabilityService extends Component
      */
     protected function getCurrentDateTime(): DateTime
     {
-        return new DateTime();
+        return $this->currentDateTime ?: new DateTime();
     }
 
     /**

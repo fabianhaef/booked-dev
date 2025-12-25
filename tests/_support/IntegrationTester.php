@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+
 /**
  * Inherited Methods
- * @method void wantToTest($text)
  * @method void wantTo($text)
+ * @method void wantToTest($text)
  * @method void execute($callable)
  * @method void expectTo($prediction)
  * @method void expect($prediction)
@@ -17,9 +18,9 @@ declare(strict_types=1);
  *
  * @SuppressWarnings(PHPMD)
 */
-class UnitTester extends \Codeception\Actor
+class IntegrationTester extends \Codeception\Actor
 {
-    use _generated\UnitTesterActions;
+    use _generated\IntegrationTesterActions;
 
     /**
      * Define custom actions here

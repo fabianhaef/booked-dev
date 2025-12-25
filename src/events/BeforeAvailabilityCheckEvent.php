@@ -29,7 +29,7 @@ use craft\events\CancelableEvent;
  *         // Early bird discount: only show early morning slots to premium members
  *         $currentUser = \Craft::$app->user->identity;
  *         if (!$currentUser || !$currentUser->isPremium()) {
- *             $event->data['excludeEarlySlots'] = true;
+ *             $event->criteria['excludeEarlySlots'] = true;
  *         }
  *     }
  * );
@@ -66,9 +66,4 @@ class BeforeAvailabilityCheckEvent extends CancelableEvent
      * @var array Additional criteria or filters
      */
     public array $criteria = [];
-
-    /**
-     * @var array Additional data that can be passed to event handlers
-     */
-    public array $data = [];
 }

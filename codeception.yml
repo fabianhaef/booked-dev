@@ -5,17 +5,53 @@ paths:
   data: tests/_data
   support: tests/_support
   envs: tests/_envs
-bootstrap: _bootstrap.php
+
+# Default settings (used by all suites unless overridden)
+settings:
+  colors: true
+  memory_limit: 1024M
+
+# Environment parameters
 params:
   - tests/test.env
-modules:
-  config:
-    \craft\test\Craft:
-      configFile: "tests/_craft/config/test.php"
-      dbSetup: { clean: true, setupCraft: true }
-      transaction: true
-      cleanup: true
-      plugins:
-        booked:
-          class: fabian\booked\Booked
-          handle: booked
+
+# Test suites configuration
+suites:
+  # Unit tests - Fast, lightweight, no database
+  unit:
+    actor: UnitTester
+    path: .
+    bootstrap: _bootstrap_unit.php
+    modules:
+      enabled:
+        - Asserts
+        - \fabian\booked\tests\_support\Helper\Unit
+
+  # Integration tests - Full Craft CMS with database
+  integration:
+    actor: IntegrationTester
+    path: .
+    bootstrap: _bootstrap_integration.php
+    modules:
+      enabled:
+        - Asserts
+        - \craft\test\Craft:
+            configFile: "tests/_craft/config/test.php"
+            dbSetup: { clean: true, setupCraft: true }
+            transaction: true
+            cleanup: true
+            plugins:
+              booked:
+                class: fabian\booked\Booked
+                handle: booked
+        - \fabian\booked\tests\_support\Helper\Integration
+
+# Coverage settings
+coverage:
+  enabled: true
+  include:
+    - src/*
+  exclude:
+    - src/migrations/*
+    - src/templates/*
+    - src/translations/*

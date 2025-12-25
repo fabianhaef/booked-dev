@@ -397,17 +397,28 @@ class TestableSoftLockService extends SoftLockService
 {
     private array $locks = [];
 
-    public function createLock(string $date, string $startTime, string $endTime, int $serviceId, ?int $employeeId = null): string
+    public function createLock(array $data, int $durationMinutes = 15): string|false
     {
+        // Extract parameters from data array
+        $date = $data['date'] ?? '';
+        $startTime = $data['startTime'] ?? '';
+        $serviceId = $data['serviceId'] ?? 0;
+        $employeeId = $data['employeeId'] ?? null;
+
+        // Check if already locked using parent's isLocked method
+        if ($this->isLocked($date, $startTime, $serviceId, $employeeId)) {
+            return false;
+        }
+
         $token = bin2hex(random_bytes(16));
-        $key = "{$date}_{$startTime}_{$endTime}_{$serviceId}_{$employeeId}";
+        $key = "{$date}_{$startTime}_{$serviceId}_{$employeeId}";
         $this->locks[$key] = $token;
         return $token;
     }
 
-    public function isLocked(string $date, string $startTime, string $endTime, int $serviceId, ?int $employeeId = null): bool
+    public function isLocked(string $date, string $startTime, int $serviceId, ?int $employeeId = null): bool
     {
-        $key = "{$date}_{$startTime}_{$endTime}_{$serviceId}_{$employeeId}";
+        $key = "{$date}_{$startTime}_{$serviceId}_{$employeeId}";
         return isset($this->locks[$key]);
     }
 
