@@ -123,7 +123,10 @@ class ServiceExtraController extends Controller
         // Save service assignments
         $assignedServices = $request->getBodyParam('services', []);
         if (is_array($assignedServices)) {
-            Booked::getInstance()->serviceExtra->setExtrasForService($extra->id, $assignedServices);
+            Booked::getInstance()->serviceExtra->setServicesForExtra($extra->id, $assignedServices);
+        } else {
+            // Clear all service assignments if none selected
+            Booked::getInstance()->serviceExtra->setServicesForExtra($extra->id, []);
         }
 
         Craft::$app->getSession()->setNotice('Service extra saved.');

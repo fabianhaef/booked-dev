@@ -18,6 +18,13 @@
     {% endif %}
 
     <div id="fields">
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: employee.enabled ?? true
+        }) }}
+
         {{ forms.textField({
             label: 'Title'|t('app'),
             id: 'title',
@@ -57,20 +64,26 @@
             instructions: 'Primary location for this employee'
         }) }}
 
-        {{ forms.checkboxGroupField({
+        {% set assignedServices = [] %}
+        {% if employee.id %}
+            {% for serviceId in employee.getServiceIds() %}
+                {% set service = craft.app.elements.getElementById(serviceId, 'fabian\\booked\\elements\\Service') %}
+                {% if service %}
+                    {% set assignedServices = assignedServices|merge([service]) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {{ forms.elementSelectField({
             label: 'Services'|t('booked'),
             id: 'services',
             name: 'services',
-            options: services|map(s => { value: s.id, label: s.title }),
-            values: employee.getServiceIds(),
+            elementType: 'fabian\\booked\\elements\\Service',
+            elements: assignedServices,
+            limit: null,
+            sources: '*',
+            errors: employee.getErrors('services'),
             instructions: 'Select which services this employee can perform'
-        }) }}
-
-        {{ forms.lightswitchField({
-            label: 'Enabled'|t('app'),
-            id: 'enabled',
-            name: 'enabled',
-            on: employee.enabled ?? true
         }) }}
 
         {% if employee.id %}

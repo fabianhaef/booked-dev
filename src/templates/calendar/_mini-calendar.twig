@@ -1,0 +1,125 @@
+{#
+/**
+ * Mini Calendar Component
+ *
+ * A compact calendar widget for quick date navigation
+ * Shows booking indicators on days with reservations
+ *
+ * @param DateTime selectedDate - Currently selected date
+ * @param string view - Current view type (month, week, day)
+ * @param array bookingCounts - Array of dates with booking counts [date => count]
+ */
+#}
+
+{% set now = now|date_modify('midnight') %}
+{% set miniCalDate = selectedDate ?? now %}
+{% set miniYear = miniCalDate|date('Y') %}
+{% set miniMonth = miniCalDate|date('m') %}
+
+{# Calculate mini calendar navigation #}
+{% set miniPrevMonth = miniCalDate.format('Y-m-d')|date_modify('-1 month') %}
+{% set miniNextMonth = miniCalDate.format('Y-m-d')|date_modify('+1 month') %}
+
+<div class="mini-calendar" style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px;">
+    {# Month navigation header #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <button
+            onclick="location.href='{{ url('booked/calendar-view/' ~ view, {
+                date: miniPrevMonth|date('Y-m-d'),
+                year: miniPrevMonth|date('Y'),
+                month: miniPrevMonth|date('m')
+            }) }}'"
+            class="btn small"
+            style="padding: 4px 8px; min-width: auto;">
+            ←
+        </button>
+
+        <div style="font-weight: 600; font-size: 14px;">
+            {{ miniCalDate|date('F Y') }}
+        </div>
+
+        <button
+            onclick="location.href='{{ url('booked/calendar-view/' ~ view, {
+                date: miniNextMonth|date('Y-m-d'),
+                year: miniNextMonth|date('Y'),
+                month: miniNextMonth|date('m')
+            }) }}'"
+            class="btn small"
+            style="padding: 4px 8px; min-width: auto;">
+            →
+        </button>
+    </div>
+
+    {# Calendar grid #}
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center;">
+        {# Day headers #}
+        {% set dayHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] %}
+        {% for day in dayHeaders %}
+            <div style="font-size: 11px; font-weight: 600; color: #6b7280; padding: 4px 0;">
+                {{ day }}
+            </div>
+        {% endfor %}
+
+        {# Calculate calendar grid #}
+        {% set firstDay = miniCalDate|date_modify('first day of this month') %}
+        {% set firstDayOfWeek = firstDay|date('N') %}{# 1 = Monday, 7 = Sunday #}
+        {% set daysInMonth = miniCalDate|date('t') %}
+
+        {# Empty cells before month starts #}
+        {% for i in 1..(firstDayOfWeek - 1) %}
+            <div style="padding: 6px; font-size: 12px;"></div>
+        {% endfor %}
+
+        {# Days of the month #}
+        {% for day in 1..daysInMonth %}
+            {% set dayDate = firstDay|date_modify('+' ~ (day - 1) ~ ' days') %}
+            {% set dayDateStr = dayDate|date('Y-m-d') %}
+            {% set isToday = dayDateStr == now|date('Y-m-d') %}
+            {% set isSelected = dayDateStr == selectedDate|date('Y-m-d') %}
+            {% set hasBookings = bookingCounts[dayDateStr] is defined and bookingCounts[dayDateStr] > 0 %}
+            {% set bookingCount = bookingCounts[dayDateStr] ?? 0 %}
+
+            <a href="{{ url('booked/calendar-view/' ~ view, { date: dayDateStr }) }}"
+               style="display: block; padding: 6px 2px; font-size: 12px; text-decoration: none; border-radius: 4px; position: relative;
+                      {% if isSelected %}background: #3b82f6; color: white; font-weight: 600;
+                      {% elseif isToday %}background: #dbeafe; color: #1e40af; font-weight: 600;
+                      {% else %}color: #374151;{% endif %}"
+               onmouseover="this.style.background='{% if isSelected %}#2563eb{% else %}#f3f4f6{% endif %}'"
+               onmouseout="this.style.background='{% if isSelected %}#3b82f6{% elseif isToday %}#dbeafe{% else %}transparent{% endif %}'">
+                {{ day }}
+                {% if hasBookings %}
+                    <span style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+                                 width: 4px; height: 4px; background: {% if isSelected or isToday %}currentColor{% else %}#3b82f6{% endif %};
+                                 border-radius: 50%;" title="{{ bookingCount }} booking{% if bookingCount > 1 %}s{% endif %}"></span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
+    {# Today button #}
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+        <a href="{{ url('booked/calendar-view/' ~ view) }}"
+           class="btn small submit"
+           style="width: 100%; text-align: center; display: block;">
+            Today
+        </a>
+    </div>
+
+    {# Booking summary #}
+    {% if bookingCounts|length > 0 %}
+        {% set totalBookings = 0 %}
+        {% for count in bookingCounts %}
+            {% set totalBookings = totalBookings + count %}
+        {% endfor %}
+
+        <div style="margin-top: 12px; padding: 8px; background: #f9fafb; border-radius: 4px; font-size: 12px; color: #6b7280; text-align: center;">
+            <strong style="color: #374151;">{{ totalBookings }}</strong> booking{% if totalBookings != 1 %}s{% endif %} this month
+        </div>
+    {% endif %}
+</div>
+
+{% css %}
+.mini-calendar a:hover {
+    transition: background-color 0.15s ease;
+}
+{% endcss %}

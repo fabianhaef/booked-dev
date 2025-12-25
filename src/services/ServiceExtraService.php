@@ -172,6 +172,33 @@ class ServiceExtraService extends Component
     }
 
     /**
+     * Set services for an extra (inverse of setExtrasForService)
+     *
+     * @param int $extraId
+     * @param array $serviceIds Array of service IDs
+     * @return bool
+     */
+    public function setServicesForExtra(int $extraId, array $serviceIds): bool
+    {
+        // Delete existing assignments for this extra
+        ServiceExtraServiceRecord::deleteAll(['extraId' => $extraId]);
+
+        // Create new assignments
+        foreach ($serviceIds as $index => $serviceId) {
+            $record = new ServiceExtraServiceRecord();
+            $record->extraId = $extraId;
+            $record->serviceId = $serviceId;
+            $record->sortOrder = $index;
+
+            if (!$record->save()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Get selected extras for a reservation
      *
      * @param int $reservationId

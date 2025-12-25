@@ -24,7 +24,7 @@ class OAuthStateTokenRecord extends ActiveRecord
      */
     public static function tableName(): string
     {
-        return '{{%bookings_oauth_state_tokens}}';
+        return '{{%booked_oauth_state_tokens}}';
     }
 
     /**

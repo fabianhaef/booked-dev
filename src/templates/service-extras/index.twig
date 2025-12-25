@@ -9,6 +9,7 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
+{% set selectedSubnavItem = 'service-extras' %}
 {% set title = "Service Extras" %}
 
 {% set crumbs = [
@@ -42,7 +43,7 @@
                     {% for extra in extras %}
                         <tr data-id="{{ extra.id }}" data-name="{{ extra.name }}">
                             <td>
-                                <a href="{{ url('booked/service-extras/edit/' ~ extra.id) }}">
+                                <a href="{{ url('booked/service-extras/' ~ extra.id) }}">
                                     <strong>{{ extra.name }}</strong>
                                 </a>
                                 {% if extra.description %}
@@ -92,7 +93,7 @@
 
         <form id="delete-form" method="post" accept-charset="UTF-8">
             {{ csrfInput() }}
-            {{ actionInput('booked/service-extra/delete') }}
+            {{ actionInput('booked/cp/service-extra/delete') }}
             <input type="hidden" name="id" id="delete-id">
         </form>
 

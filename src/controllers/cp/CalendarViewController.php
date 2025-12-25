@@ -46,12 +46,15 @@ class CalendarViewController extends Controller
 
         // Group reservations by date
         $reservationsByDate = [];
+        $bookingCounts = [];
         foreach ($reservations as $reservation) {
             $date = $reservation->bookingDate;
             if (!isset($reservationsByDate[$date])) {
                 $reservationsByDate[$date] = [];
+                $bookingCounts[$date] = 0;
             }
             $reservationsByDate[$date][] = $reservation;
+            $bookingCounts[$date]++;
         }
 
         return $this->renderTemplate('booked/calendar/month', [
@@ -60,6 +63,8 @@ class CalendarViewController extends Controller
             'reservations' => $reservationsByDate,
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'selectedDate' => $startDate,
+            'bookingCounts' => $bookingCounts,
         ]);
     }
 
@@ -86,6 +91,7 @@ class CalendarViewController extends Controller
 
         // Group by day
         $reservationsByDay = [];
+        $bookingCounts = [];
         for ($i = 0; $i < 7; $i++) {
             $day = (clone $startDate)->modify("+{$i} days");
             $dayKey = $day->format('Y-m-d');
@@ -100,12 +106,34 @@ class CalendarViewController extends Controller
             if (isset($reservationsByDay[$date])) {
                 $reservationsByDay[$date]['reservations'][] = $reservation;
             }
+            if (!isset($bookingCounts[$date])) {
+                $bookingCounts[$date] = 0;
+            }
+            $bookingCounts[$date]++;
+        }
+
+        // Get booking counts for the entire month of the current date
+        $monthStart = (clone $currentDate)->modify('first day of this month');
+        $monthEnd = (clone $currentDate)->modify('last day of this month');
+        $monthReservations = Reservation::find()
+            ->bookingDate(['and', '>= ' . $monthStart->format('Y-m-d'), '<= ' . $monthEnd->format('Y-m-d')])
+            ->all();
+
+        $monthBookingCounts = [];
+        foreach ($monthReservations as $reservation) {
+            $date = $reservation->bookingDate;
+            if (!isset($monthBookingCounts[$date])) {
+                $monthBookingCounts[$date] = 0;
+            }
+            $monthBookingCounts[$date]++;
         }
 
         return $this->renderTemplate('booked/calendar/week', [
             'startDate' => $startDate,
             'endDate' => $endDate,
             'reservationsByDay' => $reservationsByDay,
+            'selectedDate' => $currentDate,
+            'bookingCounts' => $monthBookingCounts,
         ]);
     }
 
@@ -143,9 +171,27 @@ class CalendarViewController extends Controller
             }
         }
 
+        // Get booking counts for the entire month
+        $monthStart = (clone $selectedDate)->modify('first day of this month');
+        $monthEnd = (clone $selectedDate)->modify('last day of this month');
+        $monthReservations = Reservation::find()
+            ->bookingDate(['and', '>= ' . $monthStart->format('Y-m-d'), '<= ' . $monthEnd->format('Y-m-d')])
+            ->all();
+
+        $bookingCounts = [];
+        foreach ($monthReservations as $reservation) {
+            $date = $reservation->bookingDate;
+            if (!isset($bookingCounts[$date])) {
+                $bookingCounts[$date] = 0;
+            }
+            $bookingCounts[$date]++;
+        }
+
         return $this->renderTemplate('booked/calendar/day', [
             'date' => $selectedDate,
             'hourlySlots' => $hourlySlots,
+            'selectedDate' => $selectedDate,
+            'bookingCounts' => $bookingCounts,
         ]);
     }
 

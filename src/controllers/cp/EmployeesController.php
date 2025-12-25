@@ -47,7 +47,7 @@ class EmployeesController extends Controller
     public function actionEdit(int $id = null): Response
     {
         if ($id) {
-            $employee = Employee::find()->id($id)->one();
+            $employee = Employee::find()->id($id)->status(null)->one();
             if (!$employee) {
                 throw new NotFoundHttpException('Employee not found');
             }
@@ -97,7 +97,7 @@ class EmployeesController extends Controller
         $id = $request->getBodyParam('elementId') ?? $request->getBodyParam('id');
 
         if ($id) {
-            $employee = Employee::find()->id($id)->one();
+            $employee = Employee::find()->id($id)->status(null)->one();
             if (!$employee) {
                 throw new NotFoundHttpException('Employee not found');
             }

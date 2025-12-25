@@ -9,6 +9,7 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
+{% set selectedSubnavItem = 'service-extras' %}
 {% set title = isNew ? "New Service Extra" : extra.name %}
 
 {% set crumbs = [
@@ -20,7 +21,7 @@
 {% set saveShortcutRedirect = 'booked/service-extras' %}
 
 {% block content %}
-    {{ actionInput('booked/service-extra/save') }}
+    {{ actionInput('booked/cp/service-extra/save') }}
     {{ redirectInput('booked/service-extras') }}
 
     {% if not isNew %}
@@ -121,34 +122,30 @@
         {# Service Assignment #}
         <h2>Available for Services</h2>
 
-        <div class="field">
-            <div class="heading">
-                <label>{{ "Services"|t('booked') }}</label>
-                <div class="instructions">
-                    <p>Select which services should offer this extra. Leave empty to offer for all services.</p>
-                </div>
-            </div>
-            <div class="input">
-                {% if services|length %}
-                    <div class="checkbox-select">
-                        {% for service in services %}
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="services[]"
-                                    value="{{ service.id }}"
-                                    {% if assignedServiceIds is defined and service.id in assignedServiceIds %}checked{% endif %}
-                                >
-                                {{ service.title }}
-                                <span class="light">({{ service.duration }} min, {{ service.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.currency) }})</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="light">No services created yet. <a href="{{ url('booked/services/new') }}">Create a service</a> first.</p>
+        {% set assignedServices = [] %}
+        {% if assignedServiceIds is defined and assignedServiceIds|length %}
+            {% for serviceId in assignedServiceIds %}
+                {% set service = craft.entries.section('booked').id(serviceId).one() %}
+                {% if not service %}
+                    {# Try as Service element instead of entry #}
+                    {% set service = craft.app.elements.getElementById(serviceId, 'fabian\\booked\\elements\\Service') %}
                 {% endif %}
-            </div>
-        </div>
+                {% if service %}
+                    {% set assignedServices = assignedServices|merge([service]) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {{ forms.elementSelectField({
+            label: "Services"|t('booked'),
+            instructions: "Select which services should offer this extra. Leave empty to offer for all services."|t('booked'),
+            id: 'services',
+            name: 'services',
+            elementType: 'fabian\\booked\\elements\\Service',
+            elements: assignedServices,
+            limit: null,
+            sources: '*',
+        }) }}
 
         <hr>
 
@@ -205,15 +202,6 @@
 {% endblock %}
 
 {% css %}
-.checkbox-select label {
-    display: block;
-    padding: 8px 0;
-}
-
-.checkbox-select input[type="checkbox"] {
-    margin-right: 8px;
-}
-
 .extra-preview {
     padding: 15px;
     background: #f9f9f9;
