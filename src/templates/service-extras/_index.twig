@@ -1,0 +1,8 @@
+{% extends "_layouts/elementindex" %}
+{% set elementType = 'fabian\\booked\\elements\\ServiceExtra' %}
+{% set title = 'Service Extras' %}
+{% set selectedSubnavItem = 'service-extras' %}
+
+{% block actionButton %}
+    <a class="btn submit add icon" href="{{ url('booked/service-extras/new') }}">{{ 'New Service Extra'|t('booked') }}</a>
+{% endblock %}

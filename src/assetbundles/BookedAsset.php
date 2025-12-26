@@ -22,8 +22,6 @@ class BookedAsset extends AssetBundle
         $this->js = [
             'js/booking-availability.js',
             'js/booking-wizard.js',
-            'js/booking-catalog.js',
-            'js/booking-search.js',
         ];
 
         $this->css = [

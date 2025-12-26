@@ -238,6 +238,7 @@ class Booked extends Plugin
             function(\craft\events\RegisterComponentTypesEvent $event) {
                 // Phase 1.2 - Core element types
                 $event->types[] = \fabian\booked\elements\Service::class;
+                $event->types[] = \fabian\booked\elements\ServiceExtra::class;
                 $event->types[] = \fabian\booked\elements\Employee::class;
                 $event->types[] = \fabian\booked\elements\Location::class;
                 $event->types[] = \fabian\booked\elements\Schedule::class;

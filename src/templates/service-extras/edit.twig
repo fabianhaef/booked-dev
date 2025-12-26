@@ -10,7 +10,7 @@
 {% import "_includes/forms" as forms %}
 
 {% set selectedSubnavItem = 'service-extras' %}
-{% set title = isNew ? "New Service Extra" : extra.name %}
+{% set title = isNew ? "New Service Extra" : extra.title %}
 
 {% set crumbs = [
     { label: "Booked", url: url('booked') },
@@ -21,11 +21,9 @@
 {% set saveShortcutRedirect = 'booked/service-extras' %}
 
 {% block content %}
-    {{ actionInput('booked/cp/service-extra/save') }}
-    {{ redirectInput('booked/service-extras') }}
-
-    {% if not isNew %}
-        {{ hiddenInput('id', extra.id) }}
+    <input type="hidden" name="action" value="booked/cp/service-extra/save">
+    {% if extra.id %}
+        <input type="hidden" name="elementId" value="{{ extra.id }}">
     {% endif %}
 
     <div id="fields">
@@ -34,10 +32,10 @@
             first: true,
             label: "Name"|t('booked'),
             instructions: "The name of this extra (e.g., 'Extended Session +30min', 'Premium Products')"|t('booked'),
-            id: 'name',
-            name: 'name',
-            value: extra.name,
-            errors: extra.getErrors('name'),
+            id: 'title',
+            name: 'title',
+            value: extra.title,
+            errors: extra.getErrors('title'),
             autofocus: true,
             required: true
         }) }}

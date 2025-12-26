@@ -5,7 +5,7 @@ namespace fabian\booked\controllers\cp;
 use Craft;
 use craft\web\Controller;
 use fabian\booked\Booked;
-use fabian\booked\models\ServiceExtra;
+use fabian\booked\elements\ServiceExtra;
 use yii\web\Response;
 use yii\web\NotFoundHttpException;
 
@@ -17,14 +17,12 @@ use yii\web\NotFoundHttpException;
 class ServiceExtraController extends Controller
 {
     /**
-     * List all service extras
+     * List all service extras - now uses element index
      */
     public function actionIndex(): Response
     {
-        $extras = Booked::getInstance()->serviceExtra->getAllExtras();
-
-        return $this->renderTemplate('booked/service-extras/index', [
-            'extras' => $extras,
+        return $this->renderTemplate('booked/service-extras/_index', [
+            'title' => Craft::t('booked', 'Service Extras'),
         ]);
     }
 
@@ -34,11 +32,10 @@ class ServiceExtraController extends Controller
     public function actionNew(): Response
     {
         $extra = new ServiceExtra();
-        $services = \fabian\booked\elements\Service::find()->all();
+        $extra->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
 
         return $this->renderTemplate('booked/service-extras/edit', [
             'extra' => $extra,
-            'services' => $services,
             'isNew' => true,
         ]);
     }
@@ -48,24 +45,14 @@ class ServiceExtraController extends Controller
      */
     public function actionEdit(int $id): Response
     {
-        $extra = Booked::getInstance()->serviceExtra->getExtraById($id);
+        $extra = ServiceExtra::find()->id($id)->one();
 
         if (!$extra) {
             throw new NotFoundHttpException('Service extra not found');
         }
 
-        $services = \fabian\booked\elements\Service::find()->all();
-
-        // Get services this extra is assigned to
-        $assignedServiceIds = \fabian\booked\records\ServiceExtraServiceRecord::find()
-            ->select('serviceId')
-            ->where(['extraId' => $id])
-            ->column();
-
         return $this->renderTemplate('booked/service-extras/edit', [
             'extra' => $extra,
-            'services' => $services,
-            'assignedServiceIds' => $assignedServiceIds,
             'isNew' => false,
         ]);
     }
@@ -78,10 +65,10 @@ class ServiceExtraController extends Controller
         $this->requirePostRequest();
 
         $request = Craft::$app->getRequest();
-        $id = $request->getBodyParam('id');
+        $id = $request->getBodyParam('elementId') ?? $request->getBodyParam('id');
 
         if ($id) {
-            $extra = Booked::getInstance()->serviceExtra->getExtraById($id);
+            $extra = ServiceExtra::find()->id($id)->one();
             if (!$extra) {
                 throw new NotFoundHttpException('Service extra not found');
             }
@@ -89,49 +76,28 @@ class ServiceExtraController extends Controller
             $extra = new ServiceExtra();
         }
 
-        // Populate the model
-        $extra->name = $request->getBodyParam('name');
+        // Set element attributes
+        $extra->title = $request->getBodyParam('title');
+        $extra->enabled = (bool)$request->getBodyParam('enabled', true);
+
+        // Set custom attributes
         $extra->description = $request->getBodyParam('description');
         $extra->price = (float)$request->getBodyParam('price', 0);
         $extra->duration = (int)$request->getBodyParam('duration', 0);
         $extra->maxQuantity = (int)$request->getBodyParam('maxQuantity', 1);
         $extra->isRequired = (bool)$request->getBodyParam('isRequired', false);
         $extra->sortOrder = (int)$request->getBodyParam('sortOrder', 0);
-        $extra->enabled = (bool)$request->getBodyParam('enabled', true);
 
-        // Validate and save
-        if (!$extra->validate()) {
-            Craft::$app->getSession()->setError('Could not save service extra.');
-
-            return $this->renderTemplate('booked/service-extras/edit', [
+        if (!Craft::$app->elements->saveElement($extra)) {
+            Craft::$app->getSession()->setError(Craft::t('booked', 'Couldn\'t save service extra.'));
+            Craft::$app->urlManager->setRouteParams([
                 'extra' => $extra,
-                'services' => \fabian\booked\elements\Service::find()->all(),
-                'isNew' => !$id,
             ]);
+            return null;
         }
 
-        if (!Booked::getInstance()->serviceExtra->saveExtra($extra)) {
-            Craft::$app->getSession()->setError('Could not save service extra.');
-
-            return $this->renderTemplate('booked/service-extras/edit', [
-                'extra' => $extra,
-                'services' => \fabian\booked\elements\Service::find()->all(),
-                'isNew' => !$id,
-            ]);
-        }
-
-        // Save service assignments
-        $assignedServices = $request->getBodyParam('services', []);
-        if (is_array($assignedServices)) {
-            Booked::getInstance()->serviceExtra->setServicesForExtra($extra->id, $assignedServices);
-        } else {
-            // Clear all service assignments if none selected
-            Booked::getInstance()->serviceExtra->setServicesForExtra($extra->id, []);
-        }
-
-        Craft::$app->getSession()->setNotice('Service extra saved.');
-
-        return $this->redirectToPostedUrl($extra);
+        Craft::$app->getSession()->setNotice(Craft::t('booked', 'Service extra saved.'));
+        return $this->redirect('booked/service-extras');
     }
 
     /**
@@ -142,11 +108,16 @@ class ServiceExtraController extends Controller
         $this->requirePostRequest();
 
         $id = Craft::$app->getRequest()->getRequiredBodyParam('id');
+        $extra = ServiceExtra::find()->id($id)->one();
 
-        if (!Booked::getInstance()->serviceExtra->deleteExtra($id)) {
-            Craft::$app->getSession()->setError('Could not delete service extra.');
-        } else {
+        if (!$extra) {
+            throw new NotFoundHttpException('Service extra not found');
+        }
+
+        if (Craft::$app->elements->deleteElement($extra)) {
             Craft::$app->getSession()->setNotice('Service extra deleted.');
+        } else {
+            Craft::$app->getSession()->setError('Could not delete service extra.');
         }
 
         return $this->redirectToPostedUrl();
