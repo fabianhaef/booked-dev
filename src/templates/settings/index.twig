@@ -34,8 +34,6 @@
                 {# General Settings Tab #}
                 <div id="general" class="pane{% if selectedTab != 'general' %} hidden{% endif %}" role="tabpanel" aria-labelledby="tab-general">
                     <h2>{{ 'General Settings'|t('booked') }}</h2>
-                    <p class="light">{{ 'Configure general plugin settings.'|t('booked') }}</p>
-
                     {{ forms.textField({
                         label: 'Soft Lock Duration (minutes)'|t('booked'),
                         instructions: 'How long to hold a time slot when a user starts booking (default: 15 minutes).'|t('booked'),

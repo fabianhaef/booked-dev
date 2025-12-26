@@ -314,8 +314,8 @@ class Booked extends Plugin
                     'booked/bookings/<id:\d+>/view' => 'booked/cp/bookings/view',
                     'booked/bookings/export' => 'booked/cp/bookings/export',
 
-                    // Sequential Booking Sequences
-                    'booked/sequences' => 'booked/cp/sequences/index',
+                    // Sequential Booking Sequences - redirect to bookings tab
+                    'booked/sequences' => ['template' => '_layouts/redirect', 'params' => ['url' => 'booked/bookings?tab=sequential']],
                     'booked/sequences/<id:\d+>' => 'booked/cp/sequences/view',
 
                     // Settings - with sidebar navigation
@@ -389,26 +389,13 @@ class Booked extends Plugin
         $item['subnav'] = [
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
             'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
-            'sequences' => ['label' => Craft::t('booked', 'Sequential Bookings'), 'url' => 'booked/sequences'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
             'service-extras' => ['label' => Craft::t('booked', 'Service Extras'), 'url' => 'booked/service-extras'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
-            'blackout-dates' => ['label' => Craft::t('booked', 'Blackout Dates'), 'url' => 'booked/blackout-dates'],
             'schedules' => ['label' => Craft::t('booked', 'Schedules'), 'url' => 'booked/schedules'],
-            'settings' => [
-                'label' => Craft::t('booked', 'Settings'),
-                'url' => 'booked/settings',
-                'subnav' => [
-                    'general' => ['label' => Craft::t('booked', 'General'), 'url' => 'booked/settings/general'],
-                    'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/settings/calendar'],
-                    'meetings' => ['label' => Craft::t('booked', 'Virtual Meetings'), 'url' => 'booked/settings/meetings'],
-                    'notifications' => ['label' => Craft::t('booked', 'Notifications'), 'url' => 'booked/settings/notifications'],
-                    'booking-fields' => ['label' => Craft::t('booked', 'Booking Fields'), 'url' => 'booked/settings/booking-fields'],
-                    'commerce' => ['label' => Craft::t('booked', 'Commerce'), 'url' => 'booked/settings/commerce'],
-                    'frontend' => ['label' => Craft::t('booked', 'Frontend'), 'url' => 'booked/settings/frontend'],
-                ],
-            ],
+            'blackout-dates' => ['label' => Craft::t('booked', 'Blackout Dates'), 'url' => 'booked/blackout-dates'],
+            'settings' => ['label' => Craft::t('booked', 'Settings'), 'url' => 'booked/settings'],
         ];
         return $item;
     }

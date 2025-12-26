@@ -105,9 +105,32 @@ class BookingsController extends Controller
         $reservation->userName = $request->getRequiredBodyParam('userName');
         $reservation->userEmail = $request->getRequiredBodyParam('userEmail');
         $reservation->userPhone = $request->getBodyParam('userPhone');
-        $reservation->bookingDate = $request->getRequiredBodyParam('bookingDate');
-        $reservation->startTime = $request->getRequiredBodyParam('startTime');
-        $reservation->endTime = $request->getRequiredBodyParam('endTime');
+
+        // Handle date field - Craft sends it as array with 'date' key in Y-m-d format
+        $bookingDateParam = $request->getRequiredBodyParam('bookingDate');
+        if (is_array($bookingDateParam)) {
+            // Extract date from array and ensure it's in Y-m-d format
+            $dateValue = $bookingDateParam['date'] ?? '';
+            // If date is in d.m.Y format, convert to Y-m-d
+            if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $dateValue, $matches)) {
+                $reservation->bookingDate = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+            } else {
+                $reservation->bookingDate = $dateValue;
+            }
+        } else {
+            $reservation->bookingDate = $bookingDateParam;
+        }
+
+        // Handle time fields - Craft sends them as arrays, we need strings
+        $startTimeParam = $request->getRequiredBodyParam('startTime');
+        $reservation->startTime = is_array($startTimeParam)
+            ? ($startTimeParam['time'] ?? '')
+            : $startTimeParam;
+
+        $endTimeParam = $request->getRequiredBodyParam('endTime');
+        $reservation->endTime = is_array($endTimeParam)
+            ? ($endTimeParam['time'] ?? '')
+            : $endTimeParam;
         $reservation->status = $request->getRequiredBodyParam('status');
         $reservation->notes = $request->getBodyParam('notes');
         $reservation->quantity = (int)($request->getBodyParam('quantity') ?? 1);

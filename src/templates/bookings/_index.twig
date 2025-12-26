@@ -1,11 +1,25 @@
 {% extends "_layouts/elementindex" %}
-{% set elementType = 'fabian\\booked\\elements\\Reservation' %}
+
 {% set title = 'Buchungen' %}
 {% set selectedSubnavItem = 'bookings' %}
 
+{# Get the current tab from query parameter, default to 'single' #}
+{% set currentTab = craft.app.request.getParam('tab') ?? 'single' %}
+
+{# Set element type based on current tab #}
+{% if currentTab == 'sequential' %}
+    {% set elementType = 'fabian\\booked\\elements\\BookingSequence' %}
+{% else %}
+    {% set elementType = 'fabian\\booked\\elements\\Reservation' %}
+{% endif %}
+
 {% block actionButton %}
     <div class="btngroup">
-        <a class="btn submit add icon" href="{{ url('booked/bookings/new') }}">Neue Buchung</a>
+        {% if currentTab == 'sequential' %}
+            {# No "New Sequential Booking" button - users create these via frontend wizard #}
+        {% else %}
+            <a class="btn submit add icon" href="{{ url('booked/bookings/new') }}">Neue Buchung</a>
+        {% endif %}
         <a class="btn" href="{{ url('booked/bookings/export') }}">CSV exportieren</a>
     </div>
 {% endblock %}

@@ -197,7 +197,7 @@ class SequentialBookingService extends Component
                     'userName' => $data['customerName'],
                     'userEmail' => $data['customerEmail'],
                     'userPhone' => $data['customerPhone'] ?? null,
-                    'status' => ReservationRecord::STATUS_PENDING,
+                    'status' => ReservationRecord::STATUS_CONFIRMED,
                 ]);
 
                 if (!Craft::$app->elements->saveElement($reservation)) {
