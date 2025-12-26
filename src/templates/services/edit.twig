@@ -28,62 +28,57 @@
             errors: service.getErrors('title')
         }) }}
 
-        {{ forms.textField({
-            label: 'Slug'|t('app'),
-            id: 'slug',
-            name: 'slug',
-            value: service.slug,
-            errors: service.getErrors('slug'),
-            instructions: 'Auto-generated from title. You can edit it manually if needed.'|t('booked')
-        }) }}
+        <div class="flex" style="gap: 1rem;">
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Duration (minutes)'|t('booked'),
+                    id: 'duration',
+                    name: 'duration',
+                    type: 'number',
+                    value: service.duration,
+                    errors: service.getErrors('duration'),
+                    instructions: 'Service duration in minutes'
+                }) }}
+            </div>
 
-        <div class="flex">
-            {{ forms.textField({
-                label: 'Duration (minutes)'|t('booked'),
-                id: 'duration',
-                name: 'duration',
-                type: 'number',
-                value: service.duration,
-                size: 5,
-                errors: service.getErrors('duration'),
-                instructions: 'Service duration in minutes'
-            }) }}
-
-            {{ forms.textField({
-                label: 'Price'|t('booked'),
-                id: 'price',
-                name: 'price',
-                type: 'number',
-                step: '0.01',
-                value: service.price,
-                size: 10,
-                errors: service.getErrors('price'),
-                instructions: 'Service price'
-            }) }}
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Price'|t('booked'),
+                    id: 'price',
+                    name: 'price',
+                    type: 'number',
+                    step: '0.01',
+                    value: service.price,
+                    errors: service.getErrors('price'),
+                    instructions: 'Service price'
+                }) }}
+            </div>
         </div>
 
-        <div class="flex">
-            {{ forms.textField({
-                label: 'Buffer Before (minutes)'|t('booked'),
-                id: 'bufferBefore',
-                name: 'bufferBefore',
-                type: 'number',
-                value: service.bufferBefore,
-                size: 5,
-                errors: service.getErrors('bufferBefore'),
-                instructions: 'Buffer time before service starts'
-            }) }}
+        <div class="flex" style="gap: 1rem; margin-top: 1.5rem;">
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Buffer Before (minutes)'|t('booked'),
+                    id: 'bufferBefore',
+                    name: 'bufferBefore',
+                    type: 'number',
+                    value: service.bufferBefore,
+                    errors: service.getErrors('bufferBefore'),
+                    instructions: 'Buffer time before service starts'
+                }) }}
+            </div>
 
-            {{ forms.textField({
-                label: 'Buffer After (minutes)'|t('booked'),
-                id: 'bufferAfter',
-                name: 'bufferAfter',
-                type: 'number',
-                value: service.bufferAfter,
-                size: 5,
-                errors: service.getErrors('bufferAfter'),
-                instructions: 'Buffer time after service ends'
-            }) }}
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Buffer After (minutes)'|t('booked'),
+                    id: 'bufferAfter',
+                    name: 'bufferAfter',
+                    type: 'number',
+                    value: service.bufferAfter,
+                    errors: service.getErrors('bufferAfter'),
+                    instructions: 'Buffer time after service ends'
+                }) }}
+            </div>
         </div>
 
         {{ forms.lightswitchField({
@@ -254,34 +249,4 @@
     color: #6b7280;
 }
 {% endcss %}
-
-{% js %}
-    // Auto-generate slug from title (like Craft entries)
-    (function() {
-        const $titleInput = $('#title');
-        const $slugInput = $('#slug');
-        let slugManuallyEdited = false;
-
-        // Track if user manually edits slug
-        $slugInput.on('input', function() {
-            slugManuallyEdited = true;
-        });
-
-        // Auto-update slug from title (only if not manually edited)
-        $titleInput.on('input', function() {
-            if (!slugManuallyEdited || !$slugInput.val()) {
-                const title = $titleInput.val();
-                if (title) {
-                    // Simple slug generation (Craft will handle proper slug generation server-side)
-                    const slug = title.toLowerCase()
-                        .replace(/[^\w\s-]/g, '') // Remove special chars
-                        .replace(/\s+/g, '-')     // Replace spaces with hyphens
-                        .replace(/-+/g, '-')       // Replace multiple hyphens with single
-                        .trim();
-                    $slugInput.val(slug);
-                }
-            }
-        });
-    })();
-{% endjs %}
 

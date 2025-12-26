@@ -28,14 +28,6 @@
             errors: location.getErrors('title')
         }) }}
 
-        {{ forms.textField({
-            label: 'Slug'|t('app'),
-            id: 'slug',
-            name: 'slug',
-            value: location.slug,
-            errors: location.getErrors('slug')
-        }) }}
-
         <div id="address-container">
             {% namespace 'address' %}
                 {{ forms.selectField({

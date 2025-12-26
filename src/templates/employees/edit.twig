@@ -35,14 +35,6 @@
             errors: employee.getErrors('title')
         }) }}
 
-        {{ forms.textField({
-            label: 'Slug'|t('app'),
-            id: 'slug',
-            name: 'slug',
-            value: employee.slug,
-            errors: employee.getErrors('slug')
-        }) }}
-
         {{ forms.selectField({
             label: 'User'|t('booked'),
             id: 'userId',

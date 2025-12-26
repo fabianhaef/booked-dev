@@ -90,6 +90,14 @@ class Service extends Element
     /**
      * @inheritdoc
      */
+    public static function hasUris(): bool
+    {
+        return false; // Services don't have public URLs
+    }
+
+    /**
+     * @inheritdoc
+     */
     public static function hasStatuses(): bool
     {
         return true;
