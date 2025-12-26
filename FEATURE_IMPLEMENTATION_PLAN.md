@@ -1622,7 +1622,7 @@ class m241225_000002_add_group_booking extends Migration
 
 ### Overview
 
-**Current State**: Employees can be linked to Craft users and can access the Control Panel with appropriate permissions.
+**Current State**: Employees can be linked to Craft users and can access the Control Panel with appropriate permissions. A read-only schedules display has been implemented in the CP Employee edit page showing working hours assigned to each employee.
 
 **Goal**: Provide a dedicated frontend portal where employees can manage their own schedules, view appointments, update availability, and block out dates without needing CP access.
 
@@ -1632,8 +1632,497 @@ class m241225_000002_add_group_booking extends Migration
 - Employees view their upcoming appointments
 - Employees receive appointment notifications
 
+### Implemented CP Features (Reference for Frontend Portal)
+
+The following features have been implemented in the Control Panel and should be replicated in the frontend employee portal:
+
+#### CP: Read-Only Schedules Display
+
+**Location**: [employees/edit.twig](src/templates/employees/edit.twig) (lines 120-175)
+
+**Implementation**:
+- Displays a "Working Hours" section on the Employee edit page
+- Shows all schedules related to the employee in a table format
+- Table columns: Schedule title (linked to edit), Days, Time, Status
+- Links to manage all schedules or create new ones
+- Shows helpful message when no schedules are assigned
+
+**Query Pattern**:
+```twig
+{% set schedules = craft.app.elements.createElement('fabian\\booked\\elements\\Schedule')
+    .find()
+    .employeeId(employee.id)
+    .orderBy('startTime asc')
+    .all() %}
+```
+
+**Display Structure**:
+```twig
+<table class="data fullwidth">
+    <thead>
+        <tr>
+            <th>{{ 'Schedule'|t('booked') }}</th>
+            <th>{{ 'Days'|t('booked') }}</th>
+            <th>{{ 'Time'|t('booked') }}</th>
+            <th>{{ 'Status'|t('app') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for schedule in schedules %}
+            <tr>
+                <td><a href="{{ schedule.cpEditUrl }}">{{ schedule.title }}</a></td>
+                <td>{{ schedule.getDaysName() }}</td>
+                <td>{{ schedule.startTime }} - {{ schedule.endTime }}</td>
+                <td>
+                    {% if schedule.enabled %}
+                        <span class="status green"></span> {{ 'Enabled'|t('app') }}
+                    {% else %}
+                        <span class="status"></span> {{ 'Disabled'|t('app') }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+```
+
+This implementation should be adapted for the frontend employee portal with the following changes:
+- Replace CP edit URLs with frontend portal URLs
+- Add ability to toggle schedule enabled/disabled status
+- Add ability to create new schedules directly
+- Add visual calendar view option
+- Show upcoming appointments within each schedule time block
+
+### Architecture
+
+#### 3.1 Database Schema
+
+**No new tables required** - uses existing Employee, Schedule, and Reservation elements.
+
+**Possible addition**: Employee preferences/settings table
+
+```sql
+CREATE TABLE {{%booked_employee_preferences}} (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employeeId INT NOT NULL,
+    notificationEmail BOOLEAN DEFAULT true,
+    notificationSms BOOLEAN DEFAULT false,
+    weekStartDay INT DEFAULT 1, -- 0 = Sunday, 1 = Monday
+    calendarView VARCHAR(20) DEFAULT 'week', -- 'day', 'week', 'month'
+    timezone VARCHAR(50) DEFAULT 'UTC',
+    dateCreated DATETIME NOT NULL,
+    dateUpdated DATETIME NOT NULL,
+    uid CHAR(36) NOT NULL DEFAULT ''
+);
+```
+
+#### 3.2 Frontend Routes
+
+**New Controller**: `src/controllers/EmployeePortalController.php`
+
+```php
+<?php
+
+namespace fabian\booked\controllers;
+
+use Craft;
+use craft\web\Controller;
+use yii\web\ForbiddenHttpException;
+use yii\web\Response;
+use fabian\booked\elements\Employee;
+use fabian\booked\elements\Schedule;
+use fabian\booked\elements\Reservation;
+
+/**
+ * Employee Portal Controller
+ */
+class EmployeePortalController extends Controller
+{
+    /**
+     * @inheritdoc
+     */
+    protected array|bool|int $allowAnonymous = false;
+
+    /**
+     * Get current employee for logged-in user
+     */
+    private function getCurrentEmployee(): ?Employee
+    {
+        $currentUser = Craft::$app->getUser()->getIdentity();
+
+        if (!$currentUser) {
+            return null;
+        }
+
+        return Employee::find()
+            ->userId($currentUser->id)
+            ->one();
+    }
+
+    /**
+     * Employee portal dashboard
+     */
+    public function actionIndex(): Response
+    {
+        $employee = $this->getCurrentEmployee();
+
+        if (!$employee) {
+            throw new ForbiddenHttpException('You do not have access to the employee portal');
+        }
+
+        // Get today's appointments
+        $todayAppointments = Reservation::find()
+            ->employeeId($employee->id)
+            ->bookingDate(date('Y-m-d'))
+            ->status(['confirmed', 'pending'])
+            ->orderBy(['startTime' => SORT_ASC])
+            ->all();
+
+        // Get upcoming appointments (next 7 days)
+        $upcomingAppointments = Reservation::find()
+            ->employeeId($employee->id)
+            ->andWhere(['>=', 'bookingDate', date('Y-m-d')])
+            ->andWhere(['<=', 'bookingDate', date('Y-m-d', strtotime('+7 days'))])
+            ->status(['confirmed', 'pending'])
+            ->orderBy(['bookingDate' => SORT_ASC, 'startTime' => SORT_ASC])
+            ->limit(10)
+            ->all();
+
+        // Get employee schedules
+        $schedules = Schedule::find()
+            ->employeeId($employee->id)
+            ->status('enabled')
+            ->orderBy(['startTime' => SORT_ASC])
+            ->all();
+
+        return $this->renderTemplate('booked/employee-portal/index', [
+            'employee' => $employee,
+            'todayAppointments' => $todayAppointments,
+            'upcomingAppointments' => $upcomingAppointments,
+            'schedules' => $schedules,
+        ]);
+    }
+
+    /**
+     * Employee calendar view
+     */
+    public function actionCalendar(): Response
+    {
+        $employee = $this->getCurrentEmployee();
+
+        if (!$employee) {
+            throw new ForbiddenHttpException('You do not have access to the employee portal');
+        }
+
+        $date = Craft::$app->getRequest()->getParam('date', date('Y-m-d'));
+        $view = Craft::$app->getRequest()->getParam('view', 'week'); // day, week, month
+
+        return $this->renderTemplate('booked/employee-portal/calendar', [
+            'employee' => $employee,
+            'date' => $date,
+            'view' => $view,
+        ]);
+    }
+
+    /**
+     * View/edit schedules
+     */
+    public function actionSchedules(): Response
+    {
+        $employee = $this->getCurrentEmployee();
+
+        if (!$employee) {
+            throw new ForbiddenHttpException('You do not have access to the employee portal');
+        }
+
+        $schedules = Schedule::find()
+            ->employeeId($employee->id)
+            ->orderBy(['startTime' => SORT_ASC])
+            ->all();
+
+        return $this->renderTemplate('booked/employee-portal/schedules', [
+            'employee' => $employee,
+            'schedules' => $schedules,
+        ]);
+    }
+
+    /**
+     * Toggle schedule enabled/disabled
+     */
+    public function actionToggleSchedule(): Response
+    {
+        $this->requirePostRequest();
+
+        $employee = $this->getCurrentEmployee();
+        if (!$employee) {
+            throw new ForbiddenHttpException();
+        }
+
+        $scheduleId = Craft::$app->getRequest()->getBodyParam('scheduleId');
+        $schedule = Schedule::find()->id($scheduleId)->one();
+
+        if (!$schedule || !in_array($employee->id, $schedule->employeeIds)) {
+            throw new ForbiddenHttpException('This schedule does not belong to you');
+        }
+
+        $schedule->enabled = !$schedule->enabled;
+
+        if (Craft::$app->elements->saveElement($schedule)) {
+            return $this->asJson([
+                'success' => true,
+                'enabled' => $schedule->enabled
+            ]);
+        }
+
+        return $this->asJson([
+            'success' => false,
+            'error' => 'Failed to update schedule'
+        ]);
+    }
+
+    /**
+     * Block out dates (create time-off)
+     */
+    public function actionBlockDates(): Response
+    {
+        $this->requirePostRequest();
+
+        $employee = $this->getCurrentEmployee();
+        if (!$employee) {
+            throw new ForbiddenHttpException();
+        }
+
+        $startDate = Craft::$app->getRequest()->getBodyParam('startDate');
+        $endDate = Craft::$app->getRequest()->getBodyParam('endDate');
+        $reason = Craft::$app->getRequest()->getBodyParam('reason', 'Time Off');
+
+        // Create a special "blocked" schedule
+        $schedule = new Schedule([
+            'title' => $reason,
+            'startTime' => '00:00',
+            'endTime' => '23:59',
+            'daysOfWeek' => [], // Will be calculated from date range
+            'isTimeOff' => true, // New field to mark as time-off
+            'enabled' => true,
+        ]);
+
+        // Set employee relation
+        $schedule->setEmployeeIds([$employee->id]);
+
+        if (Craft::$app->elements->saveElement($schedule)) {
+            return $this->asJson([
+                'success' => true,
+                'message' => 'Time-off blocked successfully'
+            ]);
+        }
+
+        return $this->asJson([
+            'success' => false,
+            'error' => 'Failed to create time-off block'
+        ]);
+    }
+}
+```
+
+#### 3.3 Frontend Templates
+
+**Dashboard Template**: `src/templates/employee-portal/index.twig`
+
+```twig
+{% extends "_layouts/site" %}
+
+{% block content %}
+<div class="employee-portal-dashboard" x-data="employeePortal()">
+    {# Header #}
+    <div class="portal-header">
+        <h1>Welcome, {{ employee.title }}</h1>
+        <p class="text-gray-600">{{ currentUser.email }}</p>
+    </div>
+
+    {# Quick Stats #}
+    <div class="stats-grid grid grid-cols-3 gap-6 my-8">
+        <div class="stat-card">
+            <h3 class="text-2xl font-bold">{{ todayAppointments|length }}</h3>
+            <p class="text-gray-600">Today's Appointments</p>
+        </div>
+        <div class="stat-card">
+            <h3 class="text-2xl font-bold">{{ upcomingAppointments|length }}</h3>
+            <p class="text-gray-600">Upcoming This Week</p>
+        </div>
+        <div class="stat-card">
+            <h3 class="text-2xl font-bold">{{ schedules|length }}</h3>
+            <p class="text-gray-600">Active Schedules</p>
+        </div>
+    </div>
+
+    {# Navigation Tabs #}
+    <div class="portal-tabs mb-6">
+        <button class="tab active" @click="activeTab = 'today'">Today</button>
+        <button class="tab" @click="activeTab = 'upcoming'">Upcoming</button>
+        <button class="tab" @click="activeTab = 'schedules'">My Schedules</button>
+        <button class="tab" @click="activeTab = 'timeoff'">Time Off</button>
+    </div>
+
+    {# Today's Appointments #}
+    <div x-show="activeTab === 'today'" class="tab-content">
+        <h2 class="text-xl font-semibold mb-4">Today's Schedule</h2>
+
+        {% if todayAppointments|length > 0 %}
+            <div class="appointments-list">
+                {% for appointment in todayAppointments %}
+                    <div class="appointment-card">
+                        <div class="time">
+                            {{ appointment.startTime }} - {{ appointment.endTime }}
+                        </div>
+                        <div class="details">
+                            <h4>{{ appointment.getService().title }}</h4>
+                            <p>{{ appointment.userName }}</p>
+                            <p class="text-sm text-gray-600">{{ appointment.userEmail }}</p>
+                        </div>
+                        <div class="status">
+                            <span class="badge {{ appointment.status }}">
+                                {{ appointment.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600">No appointments scheduled for today</p>
+        {% endif %}
+    </div>
+
+    {# Schedules Tab - Replicates CP implementation #}
+    <div x-show="activeTab === 'schedules'" class="tab-content">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Working Hours</h2>
+            <a href="{{ url('employee-portal/schedules/new') }}" class="btn btn-primary">
+                Add Schedule
+            </a>
+        </div>
+
+        {% if schedules|length > 0 %}
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th>Schedule</th>
+                        <th>Days</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                        <tr>
+                            <td>
+                                <a href="{{ url('employee-portal/schedules/' ~ schedule.id) }}"
+                                   class="font-medium text-blue-600 hover:underline">
+                                    {{ schedule.title }}
+                                </a>
+                            </td>
+                            <td>{{ schedule.getDaysName() }}</td>
+                            <td>{{ schedule.startTime }} - {{ schedule.endTime }}</td>
+                            <td>
+                                <div class="flex items-center">
+                                    {% if schedule.enabled %}
+                                        <span class="status-dot green"></span>
+                                        <span>Enabled</span>
+                                    {% else %}
+                                        <span class="status-dot gray"></span>
+                                        <span>Disabled</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <button @click="toggleSchedule({{ schedule.id }}, {{ schedule.enabled }})"
+                                        class="btn-sm">
+                                    {{ schedule.enabled ? 'Disable' : 'Enable' }}
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p class="text-sm text-gray-600 mt-4">
+                Schedules define your regular working hours. You can enable or disable them as needed.
+            </p>
+        {% else %}
+            <div class="empty-state">
+                <p class="text-gray-600 mb-4">No schedules configured yet.</p>
+                <a href="{{ url('employee-portal/schedules/new') }}" class="btn btn-primary">
+                    Create Your First Schedule
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Time Off Tab #}
+    <div x-show="activeTab === 'timeoff'" class="tab-content">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Block Out Dates</h2>
+            <button @click="showBlockDatesModal = true" class="btn btn-primary">
+                Request Time Off
+            </button>
+        </div>
+
+        {# Time-off calendar/list would go here #}
+    </div>
+</div>
+
+{# Alpine.js component #}
+<script>
+function employeePortal() {
+    return {
+        activeTab: 'today',
+        showBlockDatesModal: false,
+
+        async toggleSchedule(scheduleId, currentlyEnabled) {
+            const response = await fetch('/actions/booked/employee-portal/toggle-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '{{ craft.app.request.csrfToken }}'
+                },
+                body: JSON.stringify({ scheduleId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Reload page or update UI
+                window.location.reload();
+            } else {
+                alert('Failed to update schedule');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
+```
+
+### Testing Strategy
+
+1. **Unit Tests**: `tests/unit/EmployeePortalTest.php`
+   - Test employee access permissions
+   - Test schedule retrieval for logged-in employee
+   - Test time-off blocking logic
+
+2. **Functional Tests**: `tests/functional/EmployeePortalFlowTest.php`
+   - Test complete employee login → view appointments flow
+   - Test schedule enable/disable functionality
+   - Test time-off request flow
+
 ---
 
-*[Continue with detailed implementation for Employee Portal and Customer CRM in next section due to length...]*
+## 4. Dedicated Customer CRM Element
 
-**Character Limit Note**: The complete implementation plan is extensive. Should I continue with the remaining two features (Employee Self-Management Portal and Dedicated Customer CRM Element)?
+*[To be documented...]*
+
+---
+
+*[Continue with detailed implementation for Customer CRM in next section due to length...]*
+
+**Character Limit Note**: The complete implementation plan is extensive. Should I continue with the remaining feature (Dedicated Customer CRM Element)?

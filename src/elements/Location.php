@@ -18,7 +18,6 @@ use fabian\booked\records\LocationRecord;
  * Location Element
  *
  * @property string|null $timezone Location timezone
- * @property string|null $contactInfo Contact information
  * @property string|null $addressLine1
  * @property string|null $addressLine2
  * @property string|null $locality
@@ -29,7 +28,6 @@ use fabian\booked\records\LocationRecord;
 class Location extends Element
 {
     public ?string $timezone = null;
-    public ?string $contactInfo = null;
     public ?string $addressLine1 = null;
     public ?string $addressLine2 = null;
     public ?string $locality = null;
@@ -270,7 +268,7 @@ class Location extends Element
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
-            [['timezone', 'contactInfo', 'addressLine1', 'addressLine2', 'locality', 'administrativeArea', 'postalCode', 'countryCode'], 'string'],
+            [['timezone', 'addressLine1', 'addressLine2', 'locality', 'administrativeArea', 'postalCode', 'countryCode'], 'string'],
         ]);
     }
 
@@ -370,7 +368,6 @@ class Location extends Element
         }
 
         $record->timezone = $this->timezone;
-        $record->contactInfo = $this->contactInfo;
         $record->addressLine1 = $this->addressLine1;
         $record->addressLine2 = $this->addressLine2;
         $record->locality = $this->locality;

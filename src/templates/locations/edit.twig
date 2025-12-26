@@ -18,6 +18,13 @@
     {% endif %}
 
     <div id="fields">
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: location.enabled ?? true
+        }) }}
+
         {{ forms.textField({
             label: 'Title'|t('app'),
             id: 'title',
@@ -94,23 +101,6 @@
             value: location.timezone ?? craft.app.timeZone,
             errors: location.getErrors('timezone'),
             instructions: 'Timezone for this location'|t('booked')
-        }) }}
-
-        {{ forms.textareaField({
-            label: 'Contact Info'|t('booked'),
-            id: 'contactInfo',
-            name: 'contactInfo',
-            value: location.contactInfo,
-            rows: 2,
-            errors: location.getErrors('contactInfo'),
-            instructions: 'Contact information for this location (phone, email, etc.)'
-        }) }}
-
-        {{ forms.lightswitchField({
-            label: 'Enabled'|t('app'),
-            id: 'enabled',
-            name: 'enabled',
-            on: location.enabled ?? true
         }) }}
     </div>
 

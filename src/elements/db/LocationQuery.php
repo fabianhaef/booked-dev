@@ -56,7 +56,6 @@ class LocationQuery extends ElementQuery
 
         $this->query->addSelect([
             'booked_locations.timezone',
-            'booked_locations.contactInfo',
             'booked_locations.addressLine1',
             'booked_locations.addressLine2',
             'booked_locations.locality',

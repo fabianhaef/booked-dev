@@ -89,7 +89,6 @@ class LocationsController extends Controller
 
         // Set custom attributes
         $location->timezone = $request->getBodyParam('timezone');
-        $location->contactInfo = $request->getBodyParam('contactInfo');
 
         // Set address fields directly
         $addressData = $request->getBodyParam('address');
