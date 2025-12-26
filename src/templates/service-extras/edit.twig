@@ -56,20 +56,15 @@
                 </div>
             </div>
             <div class="input ltr">
-                <div class="flex">
-                    <div class="textwrapper">
-                        <span class="currency-symbol">{{ craft.app.locale.getCurrencySymbol(craft.booked.currency) }}</span>
-                    </div>
-                    {{ forms.text({
-                        id: 'price',
-                        name: 'price',
-                        value: extra.price,
-                        type: 'number',
-                        step: '0.01',
-                        min: '0',
-                        size: 10
-                    }) }}
-                </div>
+                {{ forms.text({
+                    id: 'price',
+                    name: 'price',
+                    value: extra.price,
+                    type: 'number',
+                    step: '0.01',
+                    min: '0',
+                    size: 10
+                }) }}
             </div>
         </div>
 
@@ -98,15 +93,3 @@
         }) }}
     </div>
 {% endblock %}
-
-{% css %}
-.currency-symbol {
-    padding: 0 8px;
-    background: #f9f9f9;
-    border: 1px solid #ccc;
-    border-right: none;
-    border-radius: 3px 0 0 3px;
-    line-height: 28px;
-    display: inline-block;
-}
-{% endcss %}

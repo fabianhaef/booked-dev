@@ -23,7 +23,6 @@ use fabian\booked\records\ServiceExtraRecord;
  * @property int $duration Additional duration in minutes
  * @property int $maxQuantity Maximum quantity allowed per booking
  * @property bool $isRequired Whether this extra must be selected
- * @property int $sortOrder Display order
  * @property bool $enabled Whether this extra is currently available
  */
 class ServiceExtra extends Model
@@ -35,7 +34,6 @@ class ServiceExtra extends Model
     public int $duration = 0;
     public int $maxQuantity = 1;
     public bool $isRequired = false;
-    public int $sortOrder = 0;
     public bool $enabled = true;
 
     /**
@@ -51,7 +49,6 @@ class ServiceExtra extends Model
             [['duration'], 'integer', 'min' => 0],
             [['maxQuantity'], 'integer', 'min' => 1],
             [['isRequired', 'enabled'], 'boolean'],
-            [['sortOrder'], 'integer'],
         ];
     }
 
@@ -67,7 +64,6 @@ class ServiceExtra extends Model
             'duration' => 'Additional Duration (minutes)',
             'maxQuantity' => 'Max Quantity Per Booking',
             'isRequired' => 'Required',
-            'sortOrder' => 'Sort Order',
             'enabled' => 'Enabled',
         ];
     }
@@ -93,7 +89,6 @@ class ServiceExtra extends Model
         $record->duration = $this->duration;
         $record->maxQuantity = $this->maxQuantity;
         $record->isRequired = $this->isRequired;
-        $record->sortOrder = $this->sortOrder;
         $record->enabled = $this->enabled;
 
         if ($record->save()) {
@@ -149,7 +144,6 @@ class ServiceExtra extends Model
         $model->duration = $record->duration;
         $model->maxQuantity = $record->maxQuantity;
         $model->isRequired = (bool)$record->isRequired;
-        $model->sortOrder = $record->sortOrder;
         $model->enabled = (bool)$record->enabled;
 
         return $model;

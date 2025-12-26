@@ -11,15 +11,16 @@ use yii\db\ActiveQueryInterface;
  * Represents a service extra/add-on that can be selected during booking.
  * Examples: "Extended Session (+30 min)", "Premium Products", "Refreshments", etc.
  *
- * @property int $id
- * @property string $name
+ * Note: This is now a proper Element. The 'id' column is a foreign key to elements.id.
+ * Title is stored in the content table, enabled status in the elements table.
+ *
+ * @property int $id Foreign key to elements.id
  * @property string|null $description
  * @property float $price
  * @property int $duration Additional duration in minutes
  * @property int $maxQuantity Maximum quantity per booking
  * @property bool $isRequired Whether this extra is required
- * @property int $sortOrder Display order
- * @property bool $enabled Whether this extra is active
+ * @property int $sortOrder Display order (deprecated, kept for backward compatibility)
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid

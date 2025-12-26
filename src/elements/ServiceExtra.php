@@ -233,14 +233,13 @@ class ServiceExtra extends Element
         }
 
         if ($record) {
-            $record->name = $this->title;  // Map element title to record name
+            // Title is now stored in content table (handled by parent)
+            // Enabled is now stored in elements table (handled by parent)
             $record->price = $this->price;
             $record->duration = $this->duration;
             $record->maxQuantity = $this->maxQuantity;
             $record->isRequired = $this->isRequired;
-            $record->sortOrder = 0;  // Default value, not used anymore
             $record->description = $this->description;
-            $record->enabled = $this->enabled;  // Map from element status
             $record->save(false);
         }
 

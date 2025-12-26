@@ -14,11 +14,44 @@ use fabian\booked\records\BlackoutDateRecord;
 /**
  * BlackoutDate Element
  *
+ * Represents a period when bookings should be blocked, either globally or for specific
+ * locations and/or employees.
+ *
+ * SCOPING LOGIC:
+ * --------------
+ * BlackoutDate uses flexible scoping to control which bookings are affected:
+ *
+ * 1. Global Blackout (empty locationIds AND empty employeeIds):
+ *    - Blocks ALL bookings across ALL locations and ALL employees
+ *    - Use case: Public holidays, company-wide closures
+ *
+ * 2. Location-specific Blackout (locationIds specified, employeeIds empty):
+ *    - Blocks ALL bookings at the specified location(s)
+ *    - Affects ALL employees working at those locations
+ *    - Use case: Location maintenance, facility closure
+ *
+ * 3. Employee-specific Blackout (employeeIds specified, locationIds empty):
+ *    - Blocks bookings for the specified employee(s)
+ *    - Affects these employees across ALL locations they work at
+ *    - Use case: Employee vacation, sick leave
+ *
+ * 4. Location AND Employee Blackout (both locationIds AND employeeIds specified):
+ *    - Blocks bookings ONLY when BOTH conditions match
+ *    - Logic: (employee is in employeeIds) AND (location is in locationIds)
+ *    - Use case: Specific employee unavailable at specific location only
+ *
+ * VALIDATION LOGIC:
+ * When checking if a booking should be blocked, the logic is:
+ * - If locationIds is empty → applies to all locations
+ * - If employeeIds is empty → applies to all employees
+ * - If both are specified → BOTH must match to block
+ * - If blackout is inactive (isActive=false) → never blocks
+ *
  * @property string $startDate
  * @property string $endDate
- * @property array $locationIds
- * @property array $employeeIds
- * @property bool $isActive
+ * @property array $locationIds Array of Location element IDs (empty = all locations)
+ * @property array $employeeIds Array of Employee element IDs (empty = all employees)
+ * @property bool $isActive Whether this blackout is currently enforced
  */
 class BlackoutDate extends Element
 {
@@ -493,6 +526,51 @@ class BlackoutDate extends Element
         $end = new \DateTime($this->endDate);
 
         return $checkDate >= $start && $checkDate <= $end;
+    }
+
+    /**
+     * Check if this blackout applies to a specific booking scenario
+     *
+     * Implements the scoping logic documented in the class header.
+     *
+     * @param string $date The booking date to check
+     * @param int|null $locationId The location ID for the booking (null = check all)
+     * @param int|null $employeeId The employee ID for the booking (null = check all)
+     * @return bool True if this blackout blocks the booking
+     */
+    public function appliesToBooking(string $date, ?int $locationId = null, ?int $employeeId = null): bool
+    {
+        // If blackout is inactive or date doesn't fall within range, it doesn't apply
+        if (!$this->coversDate($date)) {
+            return false;
+        }
+
+        $hasLocationRestriction = !empty($this->locationIds);
+        $hasEmployeeRestriction = !empty($this->employeeIds);
+
+        // Case 1: Global blackout (no restrictions) - blocks everything
+        if (!$hasLocationRestriction && !$hasEmployeeRestriction) {
+            return true;
+        }
+
+        // Case 2: Location-only restriction - blocks if location matches (or no location specified)
+        if ($hasLocationRestriction && !$hasEmployeeRestriction) {
+            return $locationId === null || in_array($locationId, $this->locationIds);
+        }
+
+        // Case 3: Employee-only restriction - blocks if employee matches (or no employee specified)
+        if (!$hasLocationRestriction && $hasEmployeeRestriction) {
+            return $employeeId === null || in_array($employeeId, $this->employeeIds);
+        }
+
+        // Case 4: Both location AND employee restrictions - BOTH must match
+        if ($hasLocationRestriction && $hasEmployeeRestriction) {
+            $locationMatches = $locationId === null || in_array($locationId, $this->locationIds);
+            $employeeMatches = $employeeId === null || in_array($employeeId, $this->employeeIds);
+            return $locationMatches && $employeeMatches;
+        }
+
+        return false;
     }
 
     /**

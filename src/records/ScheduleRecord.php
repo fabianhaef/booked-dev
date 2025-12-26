@@ -9,7 +9,6 @@ use craft\db\ActiveRecord;
  *
  * @property int $id
  * @property string|null $title Schedule title
- * @property int|null $employeeId Foreign key to Employee element (deprecated)
  * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday) - DEPRECATED
  * @property string|null $daysOfWeek JSON array of days
  * @property string|null $startTime Start time (H:i format)
@@ -17,6 +16,9 @@ use craft\db\ActiveRecord;
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
+ *
+ * Note: employeeId field has been removed. Use the many-to-many
+ * booked_schedule_employees junction table instead.
  */
 class ScheduleRecord extends ActiveRecord
 {
@@ -35,7 +37,6 @@ class ScheduleRecord extends ActiveRecord
     {
         return [
             [['daysOfWeek'], 'required'],
-            [['employeeId', 'dayOfWeek'], 'integer'],
             [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7], // New format: 1=Monday, 7=Sunday
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['title'], 'string', 'max' => 255],

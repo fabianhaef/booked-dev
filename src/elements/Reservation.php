@@ -443,7 +443,65 @@ class Reservation extends Element implements PurchasableInterface
             [['quantity'], 'integer', 'min' => 1],
             [['quantity'], 'required'],
             [['quantity'], 'default', 'value' => 1],
+            // Custom validation: Employee-Location consistency
+            ['locationId', 'validateEmployeeLocation'],
         ]);
+    }
+
+    /**
+     * Validates that the employee's assigned location matches the reservation's location
+     *
+     * This ensures data consistency when both employeeId and locationId are specified.
+     * The validation allows three scenarios:
+     * 1. Both employeeId and locationId are null (valid - no constraint)
+     * 2. One is set, the other is null (valid - partial data)
+     * 3. Both are set AND employee.locationId matches reservation.locationId (valid - consistent)
+     * 4. Both are set AND employee.locationId != reservation.locationId (INVALID - inconsistent)
+     *
+     * Note: This is a soft validation to help maintain data quality. It can be disabled
+     * for special cases where cross-location bookings are intentional.
+     */
+    public function validateEmployeeLocation($attribute, $params): void
+    {
+        // Only validate if both employee and location are specified
+        if (!$this->employeeId || !$this->locationId) {
+            return;
+        }
+
+        // Fetch the employee to check their assigned location
+        $employee = Employee::find()->id($this->employeeId)->one();
+
+        if (!$employee) {
+            $this->addError('employeeId', Craft::t('booked', 'The selected employee does not exist.'));
+            return;
+        }
+
+        // If employee has no assigned location, allow any reservation location
+        if (!$employee->locationId) {
+            return;
+        }
+
+        // Validate that employee's location matches reservation's location
+        if ($employee->locationId !== $this->locationId) {
+            $employeeLocation = Location::find()->id($employee->locationId)->one();
+            $reservationLocation = Location::find()->id($this->locationId)->one();
+
+            $employeeLocationName = $employeeLocation ? $employeeLocation->title : "ID {$employee->locationId}";
+            $reservationLocationName = $reservationLocation ? $reservationLocation->title : "ID {$this->locationId}";
+
+            $this->addError(
+                'locationId',
+                Craft::t(
+                    'booked',
+                    'Location mismatch: Employee "{employee}" is assigned to "{employeeLocation}" but this reservation is for "{reservationLocation}".',
+                    [
+                        'employee' => $employee->title,
+                        'employeeLocation' => $employeeLocationName,
+                        'reservationLocation' => $reservationLocationName,
+                    ]
+                )
+            );
+        }
     }
 
     /**
