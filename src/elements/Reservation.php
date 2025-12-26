@@ -921,6 +921,17 @@ class Reservation extends Element implements PurchasableInterface
     }
 
     /**
+     * Get the associated location
+     */
+    public function getLocation(): ?Location
+    {
+        if ($this->locationId === null) {
+            return null;
+        }
+        return Location::find()->id($this->locationId)->siteId('*')->one();
+    }
+
+    /**
      * Get the booking sequence this reservation belongs to
      */
     public function getSequence(): ?BookingSequence

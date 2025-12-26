@@ -131,13 +131,46 @@ class EmailRenderService extends Component
     {
         $service = $reservation->getService();
         $employee = $reservation->getEmployee();
+        $location = $reservation->getLocation();
+
+        // Get employee name from associated User
+        $employeeName = '';
+        if ($employee) {
+            $user = $employee->getUser();
+            $employeeName = $user ? $user->getName() : '';
+        }
+
+        // Get location name from title
+        $locationName = $location ? $location->title : '';
 
         return Craft::$app->view->renderTemplate('booked/emails/owner-notification', [
             'reservation' => $reservation,
             'service' => $service,
             'employee' => $employee,
+            'location' => $location,
             'settings' => $settings,
-            'adminUrl' => \craft\helpers\UrlHelper::cpUrl('booked/reservations/' . $reservation->id),
+            'cpEditUrl' => \craft\helpers\UrlHelper::cpUrl('booked/bookings/' . $reservation->id),
+            'siteName' => \Craft::$app->getSystemName(),
+            'formattedDateTime' => $reservation->getFormattedDateTime(),
+            'sourceName' => $service ? $service->title : null,
+            'variationName' => null,
+            // Individual template variables
+            'userName' => $reservation->userName,
+            'userEmail' => $reservation->userEmail,
+            'userPhone' => $reservation->userPhone,
+            'bookingId' => $reservation->id,
+            'bookingDate' => $reservation->bookingDate,
+            'startTime' => $reservation->startTime,
+            'endTime' => $reservation->endTime,
+            'duration' => $reservation->getDurationMinutes(),
+            'serviceName' => $service ? $service->title : '',
+            'employeeName' => $employeeName,
+            'locationName' => $locationName,
+            'quantity' => $reservation->quantity,
+            'quantityDisplay' => $reservation->quantity > 1, // Only show if more than 1
+            'status' => $reservation->getStatusLabel(),
+            'notes' => $reservation->notes,
+            'dateCreated' => $reservation->dateCreated->format('d.m.Y H:i'),
         ]);
     }
 }

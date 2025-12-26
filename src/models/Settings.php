@@ -231,6 +231,30 @@ class Settings extends Model
     }
 
     /**
+     * Get the effective owner notification subject
+     */
+    public function getEffectiveOwnerNotificationSubject(): string
+    {
+        if (!empty($this->ownerNotificationSubject)) {
+            return $this->ownerNotificationSubject;
+        }
+
+        return 'New Booking Received';
+    }
+
+    /**
+     * Get the effective booking confirmation subject
+     */
+    public function getEffectiveBookingConfirmationSubject(): string
+    {
+        if (!empty($this->bookingConfirmationSubject)) {
+            return $this->bookingConfirmationSubject;
+        }
+
+        return 'Booking Confirmation';
+    }
+
+    /**
      * Get attributes that should be excluded from Project Config
      * (sensitive or environment-specific values)
      *
