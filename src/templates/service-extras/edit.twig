@@ -1,24 +1,15 @@
-{#
-/**
- * Service Extra Edit
- *
- * Create or edit a service extra
- */
-#}
-
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
 {% set selectedSubnavItem = 'service-extras' %}
-{% set title = isNew ? "New Service Extra" : extra.title %}
+{% set title = isNew ? "New Add-On"|t('booked') : extra.title %}
 
 {% set crumbs = [
-    { label: "Booked", url: url('booked') },
-    { label: "Service Extras", url: url('booked/service-extras') }
+    { label: "Booked"|t('booked'), url: url('booked') },
+    { label: "Add-Ons"|t('booked'), url: url('booked/service-extras') }
 ] %}
 
 {% set fullPageForm = true %}
-{% set saveShortcutRedirect = 'booked/service-extras' %}
 
 {% block content %}
     <input type="hidden" name="action" value="booked/cp/service-extra/save">
@@ -27,11 +18,16 @@
     {% endif %}
 
     <div id="fields">
-        {# Basic Information #}
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: extra.enabled ?? true
+        }) }}
+
         {{ forms.textField({
-            first: true,
             label: "Name"|t('booked'),
-            instructions: "The name of this extra (e.g., 'Extended Session +30min', 'Premium Products')"|t('booked'),
+            instructions: "The name of this add-on (e.g., 'Extended Session +30min', 'Premium Products')"|t('booked'),
             id: 'title',
             name: 'title',
             value: extra.title,
@@ -52,14 +48,11 @@
 
         <hr>
 
-        {# Pricing & Duration #}
-        <h2>Pricing & Duration</h2>
-
         <div class="field">
             <div class="heading">
                 <label for="price">{{ "Price"|t('booked') }}</label>
                 <div class="instructions">
-                    <p>Additional cost for this extra</p>
+                    <p>{{ "Additional cost for this add-on"|t('booked') }}</p>
                 </div>
             </div>
             <div class="input ltr">
@@ -82,7 +75,7 @@
 
         {{ forms.textField({
             label: "Additional Duration (minutes)"|t('booked'),
-            instructions: "How many minutes this extra adds to the appointment (0 = no additional time)"|t('booked'),
+            instructions: "How many minutes this add-on adds to the appointment (0 = no additional time)"|t('booked'),
             id: 'duration',
             name: 'duration',
             value: extra.duration,
@@ -93,12 +86,9 @@
 
         <hr>
 
-        {# Quantity & Requirements #}
-        <h2>Quantity & Requirements</h2>
-
         {{ forms.textField({
             label: "Maximum Quantity"|t('booked'),
-            instructions: "Maximum number of this extra allowed per booking (1 = checkbox, 2+ = quantity selector)"|t('booked'),
+            instructions: "Maximum number of this add-on allowed per booking"|t('booked'),
             id: 'maxQuantity',
             name: 'maxQuantity',
             value: extra.maxQuantity,
@@ -106,116 +96,10 @@
             min: 1,
             size: 10
         }) }}
-
-        {{ forms.lightswitchField({
-            label: "Required"|t('booked'),
-            instructions: "If enabled, customers must select this extra when booking"|t('booked'),
-            id: 'isRequired',
-            name: 'isRequired',
-            on: extra.isRequired
-        }) }}
-
-        <hr>
-
-        {# Service Assignment #}
-        <h2>Available for Services</h2>
-
-        {% set assignedServices = [] %}
-        {% if assignedServiceIds is defined and assignedServiceIds|length %}
-            {% for serviceId in assignedServiceIds %}
-                {% set service = craft.entries.section('booked').id(serviceId).one() %}
-                {% if not service %}
-                    {# Try as Service element instead of entry #}
-                    {% set service = craft.app.elements.getElementById(serviceId, 'fabian\\booked\\elements\\Service') %}
-                {% endif %}
-                {% if service %}
-                    {% set assignedServices = assignedServices|merge([service]) %}
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
-        {{ forms.elementSelectField({
-            label: "Services"|t('booked'),
-            instructions: "Select which services should offer this extra. Leave empty to offer for all services."|t('booked'),
-            id: 'services',
-            name: 'services',
-            elementType: 'fabian\\booked\\elements\\Service',
-            elements: assignedServices,
-            limit: null,
-            sources: '*',
-        }) }}
-
-        <hr>
-
-        {# Settings #}
-        <h2>Settings</h2>
-
-        {{ forms.textField({
-            label: "Sort Order"|t('booked'),
-            instructions: "Display order (lower numbers appear first)"|t('booked'),
-            id: 'sortOrder',
-            name: 'sortOrder',
-            value: extra.sortOrder,
-            type: 'number',
-            size: 10
-        }) }}
-
-        {{ forms.lightswitchField({
-            label: "Enabled"|t('booked'),
-            instructions: "Whether this extra is currently available for selection"|t('booked'),
-            id: 'enabled',
-            name: 'enabled',
-            on: extra.enabled
-        }) }}
-    </div>
-{% endblock %}
-
-{% block details %}
-    <div class="meta">
-        {% if not isNew %}
-            <div class="data">
-                <h5 class="heading">ID</h5>
-                <div class="value">{{ extra.id }}</div>
-            </div>
-        {% endif %}
-
-        <div class="data">
-            <h5 class="heading">Preview</h5>
-            <div class="value">
-                <div class="extra-preview">
-                    <strong>{{ extra.name }}</strong>
-                    {% if extra.price > 0 %}
-                        <div class="light">+{{ extra.price|number(2) }} {{ craft.app.locale.getCurrencySymbol(craft.booked.currency) }}</div>
-                    {% endif %}
-                    {% if extra.duration > 0 %}
-                        <div class="light">+{{ extra.duration }} min</div>
-                    {% endif %}
-                    {% if extra.isRequired %}
-                        <span class="status on">Required</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
     </div>
 {% endblock %}
 
 {% css %}
-.extra-preview {
-    padding: 15px;
-    background: #f9f9f9;
-    border-radius: 4px;
-}
-
-.extra-preview strong {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.extra-preview .light {
-    font-size: 13px;
-    margin-top: 3px;
-}
-
 .currency-symbol {
     padding: 0 8px;
     background: #f9f9f9;

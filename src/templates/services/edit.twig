@@ -107,7 +107,7 @@
             }) }}
         {% endif %}
 
-        {# Service Extras - now using element selector #}
+        {# Add-Ons - now using element selector #}
         <hr>
 
         {% if service.id %}
@@ -121,8 +121,8 @@
         {% endif %}
 
         {{ forms.elementSelectField({
-            label: 'Service Extras'|t('booked'),
-            instructions: 'Select which extras should be available for this service. Customers can add these when booking. Drag to reorder.'|t('booked'),
+            label: 'Add-Ons'|t('booked'),
+            instructions: 'Select which add-ons should be available for this service. Customers can add these when booking. Drag to reorder.'|t('booked'),
             id: 'extras',
             name: 'extras',
             elementType: 'fabian\\booked\\elements\\ServiceExtra',
@@ -131,7 +131,7 @@
             showSiteMenu: false,
             sources: '*',
             criteria: {
-                orderBy: 'sortOrder asc'
+                orderBy: 'title asc'
             }
         }) }}
     </div>

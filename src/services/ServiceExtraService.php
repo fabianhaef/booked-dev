@@ -4,7 +4,7 @@ namespace fabian\booked\services;
 
 use Craft;
 use craft\base\Component;
-use fabian\booked\models\ServiceExtra;
+use fabian\booked\elements\ServiceExtra;
 use fabian\booked\records\ServiceExtraRecord;
 use fabian\booked\records\ServiceExtraServiceRecord;
 use fabian\booked\records\ReservationExtraRecord;
@@ -24,17 +24,15 @@ class ServiceExtraService extends Component
      */
     public function getAllExtras(bool $enabledOnly = false): array
     {
-        $query = ServiceExtraRecord::find();
+        $query = ServiceExtra::find();
 
         if ($enabledOnly) {
-            $query->where(['enabled' => true]);
+            $query->status('enabled');
         }
 
-        $query->orderBy(['sortOrder' => SORT_ASC, 'name' => SORT_ASC]);
+        $query->orderBy(['title' => SORT_ASC]);
 
-        $records = $query->all();
-
-        return array_map(fn($record) => ServiceExtra::fromRecord($record), $records);
+        return $query->all();
     }
 
     /**
@@ -46,22 +44,20 @@ class ServiceExtraService extends Component
      */
     public function getExtrasForService(int $serviceId, bool $enabledOnly = true): array
     {
-        $query = ServiceExtraRecord::find()
+        $query = ServiceExtra::find()
             ->innerJoin(
                 '{{%booked_service_extras_services}} ses',
-                '{{%booked_service_extras}}.[[id]] = ses.[[extraId]]'
+                'ses.[[extraId]] = {{%elements}}.[[id]]'
             )
             ->where(['ses.serviceId' => $serviceId]);
 
         if ($enabledOnly) {
-            $query->andWhere(['{{%booked_service_extras}}.enabled' => true]);
+            $query->status('enabled');
         }
 
-        $query->orderBy(['ses.sortOrder' => SORT_ASC, '{{%booked_service_extras}}.name' => SORT_ASC]);
+        $query->orderBy(['title' => SORT_ASC]);
 
-        $records = $query->all();
-
-        return array_map(fn($record) => ServiceExtra::fromRecord($record), $records);
+        return $query->all();
     }
 
     /**
@@ -69,9 +65,7 @@ class ServiceExtraService extends Component
      */
     public function getExtraById(int $id): ?ServiceExtra
     {
-        $record = ServiceExtraRecord::findOne($id);
-
-        return $record ? ServiceExtra::fromRecord($record) : null;
+        return ServiceExtra::find()->id($id)->one();
     }
 
     /**
@@ -79,7 +73,7 @@ class ServiceExtraService extends Component
      */
     public function saveExtra(ServiceExtra $extra): bool
     {
-        return $extra->save();
+        return Craft::$app->elements->saveElement($extra);
     }
 
     /**
@@ -87,13 +81,13 @@ class ServiceExtraService extends Component
      */
     public function deleteExtra(int $id): bool
     {
-        $record = ServiceExtraRecord::findOne($id);
+        $extra = ServiceExtra::find()->id($id)->one();
 
-        if (!$record) {
+        if (!$extra) {
             return false;
         }
 
-        return (bool)$record->delete();
+        return Craft::$app->elements->deleteElement($extra);
     }
 
     /**
@@ -344,7 +338,7 @@ class ServiceExtraService extends Component
                 $quantity = $selectedExtras[$extra->id] ?? 0;
 
                 if ($quantity <= 0) {
-                    $missing[] = $extra->name;
+                    $missing[] = $extra->title;
                 }
             }
         }
@@ -373,7 +367,7 @@ class ServiceExtraService extends Component
             $quantity = $item['quantity'];
             $price = $item['totalPrice'];
 
-            $line = $extra->name;
+            $line = $extra->title;
 
             if ($quantity > 1) {
                 $line .= " x{$quantity}";

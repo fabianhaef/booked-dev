@@ -56,8 +56,13 @@ class EmployeesController extends Controller
             $employee->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
-        // Get available users and locations for dropdowns
-        $users = User::find()->all();
+        // Get users that are already assigned to other employees
+        $assignedUserIds = Employee::find()
+            ->select(['userId'])
+            ->where(['not', ['userId' => null]])
+            ->andWhere(['not', ['id' => $employee->id ?? null]]) // Exclude current employee
+            ->column();
+
         $locations = Location::find()->enabled()->all();
         $services = Service::find()->enabled()->all();
 
@@ -78,7 +83,7 @@ class EmployeesController extends Controller
 
         return $this->renderTemplate('booked/employees/edit', [
             'employee' => $employee,
-            'users' => $users,
+            'assignedUserIds' => $assignedUserIds,
             'locations' => $locations,
             'services' => $services,
             'googleConnected' => $googleConnected,
@@ -116,6 +121,10 @@ class EmployeesController extends Controller
 
         // Set custom attributes - convert strings to proper types
         $userId = $request->getBodyParam('userId');
+        // Handle both array (from element selector) and string/int (from dropdown)
+        if (is_array($userId)) {
+            $userId = $userId[0] ?? null;
+        }
         $employee->userId = $userId === '' || $userId === null ? null : (int)$userId;
         
         $locationId = $request->getBodyParam('locationId');

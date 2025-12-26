@@ -14,7 +14,6 @@ class ServiceExtraQuery extends ElementQuery
     public ?int $duration = null;
     public ?int $maxQuantity = null;
     public ?bool $isRequired = null;
-    public ?int $sortOrder = null;
 
     public function price(?float $value): static
     {
@@ -40,12 +39,6 @@ class ServiceExtraQuery extends ElementQuery
         return $this;
     }
 
-    public function sortOrder(?int $value): static
-    {
-        $this->sortOrder = $value;
-        return $this;
-    }
-
     protected function beforePrepare(): bool
     {
         $this->joinElementTable('booked_service_extras');
@@ -55,7 +48,6 @@ class ServiceExtraQuery extends ElementQuery
             'booked_service_extras.duration',
             'booked_service_extras.maxQuantity',
             'booked_service_extras.isRequired',
-            'booked_service_extras.sortOrder',
             'booked_service_extras.description',
         ]);
 
@@ -73,10 +65,6 @@ class ServiceExtraQuery extends ElementQuery
 
         if ($this->isRequired !== null) {
             $this->subQuery->andWhere(Db::parseParam('booked_service_extras.isRequired', $this->isRequired));
-        }
-
-        if ($this->sortOrder !== null) {
-            $this->subQuery->andWhere(Db::parseParam('booked_service_extras.sortOrder', $this->sortOrder));
         }
 
         return parent::beforePrepare();

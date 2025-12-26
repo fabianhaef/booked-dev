@@ -241,7 +241,7 @@
                 {% set extra = item.extra %}
                 {% set quantity = item.quantity %}
                 <div class="detail-row">
-                    <span class="detail-label">{{ extra.name }}{% if quantity > 1 %} ({{ quantity }}x){% endif %}:</span>
+                    <span class="detail-label">{{ extra.title }}{% if quantity > 1 %} ({{ quantity }}x){% endif %}:</span>
                     <span class="detail-value">{{ (extra.price * quantity)|currency }}</span>
                 </div>
             {% endfor %}

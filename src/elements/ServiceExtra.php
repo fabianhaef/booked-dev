@@ -5,6 +5,7 @@ namespace fabian\booked\elements;
 use Craft;
 use craft\base\Element;
 use craft\elements\actions\Delete;
+use craft\elements\actions\Duplicate;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\ServiceExtraQuery;
@@ -25,7 +26,6 @@ use fabian\booked\records\ServiceExtraRecord;
  * @property int $duration Additional duration in minutes
  * @property int $maxQuantity Maximum quantity allowed per booking
  * @property bool $isRequired Whether this extra must be selected
- * @property int $sortOrder Display order
  * @property string|null $description
  */
 class ServiceExtra extends Element
@@ -34,7 +34,6 @@ class ServiceExtra extends Element
     public int $duration = 0;
     public int $maxQuantity = 1;
     public bool $isRequired = false;
-    public int $sortOrder = 0;
     public ?string $description = null;
 
     /**
@@ -42,7 +41,7 @@ class ServiceExtra extends Element
      */
     public static function displayName(): string
     {
-        return Craft::t('booked', 'Service Extra');
+        return Craft::t('booked', 'Add-On');
     }
 
     /**
@@ -50,7 +49,7 @@ class ServiceExtra extends Element
      */
     public static function pluralDisplayName(): string
     {
-        return Craft::t('booked', 'Service Extras');
+        return Craft::t('booked', 'Add-Ons');
     }
 
     /**
@@ -99,8 +98,8 @@ class ServiceExtra extends Element
     public static function statuses(): array
     {
         return [
-            'enabled' => Craft::t('booked', 'Enabled'),
-            'disabled' => Craft::t('booked', 'Disabled'),
+            'enabled' => 'green',
+            'disabled' => null,
         ];
     }
 
@@ -126,6 +125,7 @@ class ServiceExtra extends Element
     protected static function defineActions(?string $source = null): array
     {
         return [
+            Duplicate::class,
             Delete::class,
         ];
     }
@@ -138,8 +138,8 @@ class ServiceExtra extends Element
         return [
             [
                 'key' => '*',
-                'label' => Craft::t('booked', 'All Extras'),
-                'defaultSort' => ['sortOrder', 'asc'],
+                'label' => Craft::t('booked', 'All Add-Ons'),
+                'defaultSort' => ['title', 'asc'],
             ],
             [
                 'heading' => Craft::t('booked', 'Status'),
@@ -163,12 +163,10 @@ class ServiceExtra extends Element
     protected static function defineTableAttributes(): array
     {
         return [
-            'title' => ['label' => Craft::t('app', 'Name')],
             'price' => ['label' => Craft::t('booked', 'Price')],
             'duration' => ['label' => Craft::t('booked', 'Duration')],
             'maxQuantity' => ['label' => Craft::t('booked', 'Max Qty')],
             'isRequired' => ['label' => Craft::t('booked', 'Required')],
-            'sortOrder' => ['label' => Craft::t('booked', 'Sort Order')],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
         ];
     }
@@ -178,7 +176,7 @@ class ServiceExtra extends Element
      */
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['title', 'price', 'duration', 'maxQuantity', 'isRequired', 'sortOrder'];
+        return ['price', 'duration', 'maxQuantity', 'isRequired'];
     }
 
     /**
@@ -196,7 +194,6 @@ class ServiceExtra extends Element
     {
         return [
             'title' => Craft::t('app', 'Name'),
-            'sortOrder' => Craft::t('booked', 'Sort Order'),
             'price' => Craft::t('booked', 'Price'),
             'duration' => Craft::t('booked', 'Duration'),
             [
@@ -220,7 +217,6 @@ class ServiceExtra extends Element
             [['duration'], 'integer', 'min' => 0],
             [['maxQuantity'], 'integer', 'min' => 1],
             [['isRequired'], 'boolean'],
-            [['sortOrder'], 'integer'],
         ]);
     }
 
@@ -237,12 +233,14 @@ class ServiceExtra extends Element
         }
 
         if ($record) {
+            $record->name = $this->title;  // Map element title to record name
             $record->price = $this->price;
             $record->duration = $this->duration;
             $record->maxQuantity = $this->maxQuantity;
             $record->isRequired = $this->isRequired;
-            $record->sortOrder = $this->sortOrder;
+            $record->sortOrder = 0;  // Default value, not used anymore
             $record->description = $this->description;
+            $record->enabled = $this->enabled;  // Map from element status
             $record->save(false);
         }
 
@@ -263,6 +261,38 @@ class ServiceExtra extends Element
     public function getCpEditUrl(): ?string
     {
         return UrlHelper::cpUrl('booked/service-extras/' . $this->id);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getIsEditable(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canView(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canSave(\craft\elements\User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDelete(?\craft\elements\User $user = null): bool
+    {
+        return true;
     }
 
     /**

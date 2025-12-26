@@ -57,6 +57,11 @@ class Booked extends Plugin
         // Register controllers explicitly
         $this->controllerNamespace = 'fabian\\booked\\controllers';
 
+        // Register console controllers
+        if (Craft::$app instanceof \craft\console\Application) {
+            $this->controllerNamespace = 'fabian\\booked\\console\\controllers';
+        }
+
         // Register template roots
         $this->registerTemplateRoots();
 
@@ -391,7 +396,7 @@ class Booked extends Plugin
             'calendar' => ['label' => Craft::t('booked', 'Calendar'), 'url' => 'booked/calendar-view/month'],
             'bookings' => ['label' => Craft::t('booked', 'Bookings'), 'url' => 'booked/bookings'],
             'services' => ['label' => Craft::t('booked', 'Services'), 'url' => 'booked/services'],
-            'service-extras' => ['label' => Craft::t('booked', 'Service Extras'), 'url' => 'booked/service-extras'],
+            'service-extras' => ['label' => Craft::t('booked', 'Add-Ons'), 'url' => 'booked/service-extras'],
             'employees' => ['label' => Craft::t('booked', 'Employees'), 'url' => 'booked/employees'],
             'locations' => ['label' => Craft::t('booked', 'Locations'), 'url' => 'booked/locations'],
             'schedules' => ['label' => Craft::t('booked', 'Schedules'), 'url' => 'booked/schedules'],

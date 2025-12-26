@@ -308,7 +308,7 @@
                     {% set quantity = item.quantity %}
                     <div class="info-row">
                         <span class="info-label">
-                            {{ extra.name }}
+                            {{ extra.title }}
                             {% if quantity > 1 %} <span style="color: #9ca3af;">({{ quantity }}x)</span>{% endif %}
                         </span>
                         <span class="info-value">{{ (extra.price * quantity)|currency }}</span>

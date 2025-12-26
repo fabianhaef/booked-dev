@@ -35,15 +35,55 @@
             errors: employee.getErrors('title')
         }) }}
 
-        {{ forms.selectField({
+        {% set selectedUser = employee.userId ? craft.users.id(employee.userId).one() : null %}
+        {{ forms.elementSelectField({
             label: 'User'|t('booked'),
             id: 'userId',
             name: 'userId',
-            options: [{ value: '', label: 'Select User'|t('booked') }]|merge(users|map(u => { value: u.id, label: u.name ?? u.email })),
-            value: employee.userId,
+            elementType: 'craft\\elements\\User',
+            elements: selectedUser ? [selectedUser] : [],
+            limit: 1,
+            viewMode: 'large',
             errors: employee.getErrors('userId'),
-            instructions: 'Link this employee to a Craft user account'
         }) }}
+
+        {# JavaScript to disable already-assigned users in the modal #}
+        {% js %}
+            (function() {
+                const assignedUserIds = {{ assignedUserIds|json_encode|raw }};
+                if (assignedUserIds.length === 0) return;
+
+                // Listen for when the element selector modal opens
+                Garnish.on(Craft.BaseElementSelectInput, 'selectElements', function(ev) {
+                    if (ev.target.$input && ev.target.$input.attr('id') === 'userId') {
+                        setTimeout(function() {
+                            const modal = ev.target.elementSelect.modal;
+                            if (modal && modal.$container) {
+                                // Find all user elements in the modal
+                                modal.$container.find('.element').each(function() {
+                                    const $element = $(this);
+                                    const elementId = parseInt($element.attr('data-id'));
+
+                                    if (assignedUserIds.includes(elementId)) {
+                                        $element.addClass('disabled');
+                                        $element.css('opacity', '0.5');
+                                        $element.css('cursor', 'not-allowed');
+
+                                        // Prevent selection
+                                        $element.on('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            Craft.cp.displayNotice('This user is already assigned to another employee.');
+                                            return false;
+                                        });
+                                    }
+                                });
+                            }
+                        }, 100);
+                    }
+                });
+            })();
+        {% endjs %}
 
         {{ forms.elementSelectField({
             label: 'Location'|t('booked'),
@@ -53,7 +93,6 @@
             elements: employee.locationId and employee.getLocation() ? [employee.getLocation()] : [],
             limit: 1,
             errors: employee.getErrors('locationId'),
-            instructions: 'Primary location for this employee'
         }) }}
 
         {% set assignedServices = [] %}

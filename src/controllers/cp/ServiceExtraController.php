@@ -10,24 +10,24 @@ use yii\web\Response;
 use yii\web\NotFoundHttpException;
 
 /**
- * Service Extra Controller
+ * Service Add-On Controller
  *
- * Handles CRUD operations for service extras in the Control Panel
+ * Handles CRUD operations for service add-ons in the Control Panel
  */
 class ServiceExtraController extends Controller
 {
     /**
-     * List all service extras - now uses element index
+     * List all add-ons - now uses element index
      */
     public function actionIndex(): Response
     {
         return $this->renderTemplate('booked/service-extras/_index', [
-            'title' => Craft::t('booked', 'Service Extras'),
+            'title' => Craft::t('booked', 'Add-Ons'),
         ]);
     }
 
     /**
-     * Create a new service extra
+     * Create a new add-on
      */
     public function actionNew(): Response
     {
@@ -41,14 +41,14 @@ class ServiceExtraController extends Controller
     }
 
     /**
-     * Edit an existing service extra
+     * Edit an existing add-on
      */
     public function actionEdit(int $id): Response
     {
         $extra = ServiceExtra::find()->id($id)->one();
 
         if (!$extra) {
-            throw new NotFoundHttpException('Service extra not found');
+            throw new NotFoundHttpException('Add-on not found');
         }
 
         return $this->renderTemplate('booked/service-extras/edit', [
@@ -58,7 +58,7 @@ class ServiceExtraController extends Controller
     }
 
     /**
-     * Save a service extra
+     * Save an add-on
      */
     public function actionSave(): ?Response
     {
@@ -70,7 +70,7 @@ class ServiceExtraController extends Controller
         if ($id) {
             $extra = ServiceExtra::find()->id($id)->one();
             if (!$extra) {
-                throw new NotFoundHttpException('Service extra not found');
+                throw new NotFoundHttpException('Add-on not found');
             }
         } else {
             $extra = new ServiceExtra();
@@ -85,23 +85,21 @@ class ServiceExtraController extends Controller
         $extra->price = (float)$request->getBodyParam('price', 0);
         $extra->duration = (int)$request->getBodyParam('duration', 0);
         $extra->maxQuantity = (int)$request->getBodyParam('maxQuantity', 1);
-        $extra->isRequired = (bool)$request->getBodyParam('isRequired', false);
-        $extra->sortOrder = (int)$request->getBodyParam('sortOrder', 0);
 
         if (!Craft::$app->elements->saveElement($extra)) {
-            Craft::$app->getSession()->setError(Craft::t('booked', 'Couldn\'t save service extra.'));
+            Craft::$app->getSession()->setError(Craft::t('booked', 'Couldn\'t save add-on.'));
             Craft::$app->urlManager->setRouteParams([
                 'extra' => $extra,
             ]);
             return null;
         }
 
-        Craft::$app->getSession()->setNotice(Craft::t('booked', 'Service extra saved.'));
+        Craft::$app->getSession()->setNotice(Craft::t('booked', 'Add-on saved.'));
         return $this->redirect('booked/service-extras');
     }
 
     /**
-     * Delete a service extra
+     * Delete an add-on
      */
     public function actionDelete(): Response
     {
@@ -111,20 +109,20 @@ class ServiceExtraController extends Controller
         $extra = ServiceExtra::find()->id($id)->one();
 
         if (!$extra) {
-            throw new NotFoundHttpException('Service extra not found');
+            throw new NotFoundHttpException('Add-on not found');
         }
 
         if (Craft::$app->elements->deleteElement($extra)) {
-            Craft::$app->getSession()->setNotice('Service extra deleted.');
+            Craft::$app->getSession()->setNotice('Add-on deleted.');
         } else {
-            Craft::$app->getSession()->setError('Could not delete service extra.');
+            Craft::$app->getSession()->setError('Could not delete add-on.');
         }
 
         return $this->redirectToPostedUrl();
     }
 
     /**
-     * Get extras for a service (AJAX endpoint for frontend)
+     * Get add-ons for a service (AJAX endpoint for frontend)
      */
     public function actionGetForService(): Response
     {
@@ -145,7 +143,8 @@ class ServiceExtraController extends Controller
         $extrasArray = array_map(function($extra) {
             return [
                 'id' => $extra->id,
-                'name' => $extra->name,
+                'title' => $extra->title,
+                'name' => $extra->title,  // Backward compatibility
                 'description' => $extra->description,
                 'price' => $extra->price,
                 'duration' => $extra->duration,
@@ -162,7 +161,7 @@ class ServiceExtraController extends Controller
     }
 
     /**
-     * Reorder service extras
+     * Reorder add-ons
      */
     public function actionReorder(): Response
     {
