@@ -119,6 +119,63 @@
 
         {% if employee.id %}
             <hr>
+            <h3>{{ 'Working Hours'|t('booked') }}</h3>
+
+            {% set schedules = craft.app.elements.createElement('fabian\\booked\\elements\\Schedule')
+                .find()
+                .employeeId(employee.id)
+                .orderBy('startTime asc')
+                .all() %}
+
+            {% if schedules|length > 0 %}
+                <div class="field">
+                    <div class="input">
+                        <table class="data fullwidth">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'Schedule'|t('booked') }}</th>
+                                    <th>{{ 'Days'|t('booked') }}</th>
+                                    <th>{{ 'Time'|t('booked') }}</th>
+                                    <th>{{ 'Status'|t('app') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ schedule.cpEditUrl }}">{{ schedule.title }}</a>
+                                        </td>
+                                        <td>{{ schedule.getDaysName() }}</td>
+                                        <td>{{ schedule.startTime }} - {{ schedule.endTime }}</td>
+                                        <td>
+                                            {% if schedule.enabled %}
+                                                <span class="status green"></span> {{ 'Enabled'|t('app') }}
+                                            {% else %}
+                                                <span class="status"></span> {{ 'Disabled'|t('app') }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="light">
+                        {{ 'Schedules are managed separately.'|t('booked') }}
+                        <a href="{{ url('booked/schedules') }}">{{ 'Manage Schedules'|t('booked') }}</a>
+                    </p>
+                </div>
+            {% else %}
+                <div class="field">
+                    <p class="light">
+                        {{ 'No schedules assigned to this employee yet.'|t('booked') }}
+                        <a href="{{ url('booked/schedules/new') }}">{{ 'Create Schedule'|t('booked') }}</a>
+                    </p>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {% if employee.id %}
+            <hr>
             <h3>{{ 'Calendar Synchronization'|t('booked') }}</h3>
             
             <div class="field">
