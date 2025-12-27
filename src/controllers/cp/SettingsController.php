@@ -105,39 +105,6 @@ class SettingsController extends Controller
     }
 
     /**
-     * Booking Fields settings page
-     */
-    public function actionBookingFields(): Response
-    {
-        $fieldLayout = Craft::$app->getFields()->getLayoutByType(\fabian\booked\elements\Reservation::class);
-
-        return $this->renderTemplate('booked/settings/booking-fields', [
-            'selectedSubnavItem' => 'booking-fields',
-            'fieldLayout' => $fieldLayout,
-        ]);
-    }
-
-    /**
-     * Save booking field layout
-     */
-    public function actionSaveBookingFields(): Response
-    {
-        $this->requirePostRequest();
-
-        $request = Craft::$app->request;
-        $fieldLayout = Craft::$app->getFields()->assembleLayoutFromPost();
-        $fieldLayout->type = \fabian\booked\elements\Reservation::class;
-
-        if (!Craft::$app->getFields()->saveLayout($fieldLayout)) {
-            Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save booking fields.'));
-            return null;
-        }
-
-        Craft::$app->session->setNotice(Craft::t('booked', 'Booking fields saved.'));
-        return $this->redirectToPostedUrl();
-    }
-
-    /**
      * Service Fields settings page
      */
     public function actionServiceFields(): Response
@@ -145,7 +112,8 @@ class SettingsController extends Controller
         $fieldLayout = Craft::$app->getFields()->getLayoutByType(\fabian\booked\elements\Service::class);
 
         return $this->renderTemplate('booked/settings/service-fields', [
-            'selectedSubnavItem' => 'service-fields',
+            'selectedSubnavItem' => 'settings',
+            'selectedSettingsSubnavItem' => 'service-fields',
             'fieldLayout' => $fieldLayout,
         ]);
     }
