@@ -5,6 +5,7 @@ namespace fabian\booked\elements;
 use Craft;
 use craft\base\Element;
 use craft\elements\actions\Delete;
+use craft\elements\actions\Duplicate;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
@@ -100,6 +101,7 @@ class Schedule extends Element
     protected static function defineActions(?string $source = null): array
     {
         return [
+            Duplicate::class,
             Delete::class,
         ];
     }
@@ -371,6 +373,14 @@ class Schedule extends Element
      * @inheritdoc
      */
     public function canDelete(?\craft\elements\User $user = null): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDuplicate(\craft\elements\User $user): bool
     {
         return true;
     }

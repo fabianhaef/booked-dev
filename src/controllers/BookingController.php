@@ -41,6 +41,12 @@ class BookingController extends Controller
         'cancel-sequence'
     ];
 
+    /**
+     * Disable CSRF validation for frontend booking requests
+     * These are public-facing APIs that receive valid CSRF tokens from the frontend
+     */
+    public $enableCsrfValidation = false;
+
     private AvailabilityService $availabilityService;
     private BookingService $bookingService;
 
@@ -594,6 +600,11 @@ class BookingController extends Controller
 
     /**
      * Get all employees
+     *
+     * Returns:
+     * - employees: List of available employees
+     * - employeeRequired: Whether an employee must be selected (false if service-level schedules exist)
+     * - hasSchedules: Whether any schedules exist for this service
      */
     public function actionGetEmployees(): Response
     {
@@ -602,16 +613,49 @@ class BookingController extends Controller
         $locationId = Craft::$app->request->getParam('locationId');
         $serviceId = Craft::$app->request->getParam('serviceId');
 
+        // Check if service has any schedules at all
+        $hasSchedules = false;
+        $hasServiceLevelSchedules = false; // Schedules without specific employee
+
+        if ($serviceId) {
+            // Get schedules for this service
+            // Include schedules where locationId matches OR locationId is NULL (applies to all locations)
+            $scheduleQuery = \fabian\booked\elements\Schedule::find()
+                ->serviceId((int)$serviceId)
+                ->status('enabled');
+
+            if ($locationId) {
+                // Find schedules for this specific location OR schedules that apply to all locations (NULL)
+                $scheduleQuery->andWhere([
+                    'or',
+                    ['booked_schedules.locationId' => (int)$locationId],
+                    ['booked_schedules.locationId' => null]
+                ]);
+            }
+
+            $schedules = $scheduleQuery->all();
+            $hasSchedules = count($schedules) > 0;
+
+            // Check if any schedules don't require a specific employee
+            foreach ($schedules as $schedule) {
+                if ($schedule->employeeId === null) {
+                    $hasServiceLevelSchedules = true;
+                    break;
+                }
+            }
+        }
+
+        // Get employees with schedules for this service
         $query = Employee::find()->enabled();
 
         if ($locationId) {
-            $query->locationId($locationId);
+            $query->locationId((int)$locationId);
         }
 
         if ($serviceId) {
-            $query->serviceId($serviceId);
+            $query->serviceId((int)$serviceId);
         }
-        
+
         $employees = $query->all();
 
         $data = [];
@@ -626,7 +670,10 @@ class BookingController extends Controller
 
         return $this->asJson([
             'success' => true,
-            'employees' => $data
+            'employees' => $data,
+            'employeeRequired' => !$hasServiceLevelSchedules && count($employees) > 0,
+            'hasSchedules' => $hasSchedules,
+            'hasServiceLevelSchedules' => $hasServiceLevelSchedules,
         ]);
     }
 

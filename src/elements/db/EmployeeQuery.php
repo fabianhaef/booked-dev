@@ -107,10 +107,14 @@ class EmployeeQuery extends ElementQuery
 
         if ($this->serviceId !== null) {
             // Simplified model: Get employees who have schedules for this service
-            // Use distinct to avoid duplicates when employee has multiple schedules
-            $this->subQuery->distinct();
-            $this->subQuery->innerJoin('{{%booked_schedules}} booked_schedules', '[[booked_schedules.employeeId]] = [[elements.id]]');
-            $this->subQuery->andWhere(Db::parseParam('booked_schedules.serviceId', $this->serviceId));
+            // Use EXISTS subquery to avoid duplicates without DISTINCT (which conflicts with ORDER BY in MySQL)
+            $this->subQuery->andWhere([
+                'exists',
+                (new \craft\db\Query())
+                    ->from('{{%booked_schedules}} schedules')
+                    ->where('[[schedules.employeeId]] = [[elements.id]]')
+                    ->andWhere(Db::parseParam('schedules.serviceId', $this->serviceId))
+            ]);
         }
 
         // Handle the 'enabled' parameter

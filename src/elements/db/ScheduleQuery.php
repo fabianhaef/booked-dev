@@ -113,7 +113,16 @@ class ScheduleQuery extends ElementQuery
         }
 
         if ($this->dayOfWeek !== null) {
-            $this->subQuery->andWhere(Db::parseParam('booked_schedules.dayOfWeek', $this->dayOfWeek));
+            // Search in daysOfWeek JSON array (new format: 1-7 where 1=Monday, 7=Sunday)
+            // Also check old dayOfWeek column for backward compatibility
+            // Note: PHP's date('w') returns 0=Sunday, 1=Monday, etc.
+            // We need to convert to 1-7 format for daysOfWeek
+            $dayForJson = $this->dayOfWeek === 0 ? 7 : $this->dayOfWeek;
+            $this->subQuery->andWhere([
+                'or',
+                ['like', 'booked_schedules.daysOfWeek', '"' . $dayForJson . '"', false],
+                ['booked_schedules.dayOfWeek' => $this->dayOfWeek],
+            ]);
         }
 
         if ($this->enabled !== null) {

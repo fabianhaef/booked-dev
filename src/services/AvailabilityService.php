@@ -213,15 +213,28 @@ class AvailabilityService extends Component
         $allSlots = [];
 
         // Group schedules by employee (simplified model: direct FK)
+        // Use 'service' as key for service-level schedules (employeeId = NULL)
         $schedulesByEmployee = [];
+        $serviceLevelSchedules = [];
+
         foreach ($schedules as $schedule) {
             if ($schedule->employeeId) {
                 $schedulesByEmployee[$schedule->employeeId][] = [
                     'start' => $schedule->startTime,
                     'end' => $schedule->endTime,
                     'locationId' => $schedule->locationId,
+                    'schedule' => $schedule,
                 ];
                 Craft::info("Added schedule for Employee {$schedule->employeeId}", __METHOD__);
+            } else {
+                // Service-level schedule (no specific employee)
+                $serviceLevelSchedules[] = [
+                    'start' => $schedule->startTime,
+                    'end' => $schedule->endTime,
+                    'locationId' => $schedule->locationId,
+                    'schedule' => $schedule,
+                ];
+                Craft::info("Added service-level schedule (no employee)", __METHOD__);
             }
         }
         foreach ($expandedAvailabilities as $avail) {
@@ -301,6 +314,76 @@ class AvailabilityService extends Component
             
             Craft::info("Employee $empId generated " . count($empSlots) . " slots", __METHOD__);
             $allSlots = array_merge($allSlots, $empSlots);
+        }
+
+        // Process service-level schedules (no specific employee)
+        if (!empty($serviceLevelSchedules)) {
+            $timeWindows = $this->mergeTimeWindows($serviceLevelSchedules);
+            Craft::info("Service-level base working hours: " . json_encode($timeWindows), __METHOD__);
+
+            // Get buffers from service
+            $bufferBefore = $service->bufferBefore ?? 0;
+            $bufferAfter = $service->bufferAfter ?? 0;
+
+            // For service-level schedules, get ALL bookings for this service (regardless of employee)
+            $bookings = $this->getReservationsForDate($date, null, $serviceId);
+            Craft::info("Service-level has " . count($bookings) . " bookings on $date", __METHOD__);
+
+            // Get capacity from first schedule (they should have same capacity)
+            $scheduleForCapacity = $serviceLevelSchedules[0]['schedule'] ?? null;
+            $totalSpots = $scheduleForCapacity ? $scheduleForCapacity->getTotalSpots() : 1;
+
+            // Group bookings by time slot to check capacity
+            $bookingsBySlot = [];
+            foreach ($bookings as $booking) {
+                $slotKey = $booking->startTime;
+                if (!isset($bookingsBySlot[$slotKey])) {
+                    $bookingsBySlot[$slotKey] = 0;
+                }
+                $bookingsBySlot[$slotKey] += $booking->quantity ?? 1;
+            }
+
+            // Apply buffers to time windows
+            if ($bufferBefore > 0 || $bufferAfter > 0) {
+                foreach ($timeWindows as $key => $window) {
+                    $winStart = $this->timeToMinutes($window['start']);
+                    $winEnd = $this->timeToMinutes($window['end']);
+
+                    $adjustedStart = $winStart + $bufferBefore;
+                    $adjustedEnd = $winEnd - $bufferAfter;
+
+                    if ($adjustedStart < $adjustedEnd) {
+                        $timeWindows[$key]['start'] = $this->minutesToTime($adjustedStart);
+                        $timeWindows[$key]['end'] = $this->minutesToTime($adjustedEnd);
+                    } else {
+                        unset($timeWindows[$key]);
+                    }
+                }
+                $timeWindows = array_values($timeWindows);
+            }
+
+            // Subtract blackout dates
+            $timeWindows = $this->subtractBlackouts($timeWindows, $date, null);
+
+            // Generate slots
+            $serviceSlots = $this->generateSlots($timeWindows, $duration, $serviceId, $locationId, $scheduleForCapacity);
+
+            // Filter slots that are at capacity
+            foreach ($serviceSlots as $key => &$slot) {
+                $slotTime = $slot['time'];
+                $bookedCount = $bookingsBySlot[$slotTime] ?? 0;
+                $slot['bookedCount'] = $bookedCount;
+                $slot['availableSpots'] = max(0, $totalSpots - $bookedCount);
+
+                // Remove slot if fully booked
+                if ($slot['availableSpots'] <= 0) {
+                    unset($serviceSlots[$key]);
+                }
+            }
+            $serviceSlots = array_values($serviceSlots);
+
+            Craft::info("Service-level generated " . count($serviceSlots) . " slots", __METHOD__);
+            $allSlots = array_merge($allSlots, $serviceSlots);
         }
 
         // Step 8: Remove slots in the past
@@ -514,7 +597,12 @@ class AvailabilityService extends Component
         }
 
         if ($locationId !== null) {
-            $query->locationId($locationId);
+            // Include schedules for this specific location OR schedules that apply to all locations (NULL)
+            $query->andWhere([
+                'or',
+                ['booked_schedules.locationId' => $locationId],
+                ['booked_schedules.locationId' => null]
+            ]);
         }
 
         return $query->all();
@@ -625,8 +713,12 @@ class AvailabilityService extends Component
             $query->employeeId($employeeId);
         }
 
-        // REMOVED: serviceId filter. An employee is busy regardless of the service type.
-        
+        // For service-level schedules (no employee), we need to filter by service
+        // to correctly check capacity for that specific service
+        if ($employeeId === null && $serviceId !== null) {
+            $query->serviceId($serviceId);
+        }
+
         return $query->all();
     }
 
