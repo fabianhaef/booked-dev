@@ -4,9 +4,16 @@ namespace fabian\booked\elements\db;
 
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
+use fabian\booked\elements\Service;
 
 /**
  * ServiceQuery defines the condition builder for Service elements
+ *
+ * Supports hierarchical queries via Craft's Structure system:
+ * - ancestorOf($element) - Get all ancestors
+ * - descendantOf($element) - Get all descendants
+ * - siblingOf($element) - Get all siblings
+ * - level($level) - Filter by nesting level
  *
  * @method \fabian\booked\elements\Service[]|array all($db = null)
  * @method \fabian\booked\elements\Service|array|null one($db = null)
@@ -21,6 +28,22 @@ class ServiceQuery extends ElementQuery
 
     public ?int $duration = null;
     public ?float $price = null;
+
+    /**
+     * @inheritdoc
+     */
+    public function init(): void
+    {
+        // Enable structure queries by default if structure exists
+        if (!isset($this->withStructure)) {
+            $structureId = Service::getStructureId();
+            if ($structureId) {
+                $this->withStructure = true;
+            }
+        }
+
+        parent::init();
+    }
 
     /**
      * Filter by duration
@@ -70,6 +93,9 @@ class ServiceQuery extends ElementQuery
             'booked_services.bufferAfter',
             'booked_services.price',
             'booked_services.virtualMeetingProvider',
+            'booked_services.minTimeBeforeBooking',
+            'booked_services.minTimeBeforeCanceling',
+            'booked_services.finalStepUrl',
         ]);
 
         if ($this->duration !== null) {

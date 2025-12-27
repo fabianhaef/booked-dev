@@ -95,6 +95,8 @@ class ScheduleQuery extends ElementQuery
             'booked_schedules.daysOfWeek',
             'booked_schedules.startTime',
             'booked_schedules.endTime',
+            'booked_schedules.capacity',
+            'booked_schedules.simultaneousSlots',
         ]);
 
         // Direct FK filters - no junction tables needed

@@ -16,6 +16,8 @@ use craft\db\ActiveRecord;
  * @property string|null $daysOfWeek JSON array of days
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
+ * @property int $capacity Number of people per booking slot
+ * @property int $simultaneousSlots Number of parallel resources
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
@@ -42,6 +44,8 @@ class ScheduleRecord extends ActiveRecord
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['title'], 'string', 'max' => 255],
             [['daysOfWeek'], 'string'],
+            [['capacity', 'simultaneousSlots'], 'integer', 'min' => 1],
+            [['capacity', 'simultaneousSlots'], 'default', 'value' => 1],
         ];
     }
 }

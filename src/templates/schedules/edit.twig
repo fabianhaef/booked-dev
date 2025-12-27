@@ -18,6 +18,13 @@
         {% endif %}
 
         <div class="fields">
+            {{ forms.lightswitchField({
+                label: 'Enabled'|t('app'),
+                id: 'enabled',
+                name: 'enabled',
+                on: schedule.enabled ?? true
+            }) }}
+
             {{ forms.textField({
                 label: 'Title'|t('booked'),
                 id: 'title',
@@ -100,12 +107,34 @@
                 }) }}
             </div>
 
-            {{ forms.lightswitchField({
-                label: 'Enabled'|t('app'),
-                id: 'enabled',
-                name: 'enabled',
-                on: schedule.enabled ?? true
-            }) }}
+            <hr>
+
+            <h2>{{ 'Capacity Settings'|t('booked') }}</h2>
+            <p class="light">{{ 'Define how many bookings can be made per time slot. Total spots = Capacity × Simultaneous Slots.'|t('booked') }}</p>
+
+            <div class="flex">
+                {{ forms.textField({
+                    label: 'Capacity'|t('booked'),
+                    id: 'capacity',
+                    name: 'capacity',
+                    type: 'number',
+                    min: 1,
+                    value: schedule.capacity ?? 1,
+                    errors: schedule.getErrors('capacity'),
+                    instructions: 'Number of people per booking (e.g., 4 people per escape room)'|t('booked')
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Simultaneous Slots'|t('booked'),
+                    id: 'simultaneousSlots',
+                    name: 'simultaneousSlots',
+                    type: 'number',
+                    min: 1,
+                    value: schedule.simultaneousSlots ?? 1,
+                    errors: schedule.getErrors('simultaneousSlots'),
+                    instructions: 'Number of parallel resources (e.g., 4 rooms, 3 tables)'|t('booked')
+                }) }}
+            </div>
         </div>
 
         <div class="buttons">

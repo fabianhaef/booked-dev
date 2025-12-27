@@ -102,6 +102,23 @@ class ServicesController extends Controller
 
         $service->virtualMeetingProvider = $request->getBodyParam('virtualMeetingProvider');
 
+        // Booking configuration fields
+        $minTimeBeforeBooking = $request->getBodyParam('minTimeBeforeBooking');
+        $service->minTimeBeforeBooking = $minTimeBeforeBooking === '' || $minTimeBeforeBooking === null ? null : (int)$minTimeBeforeBooking;
+
+        $minTimeBeforeCanceling = $request->getBodyParam('minTimeBeforeCanceling');
+        $service->minTimeBeforeCanceling = $minTimeBeforeCanceling === '' || $minTimeBeforeCanceling === null ? null : (int)$minTimeBeforeCanceling;
+
+        $finalStepUrl = $request->getBodyParam('finalStepUrl');
+        $service->finalStepUrl = $finalStepUrl === '' ? null : $finalStepUrl;
+
+        // Handle parent service for hierarchy
+        $parentId = $request->getBodyParam('parentId');
+        $service->parentId = $parentId === '' || $parentId === null ? null : (int)$parentId;
+
+        // Set field values from field layout
+        $service->setFieldValuesFromRequest('fields');
+
         if (!Craft::$app->elements->saveElement($service)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save service.'));
             Craft::$app->urlManager->setRouteParams([

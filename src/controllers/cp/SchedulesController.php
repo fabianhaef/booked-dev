@@ -158,6 +158,13 @@ class SchedulesController extends Controller
         $endTime = $request->getBodyParam('endTime');
         $schedule->endTime = $endTime === '' ? null : $endTime;
 
+        // Capacity fields
+        $capacity = $request->getBodyParam('capacity');
+        $schedule->capacity = $capacity === '' || $capacity === null ? 1 : (int)$capacity;
+
+        $simultaneousSlots = $request->getBodyParam('simultaneousSlots');
+        $schedule->simultaneousSlots = $simultaneousSlots === '' || $simultaneousSlots === null ? 1 : (int)$simultaneousSlots;
+
         if (!Craft::$app->elements->saveElement($schedule)) {
             Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save schedule.'));
             Craft::$app->urlManager->setRouteParams([

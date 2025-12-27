@@ -716,17 +716,17 @@ class AvailabilityService extends Component
 
     /**
      * Generate slots from time windows
-     * 
+     *
      * @param array $windows Array of time windows
      * @param int $duration Slot duration in minutes
      * @param int|null $serviceId Optional service ID
      * @param int|null $locationId Optional location ID
+     * @param Schedule|null $schedule Optional schedule for capacity info
      * @return array Array of slot objects
      */
-    protected function generateSlots(array $windows, int $duration, ?int $serviceId = null, ?int $locationId = null): array
+    protected function generateSlots(array $windows, int $duration, ?int $serviceId = null, ?int $locationId = null, ?Schedule $schedule = null): array
     {
         $slots = [];
-        $durationSeconds = $duration * 60;
 
         foreach ($windows as $window) {
             $start = $this->timeToMinutes($window['start']);
@@ -737,14 +737,23 @@ class AvailabilityService extends Component
                 $slotStart = $this->minutesToTime($current);
                 $slotEnd = $this->minutesToTime($current + $duration);
 
-                $slots[] = [
+                $slot = [
                     'time' => $slotStart,
                     'endTime' => $slotEnd,
                     'serviceId' => $serviceId,
                     'employeeId' => $window['employeeId'] ?? null,
-                    'locationId' => $locationId,
+                    'locationId' => $locationId ?? ($window['locationId'] ?? null),
                     'duration' => $duration,
                 ];
+
+                // Add capacity info if schedule is available
+                if ($schedule) {
+                    $slot['capacity'] = $schedule->capacity;
+                    $slot['simultaneousSlots'] = $schedule->simultaneousSlots;
+                    $slot['totalSpots'] = $schedule->getTotalSpots();
+                }
+
+                $slots[] = $slot;
 
                 $current += $duration;
             }
@@ -1024,6 +1033,11 @@ class AvailabilityService extends Component
     /**
      * Check if slot has available capacity for requested quantity
      *
+     * Capacity is now defined on Schedule:
+     * - capacity: Number of people per slot (e.g., 4 people per escape room)
+     * - simultaneousSlots: Number of parallel resources (e.g., 4 rooms)
+     * - Total capacity = capacity × simultaneousSlots
+     *
      * @param string $date Date in Y-m-d format
      * @param string $startTime Start time in H:i format
      * @param string $endTime End time in H:i format
@@ -1040,18 +1054,13 @@ class AvailabilityService extends Component
         ?int $serviceId,
         int $requestedQuantity
     ): bool {
-        // If no service specified, assume capacity is available (backward compatibility)
-        if ($serviceId === null) {
+        // Get the schedule's capacity for this slot
+        $maxCapacity = $this->getScheduleCapacityForSlot($date, $startTime, $employeeId, $serviceId);
+
+        // If no capacity limit found (no matching schedule), assume unlimited
+        if ($maxCapacity === null) {
             return true;
         }
-
-        // Get service/variation to check maxCapacity
-        $service = $this->getService($serviceId);
-        if (!$service || !property_exists($service, 'maxCapacity')) {
-            return true; // No capacity limit configured
-        }
-
-        $maxCapacity = $service->maxCapacity;
 
         // Calculate already booked quantity for this slot
         $existingBookedQuantity = $this->getBookedQuantityForSlot($date, $startTime, $endTime, $employeeId, $serviceId);
@@ -1059,10 +1068,69 @@ class AvailabilityService extends Component
         // Check if requested quantity + existing bookings exceeds capacity
         $totalQuantity = $requestedQuantity + $existingBookedQuantity;
         if ($totalQuantity > $maxCapacity) {
+            Craft::info("Capacity check FAILED: requested=$requestedQuantity + existing=$existingBookedQuantity = $totalQuantity > max=$maxCapacity", __METHOD__);
             return false;
         }
 
+        Craft::info("Capacity check PASSED: requested=$requestedQuantity + existing=$existingBookedQuantity = $totalQuantity <= max=$maxCapacity", __METHOD__);
         return true;
+    }
+
+    /**
+     * Get the schedule capacity for a specific slot
+     *
+     * @param string $date Date in Y-m-d format
+     * @param string $startTime Start time in H:i format
+     * @param int|null $employeeId Employee ID
+     * @param int|null $serviceId Service ID
+     * @return int|null Total capacity (capacity × simultaneousSlots) or null if no schedule found
+     */
+    protected function getScheduleCapacityForSlot(
+        string $date,
+        string $startTime,
+        ?int $employeeId,
+        ?int $serviceId
+    ): ?int {
+        $dateObj = DateTime::createFromFormat('Y-m-d', $date);
+        if (!$dateObj) {
+            return null;
+        }
+
+        $dayOfWeek = (int)$dateObj->format('w'); // 0 = Sunday, 6 = Saturday
+
+        // Find matching schedule(s) for this day, employee, and service
+        $query = Schedule::find()
+            ->enabled()
+            ->dayOfWeek($dayOfWeek);
+
+        if ($employeeId !== null) {
+            $query->employeeId($employeeId);
+        }
+
+        if ($serviceId !== null) {
+            $query->serviceId($serviceId);
+        }
+
+        $schedules = $query->all();
+
+        if (empty($schedules)) {
+            return null;
+        }
+
+        // Find schedule that covers this time slot
+        $slotMinutes = $this->timeToMinutes($startTime);
+
+        foreach ($schedules as $schedule) {
+            $scheduleStart = $this->timeToMinutes($schedule->startTime);
+            $scheduleEnd = $this->timeToMinutes($schedule->endTime);
+
+            if ($slotMinutes >= $scheduleStart && $slotMinutes < $scheduleEnd) {
+                // Found matching schedule - return total capacity
+                return $schedule->getTotalSpots();
+            }
+        }
+
+        return null;
     }
 
     /**

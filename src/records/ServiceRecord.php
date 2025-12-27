@@ -13,6 +13,9 @@ use craft\db\ActiveRecord;
  * @property int|null $bufferAfter Buffer time after service in minutes
  * @property float|null $price Service price
  * @property string|null $virtualMeetingProvider Virtual meeting provider
+ * @property int|null $minTimeBeforeBooking Minimum minutes before booking
+ * @property int|null $minTimeBeforeCanceling Minimum minutes before canceling
+ * @property string|null $finalStepUrl URL to redirect after booking
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
@@ -35,6 +38,8 @@ class ServiceRecord extends ActiveRecord
         return [
             [['duration', 'bufferBefore', 'bufferAfter'], 'integer', 'min' => 0],
             [['price'], 'number', 'min' => 0],
+            [['minTimeBeforeBooking', 'minTimeBeforeCanceling'], 'integer', 'min' => 0],
+            [['finalStepUrl'], 'string', 'max' => 500],
         ];
     }
 }

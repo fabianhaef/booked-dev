@@ -331,6 +331,7 @@ class Booked extends Plugin
                     'booked/settings/meetings' => 'booked/cp/settings/meetings',
                     'booked/settings/notifications' => 'booked/cp/settings/notifications',
                     'booked/settings/booking-fields' => 'booked/cp/settings/booking-fields',
+                    'booked/settings/service-fields' => 'booked/cp/settings/service-fields',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
 

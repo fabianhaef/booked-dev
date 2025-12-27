@@ -44,7 +44,7 @@
                     type: 'number',
                     value: service.duration,
                     errors: service.getErrors('duration'),
-                    instructions: 'Service duration in minutes'
+                    instructions: 'Service duration in minutes'|t('booked')
                 }) }}
             </div>
 
@@ -57,7 +57,7 @@
                     step: '0.01',
                     value: service.price,
                     errors: service.getErrors('price'),
-                    instructions: 'Service price'
+                    instructions: 'Service price'|t('booked')
                 }) }}
             </div>
         </div>
@@ -71,7 +71,7 @@
                     type: 'number',
                     value: service.bufferBefore,
                     errors: service.getErrors('bufferBefore'),
-                    instructions: 'Buffer time before service starts'
+                    instructions: 'Buffer time before service starts'|t('booked')
                 }) }}
             </div>
 
@@ -83,10 +83,54 @@
                     type: 'number',
                     value: service.bufferAfter,
                     errors: service.getErrors('bufferAfter'),
-                    instructions: 'Buffer time after service ends'
+                    instructions: 'Buffer time after service ends'|t('booked')
                 }) }}
             </div>
         </div>
+
+        {# Booking Configuration Section #}
+        <hr>
+        <h2>{{ 'Booking Configuration'|t('booked') }}</h2>
+
+        <div class="flex" style="gap: 1rem;">
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Minimum time before booking (minutes)'|t('booked'),
+                    id: 'minTimeBeforeBooking',
+                    name: 'minTimeBeforeBooking',
+                    type: 'number',
+                    min: 0,
+                    value: service.minTimeBeforeBooking,
+                    errors: service.getErrors('minTimeBeforeBooking'),
+                    instructions: 'How late can appointments be booked? Leave empty to use default settings.'|t('booked'),
+                    placeholder: 'Default'|t('booked')
+                }) }}
+            </div>
+
+            <div style="flex: 1;">
+                {{ forms.textField({
+                    label: 'Minimum time before canceling (minutes)'|t('booked'),
+                    id: 'minTimeBeforeCanceling',
+                    name: 'minTimeBeforeCanceling',
+                    type: 'number',
+                    min: 0,
+                    value: service.minTimeBeforeCanceling,
+                    errors: service.getErrors('minTimeBeforeCanceling'),
+                    instructions: 'How late can appointments be cancelled? Leave empty to use default settings.'|t('booked'),
+                    placeholder: 'Default'|t('booked')
+                }) }}
+            </div>
+        </div>
+
+        {{ forms.textField({
+            label: 'Final Step URL'|t('booked'),
+            id: 'finalStepUrl',
+            name: 'finalStepUrl',
+            value: service.finalStepUrl,
+            errors: service.getErrors('finalStepUrl'),
+            instructions: 'URL to redirect after successful booking. Leave empty to show the default confirmation step.'|t('booked'),
+            placeholder: 'https://...'
+        }) }}
 
         {% set settings = craft.booked.getSettings() %}
         {% if settings.enableVirtualMeetings %}
@@ -107,8 +151,9 @@
             }) }}
         {% endif %}
 
-        {# Add-Ons - now using element selector #}
+        {# Add-Ons #}
         <hr>
+        <h2>{{ 'Add-Ons'|t('booked') }}</h2>
 
         {% if service.id %}
             {% set selectedExtras = craft.entries.section('serviceExtra').relatedTo(service).all() %}
@@ -121,8 +166,8 @@
         {% endif %}
 
         {{ forms.elementSelectField({
-            label: 'Add-Ons'|t('booked'),
-            instructions: 'Select which add-ons should be available for this service. Customers can add these when booking. Drag to reorder.'|t('booked'),
+            label: 'Available Add-Ons'|t('booked'),
+            instructions: 'Select which add-ons should be available for this service. Customers can add these when booking.'|t('booked'),
             id: 'extras',
             name: 'extras',
             elementType: 'fabian\\booked\\elements\\ServiceExtra',
@@ -134,6 +179,23 @@
                 orderBy: 'title asc'
             }
         }) }}
+
+        {# Custom Fields from Field Layout #}
+        {% set fieldLayout = service.getFieldLayout() %}
+        {% if fieldLayout and fieldLayout.getTabs()|length %}
+            <hr>
+            <h2>{{ 'Custom Fields'|t('booked') }}</h2>
+
+            {% namespace 'fields' %}
+                {% for tab in fieldLayout.getTabs() %}
+                    {% for layoutElement in tab.getElements() %}
+                        {% set formHtml = layoutElement.formHtml(service) %}
+                        {% if formHtml %}
+                            {{ formHtml|raw }}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            {% endnamespace %}
+        {% endif %}
     </div>
 {% endblock %}
-

@@ -15,6 +15,7 @@ use fabian\booked\records\ScheduleRecord;
  * Schedule Element
  *
  * Simplified model: Each schedule directly references a service, employee, and location.
+ * Capacity model: Each schedule defines capacity for booking management.
  *
  * @property string|null $title Schedule title (e.g., "Morning Shift", "Weekend Hours")
  * @property int|null $serviceId FK to Service element (required)
@@ -24,6 +25,8 @@ use fabian\booked\records\ScheduleRecord;
  * @property string|array|null $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri)
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
+ * @property int $capacity Number of people per booking slot (e.g., 4 people per escape room)
+ * @property int $simultaneousSlots Number of parallel resources (e.g., 4 escape rooms)
  */
 class Schedule extends Element
 {
@@ -35,6 +38,8 @@ class Schedule extends Element
     public string|array|null $daysOfWeek = []; // Can be JSON string from DB or array
     public ?string $startTime = null;
     public ?string $endTime = null;
+    public int $capacity = 1; // People per slot
+    public int $simultaneousSlots = 1; // Parallel resources (rooms, tables, etc.)
 
     private ?Service $_service = null;
     private ?Employee $_employee = null;
@@ -184,6 +189,8 @@ class Schedule extends Element
             'location' => ['label' => Craft::t('booked', 'Location')],
             'dayOfWeek' => ['label' => Craft::t('booked', 'Days')],
             'timeRange' => ['label' => Craft::t('booked', 'Time')],
+            'capacity' => ['label' => Craft::t('booked', 'Capacity')],
+            'totalSpots' => ['label' => Craft::t('booked', 'Total Spots')],
         ];
     }
 
@@ -192,7 +199,7 @@ class Schedule extends Element
      */
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['title', 'service', 'employee', 'dayOfWeek', 'timeRange'];
+        return ['title', 'service', 'employee', 'dayOfWeek', 'timeRange', 'capacity'];
     }
 
     /**
@@ -307,9 +314,25 @@ class Schedule extends Element
                     return Html::encode($this->startTime . ' - ' . $this->endTime);
                 }
                 return Html::tag('span', '–', ['class' => 'light']);
+
+            case 'capacity':
+                return Html::encode($this->capacity . ' × ' . $this->simultaneousSlots);
+
+            case 'totalSpots':
+                return Html::encode($this->getTotalSpots());
         }
 
         return parent::attributeHtml($attribute);
+    }
+
+    /**
+     * Get total available spots per time slot
+     * Total = capacity × simultaneousSlots
+     * Example: 4 people × 4 rooms = 16 total spots
+     */
+    public function getTotalSpots(): int
+    {
+        return $this->capacity * $this->simultaneousSlots;
     }
 
     /**
@@ -364,6 +387,8 @@ class Schedule extends Element
             [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7],
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['title'], 'string', 'max' => 255],
+            [['capacity', 'simultaneousSlots'], 'integer', 'min' => 1],
+            [['capacity', 'simultaneousSlots'], 'default', 'value' => 1],
         ]);
     }
 
@@ -414,6 +439,10 @@ class Schedule extends Element
         $record->dayOfWeek = $this->dayOfWeek ?? (!empty($this->daysOfWeek) ? $this->daysOfWeek[0] : null);
         $record->startTime = $this->startTime;
         $record->endTime = $this->endTime;
+
+        // Save capacity fields
+        $record->capacity = $this->capacity;
+        $record->simultaneousSlots = $this->simultaneousSlots;
 
         $record->save(false);
 

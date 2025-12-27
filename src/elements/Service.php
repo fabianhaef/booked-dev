@@ -4,30 +4,55 @@ namespace fabian\booked\elements;
 
 use Craft;
 use craft\base\Element;
+use craft\base\ElementInterface;
 use craft\elements\actions\Delete;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\ElementHelper;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
+use craft\models\FieldLayout;
 use fabian\booked\elements\db\ServiceQuery;
 use fabian\booked\records\ServiceRecord;
+use fabian\booked\Booked;
 
 /**
  * Service Element
+ *
+ * Supports hierarchical structure for organizing services into categories/groups.
+ * Supports custom field layouts for developer flexibility.
  *
  * @property int|null $duration Duration in minutes
  * @property int|null $bufferBefore Buffer time before service in minutes
  * @property int|null $bufferAfter Buffer time after service in minutes
  * @property float|null $price Service price
  * @property string|null $virtualMeetingProvider Virtual meeting provider (zoom, google, none)
+ * @property int|null $minTimeBeforeBooking Minimum minutes before booking
+ * @property int|null $minTimeBeforeCanceling Minimum minutes before canceling
+ * @property string|null $finalStepUrl URL to redirect after booking
  */
 class Service extends Element
 {
+    // Core service properties
     public ?int $duration = null;
     public ?int $bufferBefore = null;
     public ?int $bufferAfter = null;
     public ?float $price = null;
     public ?string $virtualMeetingProvider = null;
+
+    // Booking configuration (null = use global defaults)
+    public ?int $minTimeBeforeBooking = null;
+    public ?int $minTimeBeforeCanceling = null;
+    public ?string $finalStepUrl = null;
+
+    /**
+     * @var int|null The parent service ID (for hierarchical structure)
+     */
+    public ?int $parentId = null;
+
+    /**
+     * @var Service|null Cached parent service
+     */
+    private ?Service $_parent = null;
 
     /**
      * @inheritdoc
@@ -68,15 +93,15 @@ class Service extends Element
      */
     public static function hasContent(): bool
     {
-        return false; // No field layouts
+        return true; // Enable field layouts
     }
 
     /**
      * @inheritdoc
      */
-    public function getFieldLayout(): ?\craft\models\FieldLayout
+    public function getFieldLayout(): ?FieldLayout
     {
-        return null;
+        return Craft::$app->getFields()->getLayoutByType(self::class);
     }
 
     /**
@@ -101,6 +126,22 @@ class Service extends Element
     public static function hasStatuses(): bool
     {
         return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function isLocalized(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the service structure ID from project config
+     */
+    public static function getStructureId(): ?int
+    {
+        return Craft::$app->getProjectConfig()->get('plugins.booked.serviceStructureId');
     }
 
     /**
@@ -135,13 +176,24 @@ class Service extends Element
      */
     protected static function defineSources(string $context): array
     {
-        return [
+        $structureId = static::getStructureId();
+
+        $sources = [
             [
                 'key' => '*',
                 'label' => Craft::t('booked', 'All Services'),
-                'defaultSort' => ['title', 'asc'],
             ],
         ];
+
+        // If structure exists, enable structure mode for drag-and-drop
+        if ($structureId) {
+            $sources[0]['structureId'] = $structureId;
+            $sources[0]['structureEditable'] = true;
+        } else {
+            $sources[0]['defaultSort'] = ['title', 'asc'];
+        }
+
+        return $sources;
     }
 
     /**
@@ -151,6 +203,7 @@ class Service extends Element
     {
         return [
             'title' => ['label' => Craft::t('app', 'Title')],
+            'parent' => ['label' => Craft::t('booked', 'Parent')],
             'duration' => ['label' => Craft::t('booked', 'Duration')],
             'price' => ['label' => Craft::t('booked', 'Price')],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
@@ -211,6 +264,13 @@ class Service extends Element
                     return Craft::$app->formatter->asCurrency($this->price);
                 }
                 return Html::tag('span', '–', ['class' => 'light']);
+
+            case 'parent':
+                $parent = $this->getParent();
+                if ($parent) {
+                    return Html::encode($parent->title);
+                }
+                return Html::tag('span', '–', ['class' => 'light']);
         }
 
         return parent::attributeHtml($attribute);
@@ -265,6 +325,9 @@ class Service extends Element
             [['duration', 'bufferBefore', 'bufferAfter'], 'integer', 'min' => 0],
             [['price'], 'number', 'min' => 0],
             [['virtualMeetingProvider'], 'string'],
+            [['minTimeBeforeBooking', 'minTimeBeforeCanceling'], 'integer', 'min' => 0],
+            [['finalStepUrl'], 'string', 'max' => 500],
+            [['finalStepUrl'], 'url', 'defaultScheme' => 'https', 'skipOnEmpty' => true],
         ]);
     }
 
@@ -276,6 +339,12 @@ class Service extends Element
         // Auto-generate slug from title if not provided
         if (!$this->slug && $this->title) {
             $this->slug = $this->generateSlugFromTitle($this->title);
+        }
+
+        // Set the structure ID for hierarchical support
+        $structureId = static::getStructureId();
+        if ($structureId) {
+            $this->structureId = $structureId;
         }
 
         return parent::beforeSave($isNew);
@@ -342,10 +411,109 @@ class Service extends Element
         $record->bufferAfter = $this->bufferAfter;
         $record->price = $this->price;
         $record->virtualMeetingProvider = $this->virtualMeetingProvider;
+        $record->minTimeBeforeBooking = $this->minTimeBeforeBooking;
+        $record->minTimeBeforeCanceling = $this->minTimeBeforeCanceling;
+        $record->finalStepUrl = $this->finalStepUrl;
 
         $record->save(false);
 
+        // Handle structure positioning for hierarchy (only for new elements or when parent changed)
+        $structureId = static::getStructureId();
+        if ($structureId && $isNew) {
+            $structuresService = Craft::$app->getStructures();
+
+            if ($this->parentId) {
+                $parent = self::find()->id($this->parentId)->siteId('*')->one();
+                if ($parent) {
+                    $structuresService->append($structureId, $this, $parent);
+                } else {
+                    $structuresService->appendToRoot($structureId, $this);
+                }
+            } else {
+                $structuresService->appendToRoot($structureId, $this);
+            }
+        }
+
         parent::afterSave($isNew);
+    }
+
+    /**
+     * Get the parent service
+     */
+    public function getParent(): ?Service
+    {
+        if ($this->_parent !== null) {
+            return $this->_parent;
+        }
+
+        if ($this->parentId === null) {
+            return null;
+        }
+
+        $this->_parent = self::find()->id($this->parentId)->siteId('*')->one();
+        return $this->_parent;
+    }
+
+    /**
+     * Set the parent service
+     */
+    public function setParent(?ElementInterface $parent): void
+    {
+        $this->_parent = $parent instanceof Service ? $parent : null;
+        $this->parentId = $parent?->id;
+    }
+
+    /**
+     * Get child services
+     * @return ElementQueryInterface|\craft\elements\ElementCollection
+     */
+    public function getChildren(): ElementQueryInterface|\craft\elements\ElementCollection
+    {
+        $structureId = static::getStructureId();
+        if (!$structureId) {
+            return self::find()->id(null); // Return empty query
+        }
+
+        return self::find()
+            ->structureId($structureId)
+            ->descendantOf($this)
+            ->descendantDist(1); // Direct children only
+    }
+
+    /**
+     * Check if this service has children
+     */
+    public function hasChildren(): bool
+    {
+        return $this->getChildren()->exists();
+    }
+
+    /**
+     * Check if this is a root-level service (no parent)
+     */
+    public function isRoot(): bool
+    {
+        return $this->parentId === null && ($this->level ?? 1) === 1;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function afterMoveInStructure(int $structureId): void
+    {
+        // Update parentId based on new structure position
+        $parent = $this->getParentUri() ? self::find()
+            ->structureId($structureId)
+            ->ancestorOf($this)
+            ->ancestorDist(1)
+            ->siteId($this->siteId)
+            ->status(null)
+            ->one() : null;
+
+        $this->parentId = $parent?->id;
+        $this->_parent = $parent;
+
+        parent::afterMoveInStructure($structureId);
     }
 
     /**
