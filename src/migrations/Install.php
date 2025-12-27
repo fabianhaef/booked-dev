@@ -189,21 +189,6 @@ class Install extends Migration
             $this->createIndex(null, '{{%booked_employees_services}}', ['employeeId', 'serviceId'], true);
         }
 
-        // Create booked_schedule_employees junction table
-        if (!$this->db->tableExists('{{%booked_schedule_employees}}')) {
-            $this->createTable('{{%booked_schedule_employees}}', [
-                'id' => $this->primaryKey(),
-                'scheduleId' => $this->integer()->notNull(),
-                'employeeId' => $this->integer()->notNull(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
-            ]);
-
-            $this->addForeignKey(null, '{{%booked_schedule_employees}}', 'scheduleId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
-            $this->addForeignKey(null, '{{%booked_schedule_employees}}', 'employeeId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
-            $this->createIndex(null, '{{%booked_schedule_employees}}', ['scheduleId', 'employeeId'], true);
-        }
 
         // Create booked_service_extras_services junction table
         if (!$this->db->tableExists('{{%booked_service_extras_services}}')) {

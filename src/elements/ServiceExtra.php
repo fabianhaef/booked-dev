@@ -233,8 +233,6 @@ class ServiceExtra extends Element
         }
 
         if ($record) {
-            // Title is now stored in content table (handled by parent)
-            // Enabled is now stored in elements table (handled by parent)
             $record->price = $this->price;
             $record->duration = $this->duration;
             $record->maxQuantity = $this->maxQuantity;

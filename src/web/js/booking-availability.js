@@ -31,13 +31,11 @@ window.BookedAvailability = {
      * Fetch available time slots for a specific date
      */
     async getSlots(date, options = {}) {
-        const csrfTokenName = window.csrfTokenName || 'CRAFT_CSRF_TOKEN';
         const csrfTokenValue = window.csrfTokenValue || '';
 
         const body = {
             date,
-            ...options,
-            [csrfTokenName]: csrfTokenValue
+            ...options
         };
 
         try {
@@ -45,7 +43,8 @@ window.BookedAvailability = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': csrfTokenValue
                 },
                 body: JSON.stringify(body)
             });
@@ -60,12 +59,10 @@ window.BookedAvailability = {
      * Create a new booking
      */
     async createBooking(data) {
-        const csrfTokenName = window.csrfTokenName || 'CRAFT_CSRF_TOKEN';
         const csrfTokenValue = window.csrfTokenValue || '';
 
         const body = {
-            ...data,
-            [csrfTokenName]: csrfTokenValue
+            ...data
         };
 
         try {
@@ -73,7 +70,8 @@ window.BookedAvailability = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': csrfTokenValue
                 },
                 body: JSON.stringify(body)
             });

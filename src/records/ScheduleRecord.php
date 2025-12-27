@@ -9,16 +9,16 @@ use craft\db\ActiveRecord;
  *
  * @property int $id
  * @property string|null $title Schedule title
- * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday) - DEPRECATED
+ * @property int|null $serviceId FK to Service element
+ * @property int|null $employeeId FK to Employee element
+ * @property int|null $locationId FK to Location element
+ * @property int|null $dayOfWeek Day of week (1-7, Monday=1) - DEPRECATED
  * @property string|null $daysOfWeek JSON array of days
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
  * @property \DateTime $dateCreated
  * @property \DateTime $dateUpdated
  * @property string $uid
- *
- * Note: employeeId field has been removed. Use the many-to-many
- * booked_schedule_employees junction table instead.
  */
 class ScheduleRecord extends ActiveRecord
 {
@@ -37,10 +37,11 @@ class ScheduleRecord extends ActiveRecord
     {
         return [
             [['daysOfWeek'], 'required'],
-            [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7], // New format: 1=Monday, 7=Sunday
+            [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7],
+            [['serviceId', 'employeeId', 'locationId'], 'integer'],
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             [['title'], 'string', 'max' => 255],
-            [['daysOfWeek'], 'string'], // JSON stored as string
+            [['daysOfWeek'], 'string'],
         ];
     }
 }

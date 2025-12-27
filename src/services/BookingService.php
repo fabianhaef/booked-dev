@@ -300,7 +300,9 @@ class BookingService extends Component
                 $reservation->bookingDate = $bookingDate;
                 $reservation->startTime = $startTime;
                 $reservation->endTime = $endTime;
-                $reservation->status = $data['status'] ?? ReservationRecord::STATUS_CONFIRMED;
+                // Always set status to confirmed for frontend bookings
+                // Status will only be changed to pending if Commerce is enabled AND payment is required
+                $reservation->status = ReservationRecord::STATUS_CONFIRMED;
                 $reservation->notes = $data['notes'] ?? null;
 
                 // Store relationships

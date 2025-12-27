@@ -18,6 +18,13 @@
     {% endif %}
 
     <div id="fields">
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('app'),
+            id: 'enabled',
+            name: 'enabled',
+            on: service.enabled ?? true
+        }) }}
+
         {{ forms.textField({
             label: 'Title'|t('app'),
             id: 'title',
@@ -80,13 +87,6 @@
                 }) }}
             </div>
         </div>
-
-        {{ forms.lightswitchField({
-            label: 'Enabled'|t('app'),
-            id: 'enabled',
-            name: 'enabled',
-            on: service.enabled ?? true
-        }) }}
 
         {% set settings = craft.booked.getSettings() %}
         {% if settings.enableVirtualMeetings %}

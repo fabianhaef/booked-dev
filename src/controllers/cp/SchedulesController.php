@@ -6,7 +6,9 @@ use Craft;
 use craft\web\Controller;
 use craft\web\Response;
 use fabian\booked\elements\Employee;
+use fabian\booked\elements\Location;
 use fabian\booked\elements\Schedule;
+use fabian\booked\elements\Service;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 
@@ -41,6 +43,8 @@ class SchedulesController extends Controller
 
     /**
      * Edit schedule
+     *
+     * Simplified model: Schedule has direct FK to Service, Employee, Location
      */
     public function actionEdit(int $id = null): Response
     {
@@ -53,11 +57,16 @@ class SchedulesController extends Controller
             $schedule = new Schedule();
         }
 
+        // Get available services for dropdown
+        $services = Service::find()->enabled()->all();
+
         // Get available employees for dropdown
         $employees = Employee::find()->enabled()->all();
 
+        // Get available locations for dropdown
+        $locations = Location::find()->enabled()->all();
+
         // Days of week for checkboxes (1 = Monday, 7 = Sunday)
-        // Format as array of objects with 'value' and 'label' properties
         $daysOfWeek = [
             ['value' => 1, 'label' => Craft::t('booked', 'Monday')],
             ['value' => 2, 'label' => Craft::t('booked', 'Tuesday')],
@@ -70,13 +79,17 @@ class SchedulesController extends Controller
 
         return $this->renderTemplate('booked/schedules/edit', [
             'schedule' => $schedule,
+            'services' => $services,
             'employees' => $employees,
+            'locations' => $locations,
             'daysOfWeek' => $daysOfWeek,
         ]);
     }
 
     /**
      * Save schedule
+     *
+     * Simplified model: Schedule has direct FK to Service, Employee, Location
      */
     public function actionSave(): Response
     {
@@ -101,17 +114,25 @@ class SchedulesController extends Controller
         $title = $request->getBodyParam('title');
         $schedule->title = $title === '' ? null : $title;
 
-        // Set custom attributes - convert strings to proper types
-        $employeeIds = $request->getBodyParam('employeeIds');
-        if (is_array($employeeIds)) {
-            $schedule->employeeIds = array_map('intval', array_filter($employeeIds));
-        } else {
-            $schedule->employeeIds = [];
+        // Set direct FK relationships (simplified model)
+        // Element select fields return arrays, so we need to extract the first element
+        $serviceId = $request->getBodyParam('serviceId');
+        if (is_array($serviceId)) {
+            $serviceId = $serviceId[0] ?? null;
         }
+        $schedule->serviceId = $serviceId === '' || $serviceId === null ? null : (int)$serviceId;
 
-        // For backward compatibility, also support single employeeId
         $employeeId = $request->getBodyParam('employeeId');
+        if (is_array($employeeId)) {
+            $employeeId = $employeeId[0] ?? null;
+        }
         $schedule->employeeId = $employeeId === '' || $employeeId === null ? null : (int)$employeeId;
+
+        $locationId = $request->getBodyParam('locationId');
+        if (is_array($locationId)) {
+            $locationId = $locationId[0] ?? null;
+        }
+        $schedule->locationId = $locationId === '' || $locationId === null ? null : (int)$locationId;
 
         // Handle multiple days of week
         $daysOfWeek = $request->getBodyParam('daysOfWeek');

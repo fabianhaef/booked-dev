@@ -40,7 +40,7 @@ class BookingSequenceQuery extends ElementQuery
     /**
      * Filter by status
      */
-    public function status(mixed $value): self
+    public function status(array|string|null $value): static
     {
         $this->status = $value;
         return $this;

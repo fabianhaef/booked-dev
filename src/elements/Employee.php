@@ -409,33 +409,8 @@ class Employee extends Element
 
         $record->save(false);
 
-        // Save service assignments
-        if ($this->_serviceIds !== null) {
-            $db = Craft::$app->getDb();
-            
-            // Delete existing
-            $db->createCommand()
-                ->delete('{{%booked_employees_services}}', ['employeeId' => $this->id])
-                ->execute();
-
-            // Insert new
-            if (!empty($this->_serviceIds)) {
-                $rows = [];
-                foreach ($this->_serviceIds as $serviceId) {
-                    $rows[] = [
-                        $this->id,
-                        $serviceId,
-                        Db::prepareDateForDb(new \DateTime()),
-                        Db::prepareDateForDb(new \DateTime()),
-                        \craft\helpers\StringHelper::randomString(12),
-                    ];
-                }
-
-                $db->createCommand()
-                    ->batchInsert('{{%booked_employees_services}}', ['employeeId', 'serviceId', 'dateCreated', 'dateUpdated', 'uid'], $rows)
-                    ->execute();
-            }
-        }
+        // Note: In the simplified model, services are associated via Schedule elements
+        // Employee->Service relationship is now derived from Schedule->serviceId where Schedule->employeeId matches
 
         parent::afterSave($isNew);
     }
@@ -443,10 +418,14 @@ class Employee extends Element
     /**
      * Set service IDs
      *
+     * Note: In simplified model, this is a no-op. Services are managed via Schedules.
+     *
      * @param int[]|string|null $value
      */
     public function setServiceIds($value): void
     {
+        // In simplified model, services are associated via schedules
+        // This method is kept for backward compatibility but has no effect
         if (empty($value)) {
             $this->_serviceIds = [];
             return;
@@ -455,17 +434,22 @@ class Employee extends Element
     }
 
     /**
-     * Get service IDs
+     * Get service IDs from schedules
+     *
+     * Simplified model: Services are derived from Schedule->serviceId
      *
      * @return int[]
      */
     public function getServiceIds(): array
     {
         if ($this->_serviceIds === null && $this->id) {
+            // Get unique service IDs from schedules assigned to this employee
             $this->_serviceIds = (new \craft\db\Query())
                 ->select(['serviceId'])
-                ->from(['{{%booked_employees_services}}'])
+                ->distinct()
+                ->from(['{{%booked_schedules}}'])
                 ->where(['employeeId' => $this->id])
+                ->andWhere(['not', ['serviceId' => null]])
                 ->column();
         }
 

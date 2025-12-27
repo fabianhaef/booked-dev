@@ -33,7 +33,10 @@
             selectedService: null,
             selectedEmployee: null,
             selectedLocation: null,
-            
+
+            // Booking result
+            reservationDetails: null,
+
             init() {
                 // Initialize with URL parameters if present
                 const urlParams = new URLSearchParams(window.location.search);
@@ -106,13 +109,19 @@
             
             async fetchLocations() {
                 this.loading = true;
-            try {
-                const response = await fetch('/actions/booked/booking/get-locations', {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await response.json();
+                try {
+                    const response = await fetch('/actions/booked/booking/get-locations', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await response.json();
                     if (data.success) {
                         this.locations = data.locations;
+
+                        // Auto-select if only one location exists
+                        if (this.locations.length === 1) {
+                            this.locationId = this.locations[0].id;
+                            this.selectedLocation = this.locations[0];
+                        }
                     }
                 } finally {
                     this.loading = false;
@@ -140,7 +149,14 @@
             selectService(service) {
                 this.serviceId = service.id;
                 this.selectedService = service;
-                this.nextStep();
+
+                // Skip location step if only one location (already auto-selected)
+                if (this.locations.length === 1 && this.locationId) {
+                    this.step = 3; // Skip to employee selection
+                    this.fetchEmployees();
+                } else {
+                    this.nextStep();
+                }
             },
             
             selectLocation(location) {
@@ -174,7 +190,12 @@
             
             prevStep() {
                 if (this.step > 1) {
-                    this.step--;
+                    // Skip location step (step 2) if only one location
+                    if (this.step === 3 && this.locations.length === 1) {
+                        this.step = 1; // Go back to service selection
+                    } else {
+                        this.step--;
+                    }
                 }
             },
             

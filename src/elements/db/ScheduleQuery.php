@@ -9,6 +9,8 @@ use craft\helpers\Db;
 /**
  * ScheduleQuery defines the condition builder for Schedule elements
  *
+ * Simplified model: schedules have direct FK to service, employee, location
+ *
  * @method \fabian\booked\elements\Schedule[]|array all($db = null)
  * @method \fabian\booked\elements\Schedule|array|null one($db = null)
  * @method \fabian\booked\elements\Schedule|array|null nth(int $n, ?\yii\db\Connection $db = null)
@@ -20,9 +22,19 @@ class ScheduleQuery extends ElementQuery
      */
     public $enabled;
 
+    public ?int $serviceId = null;
     public ?int $employeeId = null;
+    public ?int $locationId = null;
     public ?int $dayOfWeek = null;
-    public $serviceId = null;
+
+    /**
+     * Filter by service ID
+     */
+    public function serviceId(?int $value): static
+    {
+        $this->serviceId = $value;
+        return $this;
+    }
 
     /**
      * Filter by employee ID
@@ -34,11 +46,11 @@ class ScheduleQuery extends ElementQuery
     }
 
     /**
-     * Filter by service ID
+     * Filter by location ID
      */
-    public function serviceId($value): static
+    public function locationId(?int $value): static
     {
-        $this->serviceId = $value;
+        $this->locationId = $value;
         return $this;
     }
 
@@ -68,7 +80,6 @@ class ScheduleQuery extends ElementQuery
      */
     protected function beforePrepare(): bool
     {
-        // Call parent first to initialize the base query
         if (!parent::beforePrepare()) {
             return false;
         }
@@ -77,47 +88,38 @@ class ScheduleQuery extends ElementQuery
 
         $this->query->addSelect([
             'booked_schedules.title',
+            'booked_schedules.serviceId',
+            'booked_schedules.employeeId',
+            'booked_schedules.locationId',
             'booked_schedules.dayOfWeek',
             'booked_schedules.daysOfWeek',
             'booked_schedules.startTime',
             'booked_schedules.endTime',
-            'booked_schedules.employeeId',
         ]);
 
-        // Support both junction table and legacy employeeId column
-        if ($this->employeeId !== null || $this->serviceId !== null) {
-            $this->subQuery->leftJoin('{{%booked_schedule_employees}} booked_schedule_employees', '[[booked_schedule_employees.scheduleId]] = [[elements.id]]');
+        // Direct FK filters - no junction tables needed
+        if ($this->serviceId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('booked_schedules.serviceId', $this->serviceId));
         }
 
         if ($this->employeeId !== null) {
-            $this->subQuery->andWhere([
-                'or',
-                ['booked_schedule_employees.employeeId' => $this->employeeId],
-                ['booked_schedules.employeeId' => $this->employeeId]
-            ]);
+            $this->subQuery->andWhere(Db::parseParam('booked_schedules.employeeId', $this->employeeId));
+        }
+
+        if ($this->locationId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('booked_schedules.locationId', $this->locationId));
         }
 
         if ($this->dayOfWeek !== null) {
             $this->subQuery->andWhere(Db::parseParam('booked_schedules.dayOfWeek', $this->dayOfWeek));
         }
 
-        if ($this->serviceId !== null) {
-            // Join services through employees (either from junction or legacy column)
-            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', 
-                '[[booked_employees_services.employeeId]] = [[booked_schedule_employees.employeeId]] OR ' .
-                '([[booked_schedule_employees.employeeId]] IS NULL AND [[booked_employees_services.employeeId]] = [[booked_schedules.employeeId]])'
-            );
-            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
-        }
-
-        // Handle the 'enabled' parameter
         if ($this->enabled !== null) {
             $this->subQuery->andWhere(Db::parseParam('elements.enabled', (int)$this->enabled));
         }
 
-        Craft::info("ScheduleQuery prepared with dayOfWeek: {$this->dayOfWeek}, employeeId: {$this->employeeId}, serviceId: {$this->serviceId}", __METHOD__);
+        Craft::info("ScheduleQuery: serviceId={$this->serviceId}, employeeId={$this->employeeId}, locationId={$this->locationId}, dayOfWeek={$this->dayOfWeek}", __METHOD__);
 
         return true;
     }
 }
-

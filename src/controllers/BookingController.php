@@ -248,9 +248,10 @@ class BookingController extends Controller
 
         // Validate input
         if (!$form->validate()) {
+            Craft::error("Booking validation failed: " . json_encode($form->getErrors()) . " | Form data: " . json_encode($form->getAttributes()), __METHOD__);
             if ($request->getAcceptsJson()) {
                 return $this->asJson([
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'Validierungsfehler bei der Buchung.',
                     'errors' => $form->getErrors()
                 ]);

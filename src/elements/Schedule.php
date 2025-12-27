@@ -10,31 +10,35 @@ use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use fabian\booked\elements\db\ScheduleQuery;
 use fabian\booked\records\ScheduleRecord;
-use fabian\booked\records\ScheduleEmployeeRecord;
 
 /**
  * Schedule Element
  *
+ * Simplified model: Each schedule directly references a service, employee, and location.
+ *
  * @property string|null $title Schedule title (e.g., "Morning Shift", "Weekend Hours")
- * @property int|null $employeeId Foreign key to Employee element (deprecated, use employeeIds)
- * @property array $employeeIds Array of employee IDs assigned to this schedule
- * @property int|null $dayOfWeek Day of week (0 = Sunday, 6 = Saturday) - DEPRECATED, use daysOfWeek
- * @property string|array|null $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri) - stored as JSON string in DB
+ * @property int|null $serviceId FK to Service element (required)
+ * @property int|null $employeeId FK to Employee element (optional)
+ * @property int|null $locationId FK to Location element (optional)
+ * @property int|null $dayOfWeek Day of week (1-7, Monday=1) - DEPRECATED, use daysOfWeek
+ * @property string|array|null $daysOfWeek Array of days (e.g., [1, 2, 5] for Mon, Tue, Fri)
  * @property string|null $startTime Start time (H:i format)
  * @property string|null $endTime End time (H:i format)
  */
 class Schedule extends Element
 {
     public ?string $title = null;
+    public ?int $serviceId = null;
     public ?int $employeeId = null;
-    public array $employeeIds = [];
+    public ?int $locationId = null;
     public ?int $dayOfWeek = null; // Kept for backward compatibility
     public string|array|null $daysOfWeek = []; // Can be JSON string from DB or array
     public ?string $startTime = null;
     public ?string $endTime = null;
 
+    private ?Service $_service = null;
     private ?Employee $_employee = null;
-    private ?array $_employees = null;
+    private ?Location $_location = null;
 
     /**
      * @inheritdoc
@@ -42,15 +46,6 @@ class Schedule extends Element
     public function init(): void
     {
         parent::init();
-
-        // Load employeeIds from junction table if not already set
-        if ($this->id && empty($this->employeeIds)) {
-            $junctionRecords = ScheduleEmployeeRecord::find()
-                ->where(['scheduleId' => $this->id])
-                ->all();
-
-            $this->employeeIds = array_map(fn($record) => $record->employeeId, $junctionRecords);
-        }
 
         // Ensure daysOfWeek is an array (handles JSON decoding from database)
         if (is_string($this->daysOfWeek)) {
@@ -184,7 +179,9 @@ class Schedule extends Element
     {
         return [
             'title' => ['label' => Craft::t('booked', 'Title')],
+            'service' => ['label' => Craft::t('booked', 'Service')],
             'employee' => ['label' => Craft::t('booked', 'Employee')],
+            'location' => ['label' => Craft::t('booked', 'Location')],
             'dayOfWeek' => ['label' => Craft::t('booked', 'Days')],
             'timeRange' => ['label' => Craft::t('booked', 'Time')],
         ];
@@ -195,7 +192,7 @@ class Schedule extends Element
      */
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['title', 'employee', 'dayOfWeek', 'timeRange'];
+        return ['title', 'service', 'employee', 'dayOfWeek', 'timeRange'];
     }
 
     /**
@@ -227,66 +224,48 @@ class Schedule extends Element
      */
     public static function eagerLoadingMap(array $sourceElements, string $handle): array|null|false
     {
-        if ($handle === 'employee') {
-            // Get all employee IDs (support legacy single employee)
-            $employeeIds = array_filter(array_map(fn($element) => $element->employeeId, $sourceElements));
+        if ($handle === 'service') {
+            $serviceIds = array_filter(array_map(fn($element) => $element->serviceId, $sourceElements));
+            if (empty($serviceIds)) {
+                return [];
+            }
 
+            $services = Service::find()->id($serviceIds)->indexBy('id')->all();
+
+            $map = [];
+            foreach ($sourceElements as $element) {
+                $map[$element->id] = $services[$element->serviceId] ?? null;
+            }
+            return $map;
+        }
+
+        if ($handle === 'employee') {
+            $employeeIds = array_filter(array_map(fn($element) => $element->employeeId, $sourceElements));
             if (empty($employeeIds)) {
                 return [];
             }
 
-            // Load all employees
-            $employees = Employee::find()
-                ->id($employeeIds)
-                ->indexBy('id')
-                ->all();
+            $employees = Employee::find()->id($employeeIds)->indexBy('id')->all();
 
-            // Map elements to their employees
             $map = [];
             foreach ($sourceElements as $element) {
                 $map[$element->id] = $employees[$element->employeeId] ?? null;
             }
-
             return $map;
         }
 
-        if ($handle === 'employees') {
-            // Get all schedule IDs
-            $scheduleIds = array_map(fn($element) => $element->id, $sourceElements);
-
-            if (empty($scheduleIds)) {
+        if ($handle === 'location') {
+            $locationIds = array_filter(array_map(fn($element) => $element->locationId, $sourceElements));
+            if (empty($locationIds)) {
                 return [];
             }
 
-            // Load junction records
-            $junctionRecords = ScheduleEmployeeRecord::find()
-                ->where(['scheduleId' => $scheduleIds])
-                ->all();
+            $locations = Location::find()->id($locationIds)->indexBy('id')->all();
 
-            // Get all unique employee IDs
-            $employeeIds = array_unique(array_map(fn($record) => $record->employeeId, $junctionRecords));
-
-            if (empty($employeeIds)) {
-                return [];
-            }
-
-            // Load all employees
-            $employees = Employee::find()
-                ->id($employeeIds)
-                ->indexBy('id')
-                ->all();
-
-            // Build map of schedule ID => [employees]
             $map = [];
-            foreach ($junctionRecords as $record) {
-                if (!isset($map[$record->scheduleId])) {
-                    $map[$record->scheduleId] = [];
-                }
-                if (isset($employees[$record->employeeId])) {
-                    $map[$record->scheduleId][] = $employees[$record->employeeId];
-                }
+            foreach ($sourceElements as $element) {
+                $map[$element->id] = $locations[$element->locationId] ?? null;
             }
-
             return $map;
         }
 
@@ -299,16 +278,28 @@ class Schedule extends Element
     protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
+            case 'service':
+                $service = $this->getService();
+                if ($service) {
+                    return Html::encode($service->title);
+                }
+                return Html::tag('span', '–', ['class' => 'light']);
+
             case 'employee':
-                $employees = $this->getEmployees();
-                if (!empty($employees)) {
-                    $names = array_map(fn($emp) => Html::encode($emp->title), $employees);
-                    return implode(', ', $names);
+                $employee = $this->getEmployee();
+                if ($employee) {
+                    return Html::encode($employee->title);
+                }
+                return Html::tag('span', '–', ['class' => 'light']);
+
+            case 'location':
+                $location = $this->getLocation();
+                if ($location) {
+                    return Html::encode($location->title);
                 }
                 return Html::tag('span', '–', ['class' => 'light']);
 
             case 'dayOfWeek':
-                // Support both old single day and new multiple days
                 return Html::encode($this->getDaysName());
 
             case 'timeRange':
@@ -367,24 +358,13 @@ class Schedule extends Element
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
-            [['daysOfWeek'], 'required'],
+            [['serviceId', 'daysOfWeek'], 'required'],
             [['daysOfWeek'], 'validateDaysOfWeek'],
-            [['employeeId', 'dayOfWeek'], 'integer'],
-            [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7], // New format: 1=Monday, 7=Sunday
+            [['serviceId', 'employeeId', 'locationId', 'dayOfWeek'], 'integer'],
+            [['dayOfWeek'], 'integer', 'min' => 1, 'max' => 7],
             [['startTime', 'endTime'], 'match', 'pattern' => '/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
-            [['employeeIds'], 'validateEmployeeIds'],
             [['title'], 'string', 'max' => 255],
         ]);
-    }
-
-    /**
-     * Validate that at least one employee is assigned
-     */
-    public function validateEmployeeIds(): void
-    {
-        if (empty($this->employeeIds) && !$this->employeeId) {
-            $this->addError('employeeIds', Craft::t('booked', 'At least one employee must be assigned.'));
-        }
     }
 
     /**
@@ -423,31 +403,19 @@ class Schedule extends Element
             $record->id = (int)$this->id;
         }
 
-        // Save new fields
+        // Save direct FK relationships
         $record->title = $this->title;
+        $record->serviceId = $this->serviceId;
+        $record->employeeId = $this->employeeId;
+        $record->locationId = $this->locationId;
         $record->daysOfWeek = !empty($this->daysOfWeek) ? json_encode($this->daysOfWeek) : null;
 
-        // For backward compatibility, keep employeeId and dayOfWeek if set
-        $record->employeeId = $this->employeeId;
+        // dayOfWeek is kept for backward compatibility queries
         $record->dayOfWeek = $this->dayOfWeek ?? (!empty($this->daysOfWeek) ? $this->daysOfWeek[0] : null);
         $record->startTime = $this->startTime;
         $record->endTime = $this->endTime;
 
         $record->save(false);
-
-        // Save employee relationships through junction table
-        if (!empty($this->employeeIds)) {
-            // Delete existing relationships
-            ScheduleEmployeeRecord::deleteAll(['scheduleId' => $this->id]);
-
-            // Create new relationships
-            foreach ($this->employeeIds as $employeeId) {
-                $junction = new ScheduleEmployeeRecord();
-                $junction->scheduleId = (int)$this->id;
-                $junction->employeeId = (int)$employeeId;
-                $junction->save(false);
-            }
-        }
 
         parent::afterSave($isNew);
     }
@@ -463,18 +431,30 @@ class Schedule extends Element
             $record->delete();
         }
 
-        // Delete employee relationships
-        ScheduleEmployeeRecord::deleteAll(['scheduleId' => $this->id]);
-
         parent::afterDelete();
     }
 
     /**
-     * Get the associated Employee element (legacy support for single employee)
+     * Get the associated Service element
+     */
+    public function getService(): ?Service
+    {
+        $eagerLoaded = $this->getEagerLoadedElements('service');
+        if ($eagerLoaded !== null) {
+            return $eagerLoaded;
+        }
+
+        if ($this->_service === null && $this->serviceId) {
+            $this->_service = Service::find()->id($this->serviceId)->siteId('*')->one();
+        }
+        return $this->_service;
+    }
+
+    /**
+     * Get the associated Employee element
      */
     public function getEmployee(): ?Employee
     {
-        // Check if eager loaded
         $eagerLoaded = $this->getEagerLoadedElements('employee');
         if ($eagerLoaded !== null) {
             return $eagerLoaded;
@@ -487,37 +467,19 @@ class Schedule extends Element
     }
 
     /**
-     * Get all associated Employee elements
-     *
-     * @return Employee[]
+     * Get the associated Location element
      */
-    public function getEmployees(): array
+    public function getLocation(): ?Location
     {
-        // Check if eager loaded
-        $eagerLoaded = $this->getEagerLoadedElements('employees');
+        $eagerLoaded = $this->getEagerLoadedElements('location');
         if ($eagerLoaded !== null) {
             return $eagerLoaded;
         }
 
-        if ($this->_employees === null) {
-            // Load from junction table
-            $junctionRecords = ScheduleEmployeeRecord::find()
-                ->where(['scheduleId' => $this->id])
-                ->all();
-
-            $employeeIds = array_map(fn($record) => $record->employeeId, $junctionRecords);
-
-            if (!empty($employeeIds)) {
-                $this->_employees = Employee::find()
-                    ->id($employeeIds)
-                    ->siteId('*')
-                    ->all();
-            } else {
-                $this->_employees = [];
-            }
+        if ($this->_location === null && $this->locationId) {
+            $this->_location = Location::find()->id($this->locationId)->siteId('*')->one();
         }
-
-        return $this->_employees;
+        return $this->_location;
     }
 
     /**

@@ -20,7 +20,7 @@
         <input type="hidden" name="action" value="booked/cp/settings/save">
         {{ redirectInput('booked/settings/commerce') }}
 
-        <h2>{{ 'Commerce Integration'|t('booked') }}</h2>
+        <h2 class="heading first">{{ 'Commerce Integration'|t('booked') }}</h2>
         <p class="light">{{ 'Configure Craft Commerce integration for payment processing.'|t('booked') }}</p>
 
         {% if craft.app.plugins.isPluginEnabled('commerce') %}

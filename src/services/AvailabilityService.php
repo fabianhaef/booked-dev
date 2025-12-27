@@ -212,27 +212,16 @@ class AvailabilityService extends Component
         }
         $allSlots = [];
 
-        // Group schedules and availabilities by employee
+        // Group schedules by employee (simplified model: direct FK)
         $schedulesByEmployee = [];
         foreach ($schedules as $schedule) {
-            $employees = $schedule->getEmployees();
-            if (empty($employees)) {
-                // Legacy support
-                if ($schedule->employeeId) {
-                    $schedulesByEmployee[$schedule->employeeId][] = [
-                        'start' => $schedule->startTime,
-                        'end' => $schedule->endTime,
-                    ];
-                    Craft::info("Added legacy schedule for Employee {$schedule->employeeId}", __METHOD__);
-                }
-                continue;
-            }
-            
-            foreach ($employees as $employee) {
-                $schedulesByEmployee[$employee->id][] = [
+            if ($schedule->employeeId) {
+                $schedulesByEmployee[$schedule->employeeId][] = [
                     'start' => $schedule->startTime,
                     'end' => $schedule->endTime,
+                    'locationId' => $schedule->locationId,
                 ];
+                Craft::info("Added schedule for Employee {$schedule->employeeId}", __METHOD__);
             }
         }
         foreach ($expandedAvailabilities as $avail) {
@@ -389,16 +378,22 @@ class AvailabilityService extends Component
     }
 
     /**
-     * Get employee timezone
+     * Get employee timezone from their schedules' location
+     *
+     * Simplified model: location is on schedule, not employee
      */
     protected function getEmployeeTimezone(int $employeeId): string
     {
         // Default to system timezone
         $timezone = \Craft::$app->getTimezone();
 
-        $employee = Employee::find()->id($employeeId)->one();
-        if ($employee && $employee->locationId) {
-            $location = Location::find()->id($employee->locationId)->one();
+        // Find a schedule for this employee to get their location
+        $schedule = Schedule::find()
+            ->employeeId($employeeId)
+            ->one();
+
+        if ($schedule && $schedule->locationId) {
+            $location = Location::find()->id($schedule->locationId)->one();
             if ($location && $location->timezone) {
                 $timezone = $location->timezone;
             }
@@ -432,6 +427,8 @@ class AvailabilityService extends Component
 
     /**
      * Get availability elements
+     *
+     * Simplified model: location filtering done at schedule level
      */
     protected function getAvailabilities(?int $employeeId = null, ?int $locationId = null, ?int $serviceId = null): array
     {
@@ -446,20 +443,10 @@ class AvailabilityService extends Component
             $query->serviceId($serviceId);
         }
 
-        $availabilities = $query->all();
+        // Location filtering is done at the schedule level in the simplified model
+        // Availabilities inherit location context from their schedules
 
-        // Filter by location if specified
-        if ($locationId !== null) {
-            $availabilities = array_filter($availabilities, function($avail) use ($locationId) {
-                if ($avail->sourceType === 'employee') {
-                    $employee = Employee::findOne($avail->sourceId);
-                    return $employee && $employee->locationId === $locationId;
-                }
-                return true;
-            });
-        }
-
-        return array_values($availabilities);
+        return $query->all();
     }
 
     /**
@@ -503,7 +490,9 @@ class AvailabilityService extends Component
 
     /**
      * Get working hours (Schedule) for a specific day of week
-     * 
+     *
+     * Simplified model: Schedules have direct FK to service, employee, location
+     *
      * @param int $dayOfWeek Day of week (0 = Sunday, 6 = Saturday)
      * @param int|null $employeeId Optional employee ID to filter by
      * @param int|null $locationId Optional location ID to filter by
@@ -524,32 +513,18 @@ class AvailabilityService extends Component
             $query->serviceId($serviceId);
         }
 
-        $schedules = $query->all();
-
-        // Filter by location if specified
         if ($locationId !== null) {
-            $schedules = array_filter($schedules, function($schedule) use ($locationId) {
-                $employees = $schedule->getEmployees();
-                if (empty($employees)) {
-                    $employee = $schedule->getEmployee();
-                    return $employee && (int)$employee->locationId === (int)$locationId;
-                }
-                
-                foreach ($employees as $employee) {
-                    if ((int)$employee->locationId === (int)$locationId) {
-                        return true;
-                    }
-                }
-                return false;
-            });
+            $query->locationId($locationId);
         }
 
-        return array_values($schedules);
+        return $query->all();
     }
 
     /**
      * Generate time windows from Schedule elements
-     * 
+     *
+     * Simplified model: schedules have direct FK to employee
+     *
      * @param Schedule[] $schedules Array of Schedule elements
      * @return array Array of time windows [['start' => 'H:i', 'end' => 'H:i'], ...]
      */
@@ -563,6 +538,7 @@ class AvailabilityService extends Component
                     'start' => $schedule->startTime,
                     'end' => $schedule->endTime,
                     'employeeId' => $schedule->employeeId,
+                    'locationId' => $schedule->locationId,
                 ];
             }
         }
@@ -696,7 +672,9 @@ class AvailabilityService extends Component
 
     /**
      * Subtract blackout dates from time windows
-     * 
+     *
+     * Simplified model: location is on windows from schedule, not employee
+     *
      * @param array $windows Array of time windows
      * @param string $date Date in Y-m-d format
      * @param int|null $employeeId Optional employee ID
@@ -705,17 +683,11 @@ class AvailabilityService extends Component
     protected function subtractBlackouts(array $windows, string $date, ?int $employeeId = null): array
     {
         $blackoutService = Booked::getInstance()->getBlackoutDate();
-        
-        // Find the locationId if employeeId is set
+
+        // Get locationId from the windows (simplified model stores it there)
         $locationId = null;
-        if ($employeeId) {
-            // Use static cache or similar to avoid N+1 in the loop
-            static $employeeLocations = [];
-            if (!isset($employeeLocations[$employeeId])) {
-                $employee = Employee::find()->id($employeeId)->one();
-                $employeeLocations[$employeeId] = $employee ? $employee->locationId : null;
-            }
-            $locationId = $employeeLocations[$employeeId];
+        if (!empty($windows) && isset($windows[0]['locationId'])) {
+            $locationId = $windows[0]['locationId'];
         }
 
         if ($blackoutService->isDateBlackedOut($date, $employeeId, $locationId)) {

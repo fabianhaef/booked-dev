@@ -117,8 +117,9 @@ class AvailabilityQuery extends ElementQuery
         }
 
         if ($this->serviceId !== null) {
-            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[bookings_availability.sourceId]]');
-            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
+            // Simplified model: Filter by employees who have schedules for this service
+            $this->subQuery->innerJoin('{{%booked_schedules}} booked_schedules', '[[booked_schedules.employeeId]] = [[bookings_availability.sourceId]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_schedules.serviceId', $this->serviceId));
         }
 
         return parent::beforePrepare();

@@ -394,7 +394,7 @@ return [
     'variantField' => 'serviceId',
 
     // Order status after booking
-    'pendingStatusHandle' => 'pending',
+    'pendingStatusHandle' => 'confirmed',
     'confirmedStatusHandle' => 'confirmed',
     'cancelledStatusHandle' => 'cancelled',
 

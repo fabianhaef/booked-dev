@@ -106,8 +106,11 @@ class EmployeeQuery extends ElementQuery
         }
 
         if ($this->serviceId !== null) {
-            $this->subQuery->innerJoin('{{%booked_employees_services}} booked_employees_services', '[[booked_employees_services.employeeId]] = [[elements.id]]');
-            $this->subQuery->andWhere(Db::parseParam('booked_employees_services.serviceId', $this->serviceId));
+            // Simplified model: Get employees who have schedules for this service
+            // Use distinct to avoid duplicates when employee has multiple schedules
+            $this->subQuery->distinct();
+            $this->subQuery->innerJoin('{{%booked_schedules}} booked_schedules', '[[booked_schedules.employeeId]] = [[elements.id]]');
+            $this->subQuery->andWhere(Db::parseParam('booked_schedules.serviceId', $this->serviceId));
         }
 
         // Handle the 'enabled' parameter

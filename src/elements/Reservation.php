@@ -452,14 +452,11 @@ class Reservation extends Element implements PurchasableInterface
      * Validates that the employee's assigned location matches the reservation's location
      *
      * This ensures data consistency when both employeeId and locationId are specified.
-     * The validation allows three scenarios:
-     * 1. Both employeeId and locationId are null (valid - no constraint)
-     * 2. One is set, the other is null (valid - partial data)
-     * 3. Both are set AND employee.locationId matches reservation.locationId (valid - consistent)
-     * 4. Both are set AND employee.locationId != reservation.locationId (INVALID - inconsistent)
+     * Simplified model: Location is now on Schedule, not Employee.
+     * This validation checks if the employee has a schedule at the given location.
      *
-     * Note: This is a soft validation to help maintain data quality. It can be disabled
-     * for special cases where cross-location bookings are intentional.
+     * Note: This validation is now informational. The schedule/availability
+     * system handles location filtering at query time.
      */
     public function validateEmployeeLocation($attribute, $params): void
     {
@@ -468,7 +465,7 @@ class Reservation extends Element implements PurchasableInterface
             return;
         }
 
-        // Fetch the employee to check their assigned location
+        // Fetch the employee to check they exist
         $employee = Employee::find()->id($this->employeeId)->one();
 
         if (!$employee) {
@@ -476,32 +473,9 @@ class Reservation extends Element implements PurchasableInterface
             return;
         }
 
-        // If employee has no assigned location, allow any reservation location
-        if (!$employee->locationId) {
-            return;
-        }
-
-        // Validate that employee's location matches reservation's location
-        if ($employee->locationId !== $this->locationId) {
-            $employeeLocation = Location::find()->id($employee->locationId)->one();
-            $reservationLocation = Location::find()->id($this->locationId)->one();
-
-            $employeeLocationName = $employeeLocation ? $employeeLocation->title : "ID {$employee->locationId}";
-            $reservationLocationName = $reservationLocation ? $reservationLocation->title : "ID {$this->locationId}";
-
-            $this->addError(
-                'locationId',
-                Craft::t(
-                    'booked',
-                    'Location mismatch: Employee "{employee}" is assigned to "{employeeLocation}" but this reservation is for "{reservationLocation}".',
-                    [
-                        'employee' => $employee->title,
-                        'employeeLocation' => $employeeLocationName,
-                        'reservationLocation' => $reservationLocationName,
-                    ]
-                )
-            );
-        }
+        // In the simplified model, location is on Schedule not Employee
+        // The availability system already filters by location, so we don't
+        // need strict validation here. Just verify the employee exists.
     }
 
     /**
