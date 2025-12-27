@@ -29,6 +29,8 @@ class Install extends Migration
                 'enableRateLimiting' => $this->boolean()->notNull()->defaultValue(true),
                 'rateLimitPerEmail' => $this->integer()->notNull()->defaultValue(5),
                 'rateLimitPerIp' => $this->integer()->notNull()->defaultValue(10),
+                // Virtual Meetings
+                'enableVirtualMeetings' => $this->boolean()->notNull()->defaultValue(false),
                 // Calendar Integration
                 'googleCalendarEnabled' => $this->boolean()->notNull()->defaultValue(false),
                 'googleCalendarClientId' => $this->string(255)->null(),
@@ -38,7 +40,7 @@ class Install extends Migration
                 'outlookCalendarClientId' => $this->string(255)->null(),
                 'outlookCalendarClientSecret' => $this->string(255)->null(),
                 'outlookCalendarWebhookUrl' => $this->string(255)->null(),
-                // Virtual Meetings
+                // Virtual Meetings Providers
                 'zoomEnabled' => $this->boolean()->notNull()->defaultValue(false),
                 'zoomAccountId' => $this->string(255)->null(),
                 'zoomClientId' => $this->string(255)->null(),
@@ -69,6 +71,7 @@ class Install extends Migration
                 'requirePaymentBeforeConfirmation' => $this->boolean()->notNull()->defaultValue(true),
                 // Frontend Settings
                 'defaultViewMode' => $this->string(20)->notNull()->defaultValue('wizard'),
+                'bookingPageUrl' => $this->string()->null(),
                 'enableRealTimeAvailability' => $this->boolean()->notNull()->defaultValue(true),
                 'showEmployeeSelection' => $this->boolean()->notNull()->defaultValue(true),
                 'showLocationSelection' => $this->boolean()->notNull()->defaultValue(true),
@@ -94,12 +97,24 @@ class Install extends Migration
             ]);
         }
 
+        // Create booked_locations table (Element-based)
+        if (!$this->db->tableExists('{{%booked_locations}}')) {
+            $this->createTable('{{%booked_locations}}', [
+                'id' => $this->primaryKey(),
+                'dateCreated' => $this->dateTime()->notNull(),
+                'dateUpdated' => $this->dateTime()->notNull(),
+                'uid' => $this->uid(),
+            ]);
+
+            $this->addForeignKey(null, '{{%booked_locations}}', 'id', '{{%elements}}', 'id', 'CASCADE', null);
+        }
+
         // Create booked_employees table (Element-based)
         if (!$this->db->tableExists('{{%booked_employees}}')) {
             $this->createTable('{{%booked_employees}}', [
                 'id' => $this->primaryKey(),
                 'userId' => $this->integer()->null(),
-                'locationId' => $this->integer()->null(),
+                'locationId' => $this->integer()->null(), // Legacy, not actively used
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),
@@ -113,18 +128,6 @@ class Install extends Migration
             $this->createIndex(null, '{{%booked_employees}}', 'locationId');
         }
 
-        // Create booked_locations table (Element-based)
-        if (!$this->db->tableExists('{{%booked_locations}}')) {
-            $this->createTable('{{%booked_locations}}', [
-                'id' => $this->primaryKey(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
-            ]);
-
-            $this->addForeignKey(null, '{{%booked_locations}}', 'id', '{{%elements}}', 'id', 'CASCADE', null);
-        }
-
         // Create booked_services table (Element-based)
         if (!$this->db->tableExists('{{%booked_services}}')) {
             $this->createTable('{{%booked_services}}', [
@@ -133,6 +136,10 @@ class Install extends Migration
                 'bufferMinutes' => $this->integer()->null(),
                 'price' => $this->decimal(14, 4)->null(),
                 'currency' => $this->string(3)->null(),
+                'virtualMeetingProvider' => $this->string()->null(),
+                'minTimeBeforeBooking' => $this->integer()->null(),
+                'minTimeBeforeCanceling' => $this->integer()->null(),
+                'finalStepUrl' => $this->string(500)->null(),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),
@@ -145,9 +152,16 @@ class Install extends Migration
         if (!$this->db->tableExists('{{%booked_schedules}}')) {
             $this->createTable('{{%booked_schedules}}', [
                 'id' => $this->primaryKey(),
-                'dayOfWeek' => $this->integer()->notNull(),
+                'title' => $this->string()->null(),
+                'serviceId' => $this->integer()->null(),
+                'employeeId' => $this->integer()->null(),
+                'locationId' => $this->integer()->null(),
+                'daysOfWeek' => $this->json()->null(),
+                'dayOfWeek' => $this->integer()->null(), // Legacy, use daysOfWeek instead
                 'startTime' => $this->time()->notNull(),
                 'endTime' => $this->time()->notNull(),
+                'capacity' => $this->integer()->notNull()->defaultValue(1),
+                'simultaneousSlots' => $this->integer()->notNull()->defaultValue(1),
                 'isActive' => $this->boolean()->notNull()->defaultValue(true),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
@@ -155,7 +169,15 @@ class Install extends Migration
             ]);
 
             $this->addForeignKey(null, '{{%booked_schedules}}', 'id', '{{%elements}}', 'id', 'CASCADE', null);
+            $this->addForeignKey('fk_booked_schedules_serviceId', '{{%booked_schedules}}', 'serviceId', '{{%booked_services}}', 'id', 'SET NULL');
+            $this->addForeignKey('fk_booked_schedules_employeeId', '{{%booked_schedules}}', 'employeeId', '{{%booked_employees}}', 'id', 'SET NULL');
+            $this->addForeignKey('fk_booked_schedules_locationId', '{{%booked_schedules}}', 'locationId', '{{%booked_locations}}', 'id', 'SET NULL');
+
             $this->createIndex(null, '{{%booked_schedules}}', ['dayOfWeek', 'isActive']);
+            $this->createIndex('idx_booked_schedules_serviceId', '{{%booked_schedules}}', 'serviceId');
+            $this->createIndex('idx_booked_schedules_employeeId', '{{%booked_schedules}}', 'employeeId');
+            $this->createIndex('idx_booked_schedules_locationId', '{{%booked_schedules}}', 'locationId');
+            $this->createIndex('idx_booked_schedules_capacity', '{{%booked_schedules}}', ['capacity', 'simultaneousSlots']);
         }
 
         // Create booked_service_extras table (Element-based)
@@ -173,23 +195,6 @@ class Install extends Migration
             $this->addForeignKey(null, '{{%booked_service_extras}}', 'id', '{{%elements}}', 'id', 'CASCADE', null);
         }
 
-        // Create booked_employees_services junction table
-        if (!$this->db->tableExists('{{%booked_employees_services}}')) {
-            $this->createTable('{{%booked_employees_services}}', [
-                'id' => $this->primaryKey(),
-                'employeeId' => $this->integer()->notNull(),
-                'serviceId' => $this->integer()->notNull(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
-            ]);
-
-            $this->addForeignKey(null, '{{%booked_employees_services}}', 'employeeId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
-            $this->addForeignKey(null, '{{%booked_employees_services}}', 'serviceId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
-            $this->createIndex(null, '{{%booked_employees_services}}', ['employeeId', 'serviceId'], true);
-        }
-
-
         // Create booked_service_extras_services junction table
         if (!$this->db->tableExists('{{%booked_service_extras_services}}')) {
             $this->createTable('{{%booked_service_extras_services}}', [
@@ -206,7 +211,7 @@ class Install extends Migration
             $this->createIndex(null, '{{%booked_service_extras_services}}', ['serviceExtraId', 'serviceId'], true);
         }
 
-        // Create bookings_availability table
+        // Create bookings_availability table (Legacy)
         if (!$this->db->tableExists('{{%bookings_availability}}')) {
             $this->createTable('{{%bookings_availability}}', [
                 'id' => $this->primaryKey(),
@@ -249,7 +254,7 @@ class Install extends Migration
             $this->createIndex(null, '{{%bookings_event_dates}}', ['availabilityId', 'eventDate']);
         }
 
-        // Create bookings_variations table (Element-based)
+        // Create bookings_variations table (Element-based, Legacy)
         if (!$this->db->tableExists('{{%bookings_variations}}')) {
             $this->createTable('{{%bookings_variations}}', [
                 'id' => $this->primaryKey(),
@@ -287,10 +292,32 @@ class Install extends Migration
             $this->createIndex(null, '{{%bookings_availability_variations}}', ['availabilityId', 'variationId'], true);
         }
 
+        // Create booked_booking_sequences table
+        if (!$this->db->tableExists('{{%booked_booking_sequences}}')) {
+            $this->createTable('{{%booked_booking_sequences}}', [
+                'id' => $this->primaryKey(),
+                'userId' => $this->integer()->null(),
+                'customerEmail' => $this->string()->notNull(),
+                'customerName' => $this->string()->notNull(),
+                'status' => $this->string(20)->defaultValue('pending'),
+                'totalPrice' => $this->decimal(10, 2)->defaultValue(0),
+                'dateCreated' => $this->dateTime()->notNull(),
+                'dateUpdated' => $this->dateTime()->notNull(),
+                'uid' => $this->uid(),
+            ]);
+
+            $this->addForeignKey(null, '{{%booked_booking_sequences}}', 'userId', '{{%users}}', 'id', 'SET NULL');
+            $this->createIndex(null, '{{%booked_booking_sequences}}', 'userId');
+            $this->createIndex(null, '{{%booked_booking_sequences}}', 'customerEmail');
+            $this->createIndex(null, '{{%booked_booking_sequences}}', 'status');
+        }
+
         // Create bookings_reservations table (Element-based)
         if (!$this->db->tableExists('{{%bookings_reservations}}')) {
             $this->createTable('{{%bookings_reservations}}', [
                 'id' => $this->primaryKey(),
+                'sequenceId' => $this->integer()->null(),
+                'sequenceOrder' => $this->integer()->defaultValue(0),
                 'userName' => $this->string()->notNull(),
                 'userEmail' => $this->string()->notNull(),
                 'userPhone' => $this->string(),
@@ -312,6 +339,10 @@ class Install extends Migration
                 'virtualMeetingProvider' => $this->string(50)->null(),
                 'virtualMeetingId' => $this->string()->null(),
                 'notificationSent' => $this->boolean()->notNull()->defaultValue(false),
+                'emailReminder24hSent' => $this->boolean()->notNull()->defaultValue(false),
+                'emailReminder1hSent' => $this->boolean()->notNull()->defaultValue(false),
+                'smsReminder24hSent' => $this->boolean()->notNull()->defaultValue(false),
+                'smsReminder1hSent' => $this->boolean()->notNull()->defaultValue(false),
                 'confirmationToken' => $this->string(64)->notNull()->unique(),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
@@ -319,6 +350,7 @@ class Install extends Migration
             ]);
 
             $this->addForeignKey(null, '{{%bookings_reservations}}', 'id', '{{%elements}}', 'id', 'CASCADE', null);
+            $this->addForeignKey(null, '{{%bookings_reservations}}', 'sequenceId', '{{%booked_booking_sequences}}', 'id', 'CASCADE');
             $this->addForeignKey(null, '{{%bookings_reservations}}', 'variationId', '{{%bookings_variations}}', 'id', 'SET NULL', null);
             $this->addForeignKey(null, '{{%bookings_reservations}}', 'employeeId', '{{%elements}}', 'id', 'SET NULL', null);
             $this->addForeignKey(null, '{{%bookings_reservations}}', 'locationId', '{{%elements}}', 'id', 'SET NULL', null);
@@ -333,6 +365,7 @@ class Install extends Migration
             $this->createIndex(null, '{{%bookings_reservations}}', 'employeeId');
             $this->createIndex(null, '{{%bookings_reservations}}', 'locationId');
             $this->createIndex(null, '{{%bookings_reservations}}', 'serviceId');
+            $this->createIndex(null, '{{%bookings_reservations}}', 'sequenceId');
             $this->createIndex('idx_confirmationToken', '{{%bookings_reservations}}', 'confirmationToken', true);
             $this->createIndex('idx_unique_active_booking', '{{%bookings_reservations}}', ['bookingDate', 'startTime', 'endTime', 'status'], true);
             $this->createIndex('idx_bookings_reservations_capacity_lookup', '{{%bookings_reservations}}', ['bookingDate', 'startTime', 'endTime', 'variationId', 'status']);
@@ -353,22 +386,6 @@ class Install extends Migration
             $this->addForeignKey(null, '{{%booked_reservation_extras}}', 'reservationId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
             $this->addForeignKey(null, '{{%booked_reservation_extras}}', 'serviceExtraId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
             $this->createIndex(null, '{{%booked_reservation_extras}}', ['reservationId', 'serviceExtraId'], true);
-        }
-
-        // Create booked_order_reservations table (Commerce integration)
-        if (!$this->db->tableExists('{{%booked_order_reservations}}')) {
-            $this->createTable('{{%booked_order_reservations}}', [
-                'id' => $this->primaryKey(),
-                'orderId' => $this->integer()->notNull(),
-                'reservationId' => $this->integer()->notNull(),
-                'lineItemId' => $this->integer()->null(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
-            ]);
-
-            $this->createIndex(null, '{{%booked_order_reservations}}', ['orderId', 'reservationId'], true);
-            $this->createIndex(null, '{{%booked_order_reservations}}', 'reservationId');
         }
 
         // Create bookings_blackout_dates table (Element-based)
@@ -420,6 +437,22 @@ class Install extends Migration
             $this->addForeignKey(null, '{{%bookings_blackout_dates_employees}}', 'blackoutDateId', '{{%bookings_blackout_dates}}', 'id', 'CASCADE', 'CASCADE');
             $this->addForeignKey(null, '{{%bookings_blackout_dates_employees}}', 'employeeId', '{{%elements}}', 'id', 'CASCADE', 'CASCADE');
             $this->createIndex(null, '{{%bookings_blackout_dates_employees}}', ['blackoutDateId', 'employeeId'], true);
+        }
+
+        // Create booked_order_reservations table (Commerce integration)
+        if (!$this->db->tableExists('{{%booked_order_reservations}}')) {
+            $this->createTable('{{%booked_order_reservations}}', [
+                'id' => $this->primaryKey(),
+                'orderId' => $this->integer()->notNull(),
+                'reservationId' => $this->integer()->notNull(),
+                'lineItemId' => $this->integer()->null(),
+                'dateCreated' => $this->dateTime()->notNull(),
+                'dateUpdated' => $this->dateTime()->notNull(),
+                'uid' => $this->uid(),
+            ]);
+
+            $this->createIndex(null, '{{%booked_order_reservations}}', ['orderId', 'reservationId'], true);
+            $this->createIndex(null, '{{%booked_order_reservations}}', 'reservationId');
         }
 
         // Create booked_soft_locks table
@@ -492,6 +525,9 @@ class Install extends Migration
             $this->createIndex(null, '{{%booked_external_events}}', ['startTime', 'endTime']);
         }
 
+        // Note: Service structure for hierarchical services is created
+        // by the plugin's afterInstall() method in Booked.php
+
         return true;
     }
 
@@ -505,25 +541,27 @@ class Install extends Migration
         $this->dropTableIfExists('{{%booked_oauth_state_tokens}}');
         $this->dropTableIfExists('{{%booked_calendar_tokens}}');
         $this->dropTableIfExists('{{%booked_soft_locks}}');
+        $this->dropTableIfExists('{{%booked_order_reservations}}');
         $this->dropTableIfExists('{{%bookings_blackout_dates_employees}}');
         $this->dropTableIfExists('{{%bookings_blackout_dates_locations}}');
         $this->dropTableIfExists('{{%bookings_blackout_dates}}');
-        $this->dropTableIfExists('{{%booked_order_reservations}}');
         $this->dropTableIfExists('{{%booked_reservation_extras}}');
         $this->dropTableIfExists('{{%bookings_reservations}}');
+        $this->dropTableIfExists('{{%booked_booking_sequences}}');
         $this->dropTableIfExists('{{%bookings_availability_variations}}');
         $this->dropTableIfExists('{{%bookings_variations}}');
         $this->dropTableIfExists('{{%bookings_event_dates}}');
         $this->dropTableIfExists('{{%bookings_availability}}');
         $this->dropTableIfExists('{{%booked_service_extras_services}}');
-        $this->dropTableIfExists('{{%booked_schedule_employees}}');
-        $this->dropTableIfExists('{{%booked_employees_services}}');
         $this->dropTableIfExists('{{%booked_service_extras}}');
         $this->dropTableIfExists('{{%booked_schedules}}');
         $this->dropTableIfExists('{{%booked_services}}');
-        $this->dropTableIfExists('{{%booked_locations}}');
         $this->dropTableIfExists('{{%booked_employees}}');
+        $this->dropTableIfExists('{{%booked_locations}}');
         $this->dropTableIfExists('{{%bookings_settings}}');
+
+        // Note: Service structure cleanup is handled by the plugin's
+        // afterUninstall() method in Booked.php
 
         return true;
     }

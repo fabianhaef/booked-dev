@@ -8,23 +8,39 @@ use craft\commerce\elements\Order;
 use craft\commerce\models\LineItem;
 use craft\commerce\Plugin as Commerce;
 use craft\helpers\Db;
+use fabian\booked\Booked;
 use fabian\booked\elements\Reservation;
+use yii\base\InvalidConfigException;
 use yii\db\Query;
 
 /**
  * Commerce Service
+ *
+ * This service requires the Pro edition.
  */
 class CommerceService extends Component
 {
+    /**
+     * Ensure Pro edition is active before using commerce features
+     *
+     * @throws InvalidConfigException
+     */
+    private function requirePro(): void
+    {
+        Booked::requireEdition(Booked::EDITION_PRO);
+    }
     /**
      * Link a reservation to an order
      *
      * @param int $orderId
      * @param int $reservationId
      * @return bool
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function linkOrderToReservation(int $orderId, int $reservationId): bool
     {
+        $this->requirePro();
+
         return Craft::$app->db->createCommand()
             ->insert('{{%booked_order_reservations}}', [
                 'orderId' => $orderId,
@@ -83,9 +99,12 @@ class CommerceService extends Component
      *
      * @param Reservation $reservation
      * @return bool
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function addReservationToCart(Reservation $reservation): bool
     {
+        $this->requirePro();
+
         $cart = Commerce::getInstance()->getCarts()->getCart();
 
         if (!$cart) {

@@ -10,11 +10,16 @@
     { label: 'Commerce'|t('booked') }
 ] %}
 
+{% set plugin = craft.app.plugins.getPlugin('booked') %}
+{% set isPro = plugin.isEdition(constant('fabian\\booked\\Booked::EDITION_PRO')) %}
+
 {% block sidebar %}
     {% include 'booked/settings/_sidebar' %}
 {% endblock %}
 
 {% block content %}
+    {% include 'booked/_includes/pro-upgrade-notice' with { feature: 'Commerce Integration' } %}
+
     <form method="post" accept-charset="UTF-8" id="settings-form">
         {{ csrfInput() }}
         <input type="hidden" name="action" value="booked/cp/settings/save">
@@ -24,35 +29,41 @@
         <p class="light">{{ 'Configure Craft Commerce integration for payment processing.'|t('booked') }}</p>
 
         {% if craft.app.plugins.isPluginEnabled('commerce') %}
-            {{ forms.lightswitchField({
-                label: 'Enable Commerce Integration'|t('booked'),
-                id: 'commerceEnabled',
-                name: 'settings[commerceEnabled]',
-                on: settings.commerceEnabled
-            }) }}
+            <fieldset {% if not isPro %}disabled{% endif %}>
+                {{ forms.lightswitchField({
+                    label: 'Enable Commerce Integration'|t('booked'),
+                    id: 'commerceEnabled',
+                    name: 'settings[commerceEnabled]',
+                    on: settings.commerceEnabled,
+                    disabled: not isPro
+                }) }}
 
-            {{ forms.textField({
-                label: 'Default Payment Gateway'|t('booked'),
-                instructions: 'Handle of the default payment gateway to use.'|t('booked'),
-                id: 'defaultPaymentGateway',
-                name: 'settings[defaultPaymentGateway]',
-                value: settings.defaultPaymentGateway
-            }) }}
+                {{ forms.textField({
+                    label: 'Default Payment Gateway'|t('booked'),
+                    instructions: 'Handle of the default payment gateway to use.'|t('booked'),
+                    id: 'defaultPaymentGateway',
+                    name: 'settings[defaultPaymentGateway]',
+                    value: settings.defaultPaymentGateway,
+                    disabled: not isPro
+                }) }}
 
-            {{ forms.lightswitchField({
-                label: 'Require Payment Before Confirmation'|t('booked'),
-                instructions: 'Bookings will only be confirmed after payment is received.'|t('booked'),
-                id: 'requirePaymentBeforeConfirmation',
-                name: 'settings[requirePaymentBeforeConfirmation]',
-                on: settings.requirePaymentBeforeConfirmation
-            }) }}
+                {{ forms.lightswitchField({
+                    label: 'Require Payment Before Confirmation'|t('booked'),
+                    instructions: 'Bookings will only be confirmed after payment is received.'|t('booked'),
+                    id: 'requirePaymentBeforeConfirmation',
+                    name: 'settings[requirePaymentBeforeConfirmation]',
+                    on: settings.requirePaymentBeforeConfirmation,
+                    disabled: not isPro
+                }) }}
+            </fieldset>
         {% else %}
             <p class="warning">{{ 'Craft Commerce is not installed. Install and enable it to use payment features.'|t('booked') }}</p>
         {% endif %}
 
+        {% if isPro %}
         <div class="buttons">
             <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
         </div>
+        {% endif %}
     </form>
 {% endblock %}
-

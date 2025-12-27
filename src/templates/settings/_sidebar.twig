@@ -1,17 +1,25 @@
+{% set plugin = craft.app.plugins.getPlugin('booked') %}
+{% set isPro = plugin.isEdition(constant('fabian\\booked\\Booked::EDITION_PRO')) %}
+
 {% set settingsSubnavItems = {
-    'general': { label: 'General'|t('booked'), url: url('booked/settings/general') },
-    'calendar': { label: 'Calendar'|t('booked'), url: url('booked/settings/calendar') },
-    'meetings': { label: 'Virtual Meetings'|t('booked'), url: url('booked/settings/meetings') },
-    'notifications': { label: 'Notifications'|t('booked'), url: url('booked/settings/notifications') },
-    'commerce': { label: 'Commerce'|t('booked'), url: url('booked/settings/commerce') },
-    'frontend': { label: 'Frontend'|t('booked'), url: url('booked/settings/frontend') }
+    'general': { label: 'General'|t('booked'), url: url('booked/settings/general'), pro: false },
+    'calendar': { label: 'Calendar'|t('booked'), url: url('booked/settings/calendar'), pro: true },
+    'meetings': { label: 'Virtual Meetings'|t('booked'), url: url('booked/settings/meetings'), pro: true },
+    'notifications': { label: 'Notifications'|t('booked'), url: url('booked/settings/notifications'), pro: false },
+    'commerce': { label: 'Commerce'|t('booked'), url: url('booked/settings/commerce'), pro: true },
+    'frontend': { label: 'Frontend'|t('booked'), url: url('booked/settings/frontend'), pro: false }
 } %}
 
 <nav id="settings-nav">
     <ul>
         {% for key, item in settingsSubnavItems %}
             <li>
-                <a href="{{ item.url }}" class="{% if key == selectedSettingsSubnavItem %}sel{% endif %}">{{ item.label }}</a>
+                <a href="{{ item.url }}" class="{% if key == selectedSettingsSubnavItem %}sel{% endif %}">
+                    {{ item.label }}
+                    {% if item.pro and not isPro %}
+                        {% include 'booked/_includes/edition-badge' with { edition: 'pro' } %}
+                    {% endif %}
+                </a>
             </li>
         {% endfor %}
     </ul>

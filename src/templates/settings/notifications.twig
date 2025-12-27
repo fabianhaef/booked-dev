@@ -10,6 +10,9 @@
     { label: 'Notifications'|t('booked') }
 ] %}
 
+{% set plugin = craft.app.plugins.getPlugin('booked') %}
+{% set isPro = plugin.isEdition(constant('fabian\\booked\\Booked::EDITION_PRO')) %}
+
 {% block sidebar %}
     {% include 'booked/settings/_sidebar' %}
 {% endblock %}
@@ -24,7 +27,7 @@
         <p class="light">{{ 'Configure email and SMS notifications for bookings.'|t('booked') }}</p>
 
         <h3>{{ 'Email Notifications'|t('booked') }}</h3>
-        
+
         {{ forms.lightswitchField({
             label: 'Enable Owner Notifications'|t('booked'),
             id: 'ownerNotificationEnabled',
@@ -96,67 +99,87 @@
 
         <hr>
 
-        <h3>{{ 'SMS Notifications'|t('booked') }}</h3>
-        
-        {{ forms.lightswitchField({
-            label: 'Enable SMS Notifications'|t('booked'),
-            id: 'smsEnabled',
-            name: 'settings[smsEnabled]',
-            on: settings.smsEnabled
-        }) }}
+        <h3>
+            {{ 'SMS Notifications'|t('booked') }}
+            {% if not isPro %}
+                {% include 'booked/_includes/edition-badge' with { edition: 'pro' } %}
+            {% endif %}
+        </h3>
 
-        {{ forms.selectField({
-            label: 'SMS Provider'|t('booked'),
-            id: 'smsProvider',
-            name: 'settings[smsProvider]',
-            value: settings.smsProvider,
-            options: [
-                { label: 'Twilio'|t('booked'), value: 'twilio' }
-            ]
-        }) }}
+        {% if not isPro %}
+        <p class="light" style="color: #92400e;">
+            {{ 'SMS notifications require the Pro edition.'|t('booked') }}
+            <a href="https://plugins.craftcms.com/booked" target="_blank">{{ 'Learn more'|t('booked') }} →</a>
+        </p>
+        {% endif %}
 
-        {{ forms.textField({
-            label: 'Twilio Account SID'|t('booked'),
-            id: 'twilioAccountSid',
-            name: 'settings[twilioAccountSid]',
-            value: settings.twilioAccountSid
-        }) }}
+        <fieldset {% if not isPro %}disabled{% endif %}>
+            {{ forms.lightswitchField({
+                label: 'Enable SMS Notifications'|t('booked'),
+                id: 'smsEnabled',
+                name: 'settings[smsEnabled]',
+                on: settings.smsEnabled,
+                disabled: not isPro
+            }) }}
 
-        {{ forms.passwordField({
-            label: 'Twilio Auth Token'|t('booked'),
-            id: 'twilioAuthToken',
-            name: 'settings[twilioAuthToken]',
-            value: settings.twilioAuthToken
-        }) }}
+            {{ forms.selectField({
+                label: 'SMS Provider'|t('booked'),
+                id: 'smsProvider',
+                name: 'settings[smsProvider]',
+                value: settings.smsProvider,
+                options: [
+                    { label: 'Twilio'|t('booked'), value: 'twilio' }
+                ],
+                disabled: not isPro
+            }) }}
 
-        {{ forms.textField({
-            label: 'Twilio Phone Number'|t('booked'),
-            instructions: 'Your Twilio phone number (e.g., +1234567890).'|t('booked'),
-            id: 'twilioPhoneNumber',
-            name: 'settings[twilioPhoneNumber]',
-            value: settings.twilioPhoneNumber
-        }) }}
+            {{ forms.textField({
+                label: 'Twilio Account SID'|t('booked'),
+                id: 'twilioAccountSid',
+                name: 'settings[twilioAccountSid]',
+                value: settings.twilioAccountSid,
+                disabled: not isPro
+            }) }}
 
-        {{ forms.lightswitchField({
-            label: 'Enable SMS Reminders'|t('booked'),
-            id: 'smsRemindersEnabled',
-            name: 'settings[smsRemindersEnabled]',
-            on: settings.smsRemindersEnabled
-        }) }}
+            {{ forms.passwordField({
+                label: 'Twilio Auth Token'|t('booked'),
+                id: 'twilioAuthToken',
+                name: 'settings[twilioAuthToken]',
+                value: settings.twilioAuthToken,
+                disabled: not isPro
+            }) }}
 
-        {{ forms.textField({
-            label: 'SMS Reminder Hours Before'|t('booked'),
-            instructions: 'Send reminder SMS this many hours before the appointment (default: 24).'|t('booked'),
-            id: 'smsReminderHoursBefore',
-            name: 'settings[smsReminderHoursBefore]',
-            value: settings.smsReminderHoursBefore,
-            type: 'number',
-            min: 0
-        }) }}
+            {{ forms.textField({
+                label: 'Twilio Phone Number'|t('booked'),
+                instructions: 'Your Twilio phone number (e.g., +1234567890).'|t('booked'),
+                id: 'twilioPhoneNumber',
+                name: 'settings[twilioPhoneNumber]',
+                value: settings.twilioPhoneNumber,
+                disabled: not isPro
+            }) }}
+
+            {{ forms.lightswitchField({
+                label: 'Enable SMS Reminders'|t('booked'),
+                id: 'smsRemindersEnabled',
+                name: 'settings[smsRemindersEnabled]',
+                on: settings.smsRemindersEnabled,
+                disabled: not isPro
+            }) }}
+
+            {{ forms.textField({
+                label: 'SMS Reminder Hours Before'|t('booked'),
+                instructions: 'Send reminder SMS this many hours before the appointment (default: 24).'|t('booked'),
+                id: 'smsReminderHoursBefore',
+                name: 'settings[smsReminderHoursBefore]',
+                value: settings.smsReminderHoursBefore,
+                type: 'number',
+                min: 0,
+                disabled: not isPro
+            }) }}
+        </fieldset>
 
         <div class="buttons">
             <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
         </div>
     </form>
 {% endblock %}
-

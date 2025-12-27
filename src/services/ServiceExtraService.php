@@ -4,26 +4,42 @@ namespace fabian\booked\services;
 
 use Craft;
 use craft\base\Component;
+use fabian\booked\Booked;
 use fabian\booked\elements\ServiceExtra;
 use fabian\booked\records\ServiceExtraRecord;
 use fabian\booked\records\ServiceExtraServiceRecord;
 use fabian\booked\records\ReservationExtraRecord;
+use yii\base\InvalidConfigException;
 
 /**
  * Service Extra Service
  *
  * Manages service extras and add-ons that can be selected during booking.
+ * This service requires the Pro edition.
  */
 class ServiceExtraService extends Component
 {
+    /**
+     * Ensure Pro edition is active before using service extras
+     *
+     * @throws InvalidConfigException
+     */
+    private function requirePro(): void
+    {
+        Booked::requireEdition(Booked::EDITION_PRO);
+    }
+
     /**
      * Get all service extras
      *
      * @param bool $enabledOnly Only return enabled extras
      * @return ServiceExtra[]
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function getAllExtras(bool $enabledOnly = false): array
     {
+        $this->requirePro();
+
         $query = ServiceExtra::find();
 
         if ($enabledOnly) {

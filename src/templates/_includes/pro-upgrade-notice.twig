@@ -1,0 +1,38 @@
+{#
+ # Pro Upgrade Notice Partial
+ #
+ # Displays a notice when a Pro feature is accessed on Lite edition
+ #
+ # Usage: {% include 'booked/_includes/pro-upgrade-notice' with { feature: 'Commerce Integration' } %}
+ #}
+
+{% set plugin = craft.app.plugins.getPlugin('booked') %}
+{% set isPro = plugin.isEdition(constant('fabian\\booked\\Booked::EDITION_PRO')) %}
+
+{% if not isPro %}
+<div class="pane" style="
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+">
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <span style="font-size: 24px;">✨</span>
+        <div>
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #92400e;">
+                {{ feature ?? 'This feature'|t('booked') }} {{ 'requires Pro'|t('booked') }}
+            </h3>
+            <p style="margin: 0 0 12px 0; color: #78350f; font-size: 14px;">
+                {{ 'Upgrade to Booked Pro to unlock this feature and more advanced capabilities.'|t('booked') }}
+            </p>
+            <a href="https://plugins.craftcms.com/booked"
+               target="_blank"
+               class="btn"
+               style="background: #f59e0b; color: #fff; border: none;">
+                {{ 'Learn More About Pro'|t('booked') }} →
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}

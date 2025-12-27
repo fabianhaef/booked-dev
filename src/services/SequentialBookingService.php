@@ -12,14 +12,26 @@ use fabian\booked\elements\Service;
 use fabian\booked\exceptions\BookingException;
 use fabian\booked\records\BookingSequenceRecord;
 use fabian\booked\records\ReservationRecord;
+use yii\base\InvalidConfigException;
 
 /**
  * Sequential Booking Service
  *
- * Handles booking multiple services back-to-back in a single transaction
+ * Handles booking multiple services back-to-back in a single transaction.
+ * This service requires the Pro edition.
  */
 class SequentialBookingService extends Component
 {
+    /**
+     * Ensure Pro edition is active before using sequential booking features
+     *
+     * @throws InvalidConfigException
+     */
+    private function requirePro(): void
+    {
+        Booked::requireEdition(Booked::EDITION_PRO);
+    }
+
     /**
      * Calculate sequential time slots for multiple services
      *
@@ -29,6 +41,7 @@ class SequentialBookingService extends Component
      * @param int|null $locationId Optional location ID
      * @return array Available start times for the sequence
      * @throws BookingException
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function getAvailableSequenceSlots(
         array $serviceIds,
@@ -36,6 +49,8 @@ class SequentialBookingService extends Component
         ?int $employeeId = null,
         ?int $locationId = null
     ): array {
+        $this->requirePro();
+
         // Validate input
         if (empty($serviceIds)) {
             throw new BookingException('No services provided');

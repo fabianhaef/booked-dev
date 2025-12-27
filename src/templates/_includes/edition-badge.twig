@@ -1,0 +1,29 @@
+{#
+ # Edition Badge Partial
+ #
+ # Displays a Pro badge for features that require the Pro edition
+ #
+ # Usage: {% include 'booked/_includes/edition-badge' with { edition: 'pro' } %}
+ #}
+
+{% set editionClasses = {
+    'pro': 'edition-badge edition-badge--pro',
+    'lite': 'edition-badge edition-badge--lite'
+} %}
+
+<span class="{{ editionClasses[edition] ?? 'edition-badge' }}" style="
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: 3px;
+    margin-left: 5px;
+    {% if edition == 'pro' %}
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    {% else %}
+    background: #e5e7eb;
+    color: #6b7280;
+    {% endif %}
+">{{ edition|upper }}</span>

@@ -15,9 +15,12 @@ use Google\Client as GoogleClient;
 use Google\Service\Calendar as GoogleCalendar;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model;
+use yii\base\InvalidConfigException;
 
 /**
  * CalendarSyncService
+ *
+ * This service requires the Pro edition.
  */
 class CalendarSyncService extends Component
 {
@@ -26,12 +29,27 @@ class CalendarSyncService extends Component
      */
     const EVENT_BEFORE_CALENDAR_SYNC = 'beforeCalendarSync';
     const EVENT_AFTER_CALENDAR_SYNC = 'afterCalendarSync';
+
+    /**
+     * Ensure Pro edition is active before using calendar sync features
+     *
+     * @throws InvalidConfigException
+     */
+    private function requirePro(): void
+    {
+        Booked::requireEdition(Booked::EDITION_PRO);
+    }
+
     /**
      * Get OAuth authorization URL for a provider
      * Uses secure UUID-based state tokens instead of base64-encoded employeeId
+     *
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function getAuthUrl(Employee $employee, string $provider): string
     {
+        $this->requirePro();
+
         // Create secure state token and store in database
         $stateRecord = OAuthStateTokenRecord::createToken($employee->id, $provider);
 
@@ -176,8 +194,13 @@ class CalendarSyncService extends Component
         return $tokenData['accessToken'];
     }
 
+    /**
+     * @throws InvalidConfigException If Pro edition is not active
+     */
     public function syncToExternal(Reservation $reservation): bool
     {
+        $this->requirePro();
+
         $employee = $reservation->getEmployee();
         if (!$employee) {
             return false;

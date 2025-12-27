@@ -15,6 +15,7 @@ use Craft;
 use craft\base\Plugin;
 use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\models\Structure;
 use craft\services\UserPermissions;
 use craft\web\View;
 use craft\web\twig\variables\CraftVariable;
@@ -28,6 +29,10 @@ use yii\base\Event;
  */
 class Booked extends Plugin
 {
+    // Edition constants
+    public const EDITION_LITE = 'lite';
+    public const EDITION_PRO = 'pro';
+
     /**
      * @var self|null
      */
@@ -42,6 +47,17 @@ class Booked extends Plugin
      * @var bool
      */
     public bool $hasCpSection = true; // Enable CP section for element management
+
+    /**
+     * @inheritdoc
+     */
+    public static function editions(): array
+    {
+        return [
+            self::EDITION_LITE,
+            self::EDITION_PRO,
+        ];
+    }
 
     /**
      * Initialize plugin
@@ -201,11 +217,126 @@ class Booked extends Plugin
     }
 
     /**
-     * Check if Craft Commerce is installed and enabled
+     * Check if Craft Commerce integration is enabled
+     * Both Commerce plugin must be installed AND commerceEnabled setting must be true
      */
     public function isCommerceEnabled(): bool
     {
-        return Craft::$app->plugins->isPluginEnabled('commerce');
+        if (!Craft::$app->plugins->isPluginEnabled('commerce')) {
+            return false;
+        }
+
+        $settings = $this->getSettings();
+        return $settings && $settings->commerceEnabled;
+    }
+
+    // =========================================================================
+    // Edition Methods
+    // =========================================================================
+
+    /**
+     * Check if the plugin is running a specific edition
+     *
+     * @param string $edition The edition to check (use EDITION_* constants)
+     * @param bool $orBetter Whether to also return true for higher editions
+     * @return bool
+     */
+    public function isEdition(string $edition, bool $orBetter = false): bool
+    {
+        $currentEdition = $this->edition;
+
+        if ($orBetter) {
+            $editions = self::editions();
+            $currentIndex = array_search($currentEdition, $editions);
+            $checkIndex = array_search($edition, $editions);
+            return $currentIndex !== false && $checkIndex !== false && $currentIndex >= $checkIndex;
+        }
+
+        return $currentEdition === $edition;
+    }
+
+    /**
+     * Check if the current edition is Pro
+     *
+     * @return bool
+     */
+    public static function isPro(): bool
+    {
+        return self::getInstance()->isEdition(self::EDITION_PRO);
+    }
+
+    /**
+     * Check if the current edition is Lite
+     *
+     * @return bool
+     */
+    public static function isLite(): bool
+    {
+        return self::getInstance()->isEdition(self::EDITION_LITE);
+    }
+
+    /**
+     * Require a specific edition, throwing an exception if not met
+     *
+     * @param string $edition The required edition
+     * @throws \yii\base\InvalidConfigException If the edition requirement is not met
+     */
+    public static function requireEdition(string $edition): void
+    {
+        if (!self::getInstance()->isEdition($edition, true)) {
+            $editionName = ucfirst($edition);
+            throw new \yii\base\InvalidConfigException(
+                Craft::t('booked', 'This feature requires the {edition} edition of Booked.', [
+                    'edition' => $editionName,
+                ])
+            );
+        }
+    }
+
+    /**
+     * Get all Pro-only features for display in the UI
+     *
+     * @return array Array of feature keys => descriptions
+     */
+    public static function getProFeatures(): array
+    {
+        return [
+            'commerce' => Craft::t('booked', 'Craft Commerce integration for payments'),
+            'calendarSync' => Craft::t('booked', 'Google Calendar & Outlook sync'),
+            'virtualMeetings' => Craft::t('booked', 'Zoom & Google Meet integration'),
+            'smsNotifications' => Craft::t('booked', 'SMS notifications via Twilio'),
+            'reports' => Craft::t('booked', 'Advanced reporting & analytics'),
+            'sequentialBooking' => Craft::t('booked', 'Sequential/recurring bookings'),
+            'serviceExtras' => Craft::t('booked', 'Service add-ons & extras'),
+            'graphql' => Craft::t('booked', 'GraphQL API access'),
+        ];
+    }
+
+    /**
+     * Check if a specific Pro feature is available
+     *
+     * @param string $feature The feature key (from getProFeatures)
+     * @return bool
+     */
+    public static function hasFeature(string $feature): bool
+    {
+        // All features available in Pro
+        if (self::isPro()) {
+            return true;
+        }
+
+        // Lite edition - only basic features
+        $liteFeatures = [
+            'basicBooking',
+            'availability',
+            'schedules',
+            'employees',
+            'locations',
+            'emailNotifications',
+            'blackoutDates',
+        ];
+
+        return in_array($feature, $liteFeatures);
     }
 
     /**
@@ -459,13 +590,25 @@ class Booked extends Plugin
             ->onUpdate('plugins.booked.settings', [$this, 'handleChangedSettings'])
             ->onRemove('plugins.booked.settings', [$this, 'handleRemovedSettings']);
 
-        // Listen for plugin install/uninstall to sync settings
+        // Listen for plugin install/uninstall to sync settings and create structures
         Event::on(
             \craft\services\Plugins::class,
             \craft\services\Plugins::EVENT_AFTER_INSTALL_PLUGIN,
             function(\craft\events\PluginEvent $event) {
                 if ($event->plugin === $this) {
-                    $this->syncSettingsToProjectConfig();
+                    // Note: syncSettingsToProjectConfig and createServiceStructure
+                    // are deferred to avoid segfaults during install
+                }
+            }
+        );
+
+        // Clean up service structure on uninstall
+        Event::on(
+            \craft\services\Plugins::class,
+            \craft\services\Plugins::EVENT_BEFORE_UNINSTALL_PLUGIN,
+            function(\craft\events\PluginEvent $event) {
+                if ($event->plugin === $this) {
+                    $this->deleteServiceStructure();
                 }
             }
         );
@@ -550,6 +693,48 @@ class Booked extends Plugin
     public function getSequentialBooking(): \fabian\booked\services\SequentialBookingService
     {
         return $this->get('sequentialBooking');
+    }
+
+    /**
+     * Create the service structure for hierarchical services
+     * Called after plugin installation
+     */
+    private function createServiceStructure(): void
+    {
+        $projectConfig = Craft::$app->getProjectConfig();
+
+        // Only create if not already exists
+        $existingStructureId = $projectConfig->get('plugins.booked.serviceStructureId');
+        if ($existingStructureId) {
+            return;
+        }
+
+        $structure = new Structure();
+        $structure->maxLevels = 3; // Allow up to 3 levels of nesting
+
+        if (Craft::$app->getStructures()->saveStructure($structure)) {
+            $projectConfig->set('plugins.booked.serviceStructureId', $structure->id);
+            Craft::info("Created service structure with ID: {$structure->id}", __METHOD__);
+        }
+    }
+
+    /**
+     * Delete the service structure
+     * Called before plugin uninstallation
+     */
+    private function deleteServiceStructure(): void
+    {
+        $projectConfig = Craft::$app->getProjectConfig();
+        $structureId = $projectConfig->get('plugins.booked.serviceStructureId');
+
+        if ($structureId) {
+            try {
+                Craft::$app->getStructures()->deleteStructureById($structureId);
+            } catch (\Throwable $e) {
+                Craft::warning("Could not delete service structure: {$e->getMessage()}", __METHOD__);
+            }
+            $projectConfig->remove('plugins.booked.serviceStructureId');
+        }
     }
 
     /**

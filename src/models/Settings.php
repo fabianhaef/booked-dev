@@ -4,6 +4,7 @@ namespace fabian\booked\models;
 
 use Craft;
 use craft\base\Model;
+use fabian\booked\Booked;
 use fabian\booked\records\SettingsRecord;
 
 /**
@@ -504,10 +505,146 @@ class Settings extends Model
      */
     public function isSmsConfigured(): bool
     {
-        return $this->smsEnabled && 
+        return $this->smsEnabled &&
                $this->smsProvider === 'twilio' &&
-               !empty($this->twilioAccountSid) && 
+               !empty($this->twilioAccountSid) &&
                !empty($this->twilioAuthToken) &&
                !empty($this->twilioPhoneNumber);
+    }
+
+    // ============================================================================
+    // Edition-Aware Feature Checks
+    // These methods check both settings AND edition requirements
+    // ============================================================================
+
+    /**
+     * Check if Commerce integration is available (edition + settings + plugin)
+     */
+    public function canUseCommerce(): bool
+    {
+        return Booked::isPro() && $this->isCommerceEnabled();
+    }
+
+    /**
+     * Check if Google Calendar sync is available (edition + settings)
+     */
+    public function canUseGoogleCalendar(): bool
+    {
+        return Booked::isPro() && $this->isGoogleCalendarConfigured();
+    }
+
+    /**
+     * Check if Outlook Calendar sync is available (edition + settings)
+     */
+    public function canUseOutlookCalendar(): bool
+    {
+        return Booked::isPro() && $this->isOutlookCalendarConfigured();
+    }
+
+    /**
+     * Check if any calendar sync is available
+     */
+    public function canUseCalendarSync(): bool
+    {
+        return $this->canUseGoogleCalendar() || $this->canUseOutlookCalendar();
+    }
+
+    /**
+     * Check if Zoom is available (edition + settings)
+     */
+    public function canUseZoom(): bool
+    {
+        return Booked::isPro() && $this->isZoomConfigured();
+    }
+
+    /**
+     * Check if Google Meet is available (edition + settings)
+     */
+    public function canUseGoogleMeet(): bool
+    {
+        return Booked::isPro() && $this->googleMeetEnabled;
+    }
+
+    /**
+     * Check if any virtual meeting is available
+     */
+    public function canUseVirtualMeetings(): bool
+    {
+        return Booked::isPro() && $this->enableVirtualMeetings &&
+               ($this->canUseZoom() || $this->canUseGoogleMeet());
+    }
+
+    /**
+     * Check if SMS notifications are available (edition + settings)
+     */
+    public function canUseSms(): bool
+    {
+        return Booked::isPro() && $this->isSmsConfigured();
+    }
+
+    /**
+     * Check if reports/analytics are available (edition only)
+     */
+    public function canUseReports(): bool
+    {
+        return Booked::isPro();
+    }
+
+    /**
+     * Check if sequential bookings are available (edition only)
+     */
+    public function canUseSequentialBooking(): bool
+    {
+        return Booked::isPro();
+    }
+
+    /**
+     * Check if service extras are available (edition only)
+     */
+    public function canUseServiceExtras(): bool
+    {
+        return Booked::isPro();
+    }
+
+    /**
+     * Check if GraphQL API is available (edition only)
+     */
+    public function canUseGraphQl(): bool
+    {
+        return Booked::isPro();
+    }
+
+    /**
+     * Get list of features that require Pro edition upgrade
+     * Returns features that are configured but unavailable due to edition
+     */
+    public function getUnavailableProFeatures(): array
+    {
+        if (Booked::isPro()) {
+            return [];
+        }
+
+        $unavailable = [];
+
+        if ($this->commerceEnabled) {
+            $unavailable['commerce'] = Craft::t('booked', 'Commerce integration');
+        }
+        if ($this->googleCalendarEnabled) {
+            $unavailable['googleCalendar'] = Craft::t('booked', 'Google Calendar sync');
+        }
+        if ($this->outlookCalendarEnabled) {
+            $unavailable['outlookCalendar'] = Craft::t('booked', 'Outlook Calendar sync');
+        }
+        if ($this->zoomEnabled) {
+            $unavailable['zoom'] = Craft::t('booked', 'Zoom integration');
+        }
+        if ($this->googleMeetEnabled) {
+            $unavailable['googleMeet'] = Craft::t('booked', 'Google Meet integration');
+        }
+        if ($this->smsEnabled) {
+            $unavailable['sms'] = Craft::t('booked', 'SMS notifications');
+        }
+
+        return $unavailable;
     }
 }

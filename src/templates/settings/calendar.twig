@@ -10,11 +10,16 @@
     { label: 'Calendar'|t('booked') }
 ] %}
 
+{% set plugin = craft.app.plugins.getPlugin('booked') %}
+{% set isPro = plugin.isEdition(constant('fabian\\booked\\Booked::EDITION_PRO')) %}
+
 {% block sidebar %}
     {% include 'booked/settings/_sidebar' %}
 {% endblock %}
 
 {% block content %}
+    {% include 'booked/_includes/pro-upgrade-notice' with { feature: 'Calendar Integration' } %}
+
     <form method="post" accept-charset="UTF-8" id="settings-form">
         {{ csrfInput() }}
         <input type="hidden" name="action" value="booked/cp/settings/save">
@@ -23,61 +28,70 @@
         <h2>{{ 'Calendar Integration'|t('booked') }}</h2>
         <p class="light">{{ 'Configure two-way calendar synchronization with Google Calendar and Microsoft Outlook.'|t('booked') }}</p>
 
-        <h3>{{ 'Google Calendar'|t('booked') }}</h3>
-        
-        {{ forms.lightswitchField({
-            label: 'Enable Google Calendar'|t('booked'),
-            id: 'googleCalendarEnabled',
-            name: 'settings[googleCalendarEnabled]',
-            on: settings.googleCalendarEnabled
-        }) }}
+        <fieldset {% if not isPro %}disabled{% endif %}>
+            <h3>{{ 'Google Calendar'|t('booked') }}</h3>
 
-        {{ forms.textField({
-            label: 'Google Calendar Client ID'|t('booked'),
-            instructions: 'OAuth 2.0 Client ID from Google Cloud Console.'|t('booked'),
-            id: 'googleCalendarClientId',
-            name: 'settings[googleCalendarClientId]',
-            value: settings.googleCalendarClientId
-        }) }}
+            {{ forms.lightswitchField({
+                label: 'Enable Google Calendar'|t('booked'),
+                id: 'googleCalendarEnabled',
+                name: 'settings[googleCalendarEnabled]',
+                on: settings.googleCalendarEnabled,
+                disabled: not isPro
+            }) }}
 
-        {{ forms.passwordField({
-            label: 'Google Calendar Client Secret'|t('booked'),
-            instructions: 'OAuth 2.0 Client Secret from Google Cloud Console.'|t('booked'),
-            id: 'googleCalendarClientSecret',
-            name: 'settings[googleCalendarClientSecret]',
-            value: settings.googleCalendarClientSecret
-        }) }}
+            {{ forms.textField({
+                label: 'Google Calendar Client ID'|t('booked'),
+                instructions: 'OAuth 2.0 Client ID from Google Cloud Console.'|t('booked'),
+                id: 'googleCalendarClientId',
+                name: 'settings[googleCalendarClientId]',
+                value: settings.googleCalendarClientId,
+                disabled: not isPro
+            }) }}
 
-        <hr>
+            {{ forms.passwordField({
+                label: 'Google Calendar Client Secret'|t('booked'),
+                instructions: 'OAuth 2.0 Client Secret from Google Cloud Console.'|t('booked'),
+                id: 'googleCalendarClientSecret',
+                name: 'settings[googleCalendarClientSecret]',
+                value: settings.googleCalendarClientSecret,
+                disabled: not isPro
+            }) }}
 
-        <h3>{{ 'Microsoft Outlook'|t('booked') }}</h3>
-        
-        {{ forms.lightswitchField({
-            label: 'Enable Microsoft Outlook'|t('booked'),
-            id: 'outlookCalendarEnabled',
-            name: 'settings[outlookCalendarEnabled]',
-            on: settings.outlookCalendarEnabled
-        }) }}
+            <hr>
 
-        {{ forms.textField({
-            label: 'Outlook Client ID'|t('booked'),
-            instructions: 'OAuth 2.0 Client ID from Azure Portal.'|t('booked'),
-            id: 'outlookCalendarClientId',
-            name: 'settings[outlookCalendarClientId]',
-            value: settings.outlookCalendarClientId
-        }) }}
+            <h3>{{ 'Microsoft Outlook'|t('booked') }}</h3>
 
-        {{ forms.passwordField({
-            label: 'Outlook Client Secret'|t('booked'),
-            instructions: 'OAuth 2.0 Client Secret from Azure Portal.'|t('booked'),
-            id: 'outlookCalendarClientSecret',
-            name: 'settings[outlookCalendarClientSecret]',
-            value: settings.outlookCalendarClientSecret
-        }) }}
+            {{ forms.lightswitchField({
+                label: 'Enable Microsoft Outlook'|t('booked'),
+                id: 'outlookCalendarEnabled',
+                name: 'settings[outlookCalendarEnabled]',
+                on: settings.outlookCalendarEnabled,
+                disabled: not isPro
+            }) }}
 
+            {{ forms.textField({
+                label: 'Outlook Client ID'|t('booked'),
+                instructions: 'OAuth 2.0 Client ID from Azure Portal.'|t('booked'),
+                id: 'outlookCalendarClientId',
+                name: 'settings[outlookCalendarClientId]',
+                value: settings.outlookCalendarClientId,
+                disabled: not isPro
+            }) }}
+
+            {{ forms.passwordField({
+                label: 'Outlook Client Secret'|t('booked'),
+                instructions: 'OAuth 2.0 Client Secret from Azure Portal.'|t('booked'),
+                id: 'outlookCalendarClientSecret',
+                name: 'settings[outlookCalendarClientSecret]',
+                value: settings.outlookCalendarClientSecret,
+                disabled: not isPro
+            }) }}
+        </fieldset>
+
+        {% if isPro %}
         <div class="buttons">
             <button type="submit" class="btn submit">{{ 'Save Settings'|t('booked') }}</button>
         </div>
+        {% endif %}
     </form>
 {% endblock %}
-

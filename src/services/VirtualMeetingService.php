@@ -8,17 +8,33 @@ use fabian\booked\elements\Reservation;
 use fabian\booked\Booked;
 use Google\Service\Calendar as GoogleCalendar;
 use Google\Service\Calendar\Event as GoogleEvent;
+use yii\base\InvalidConfigException;
 
 /**
  * VirtualMeetingService
+ *
+ * This service requires the Pro edition.
  */
 class VirtualMeetingService extends Component
 {
     /**
+     * Ensure Pro edition is active before using virtual meeting features
+     *
+     * @throws InvalidConfigException
+     */
+    private function requirePro(): void
+    {
+        Booked::requireEdition(Booked::EDITION_PRO);
+    }
+
+    /**
      * Create a virtual meeting for a reservation
+     *
+     * @throws InvalidConfigException If Pro edition is not active
      */
     public function createMeeting(Reservation $reservation, string $provider): ?string
     {
+        $this->requirePro();
         if ($provider === 'zoom') {
             $result = $this->createZoomMeeting($reservation);
             if ($result) {
