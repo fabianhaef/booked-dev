@@ -44,18 +44,25 @@ class ServiceExtraService extends Component
      */
     public function getExtrasForService(int $serviceId, bool $enabledOnly = true): array
     {
+        // First get the extra IDs from the pivot table
+        $extraIds = ServiceExtraServiceRecord::find()
+            ->select('extraId')
+            ->where(['serviceId' => $serviceId])
+            ->orderBy(['sortOrder' => SORT_ASC])
+            ->column();
+
+        if (empty($extraIds)) {
+            return [];
+        }
+
+        // Then query the ServiceExtra elements by ID
         $query = ServiceExtra::find()
-            ->innerJoin(
-                '{{%booked_service_extras_services}} ses',
-                'ses.[[extraId]] = {{%elements}}.[[id]]'
-            )
-            ->where(['ses.serviceId' => $serviceId]);
+            ->id($extraIds)
+            ->fixedOrder();
 
         if ($enabledOnly) {
             $query->status('enabled');
         }
-
-        $query->orderBy(['title' => SORT_ASC]);
 
         return $query->all();
     }

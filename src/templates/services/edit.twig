@@ -153,14 +153,8 @@
 
         {# Add-Ons #}
         <hr>
-        <h2>{{ 'Add-Ons'|t('booked') }}</h2>
-
         {% if service.id %}
-            {% set selectedExtras = craft.entries.section('serviceExtra').relatedTo(service).all() %}
-            {# Fallback to service extra service for now until we migrate the data #}
-            {% if not selectedExtras|length %}
-                {% set selectedExtras = craft.booked.serviceExtra.getExtrasForService(service.id, false) %}
-            {% endif %}
+            {% set selectedExtras = craft.booked.serviceExtra.getExtrasForService(service.id, false) %}
         {% else %}
             {% set selectedExtras = [] %}
         {% endif %}
@@ -186,16 +180,14 @@
             <hr>
             <h2>{{ 'Custom Fields'|t('booked') }}</h2>
 
-            {% namespace 'fields' %}
-                {% for tab in fieldLayout.getTabs() %}
-                    {% for layoutElement in tab.getElements() %}
-                        {% set formHtml = layoutElement.formHtml(service) %}
-                        {% if formHtml %}
-                            {{ formHtml|raw }}
-                        {% endif %}
-                    {% endfor %}
+            {% for tab in fieldLayout.getTabs() %}
+                {% for layoutElement in tab.getElements() %}
+                    {% set formHtml = layoutElement.formHtml(service) %}
+                    {% if formHtml %}
+                        {{ formHtml|raw }}
+                    {% endif %}
                 {% endfor %}
-            {% endnamespace %}
+            {% endfor %}
         {% endif %}
     </div>
 {% endblock %}
