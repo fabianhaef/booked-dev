@@ -3,11 +3,12 @@
 namespace fabian\booked\controllers\cp;
 
 use Craft;
+use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use craft\web\Response;
-use fabian\booked\Booked;
 use fabian\booked\elements\Service;
-use yii\web\ForbiddenHttpException;
+use fabian\booked\elements\ServiceExtra;
+use fabian\booked\Booked;
 use yii\web\NotFoundHttpException;
 
 /**
@@ -40,105 +41,136 @@ class ServicesController extends Controller
     }
 
     /**
-     * Edit service
+     * Edit a service
      */
-    public function actionEdit(int $id = null): Response
+    public function actionEdit(?int $id = null, ?Service $service = null): Response
     {
-        if ($id) {
-            $service = Service::find()->id($id)->one();
-            if (!$service) {
-                throw new NotFoundHttpException('Service not found');
+        if ($service === null) {
+            if ($id !== null) {
+                $service = Service::find()
+                    ->id($id)
+                    ->siteId('*')
+                    ->status(null)
+                    ->one();
+
+                if (!$service) {
+                    throw new NotFoundHttpException('Service not found');
+                }
+            } else {
+                $service = new Service();
+                $service->siteId = Craft::$app->getSites()->getCurrentSite()->id;
             }
-        } else {
-            $service = new Service();
-            $service->siteId = Craft::$app->request->getParam('siteId') ?: Craft::$app->getSites()->getCurrentSite()->id;
         }
 
-        return $this->renderTemplate('booked/services/edit', [
+        $isNew = !$service->id;
+
+        // Get available service extras
+        $serviceExtras = ServiceExtra::find()
+            ->status('enabled')
+            ->orderBy('title')
+            ->all();
+
+        // Get currently assigned extras for this service
+        $assignedExtras = [];
+        if (!$isNew) {
+            $assignedExtras = Booked::getInstance()->serviceExtra->getExtrasForService($service->id);
+            $assignedExtras = array_map(fn($extra) => $extra->id, $assignedExtras);
+        }
+
+        return $this->renderTemplate('booked/services/_edit', [
             'service' => $service,
+            'isNew' => $isNew,
+            'title' => $isNew ? Craft::t('booked', 'New Service') : $service->title,
+            'serviceExtras' => $serviceExtras,
+            'assignedExtras' => $assignedExtras,
         ]);
     }
 
     /**
-     * Save service
+     * Save a service
      */
-    public function actionSave(): Response
+    public function actionSave(): ?Response
     {
         $this->requirePostRequest();
 
-        $request = Craft::$app->request;
-        $id = $request->getBodyParam('elementId') ?? $request->getBodyParam('id');
+        $request = Craft::$app->getRequest();
+        $id = $request->getBodyParam('id');
 
         if ($id) {
-            $service = Service::find()->id($id)->one();
+            $service = Service::find()
+                ->id($id)
+                ->siteId('*')
+                ->status(null)
+                ->one();
+
             if (!$service) {
                 throw new NotFoundHttpException('Service not found');
             }
         } else {
             $service = new Service();
+            $service->siteId = Craft::$app->getSites()->getCurrentSite()->id;
         }
 
-        // Set element attributes
+        // Set service attributes
         $service->title = $request->getBodyParam('title');
-        // Slug is auto-generated from title in beforeSave(), but allow manual override
-        $slug = $request->getBodyParam('slug');
-        if ($slug !== null && $slug !== '') {
-            $service->slug = $slug;
-        }
+        $service->slug = $request->getBodyParam('slug');
         $service->enabled = (bool)$request->getBodyParam('enabled', true);
+        $service->duration = $request->getBodyParam('duration') ?: null;
+        $service->bufferBefore = $request->getBodyParam('bufferBefore') ?: null;
+        $service->bufferAfter = $request->getBodyParam('bufferAfter') ?: null;
+        $service->price = $request->getBodyParam('price') ?: null;
+        $service->virtualMeetingProvider = $request->getBodyParam('virtualMeetingProvider') ?: null;
+        $service->minTimeBeforeBooking = $request->getBodyParam('minTimeBeforeBooking') ?: null;
+        $service->minTimeBeforeCanceling = $request->getBodyParam('minTimeBeforeCanceling') ?: null;
+        $service->finalStepUrl = $request->getBodyParam('finalStepUrl') ?: null;
 
-        // Set custom attributes - convert strings to proper types
-        $duration = $request->getBodyParam('duration');
-        $service->duration = $duration === '' || $duration === null ? null : (int)$duration;
-        
-        $bufferBefore = $request->getBodyParam('bufferBefore');
-        $service->bufferBefore = $bufferBefore === '' || $bufferBefore === null ? null : (int)$bufferBefore;
-        
-        $bufferAfter = $request->getBodyParam('bufferAfter');
-        $service->bufferAfter = $bufferAfter === '' || $bufferAfter === null ? null : (int)$bufferAfter;
-        
-        $price = $request->getBodyParam('price');
-        $service->price = $price === '' || $price === null ? null : (float)$price;
+        // Save the service
+        if (!Craft::$app->getElements()->saveElement($service)) {
+            Craft::$app->getSession()->setError(Craft::t('booked', 'Couldn\'t save service.'));
 
-        $service->virtualMeetingProvider = $request->getBodyParam('virtualMeetingProvider');
-
-        // Booking configuration fields
-        $minTimeBeforeBooking = $request->getBodyParam('minTimeBeforeBooking');
-        $service->minTimeBeforeBooking = $minTimeBeforeBooking === '' || $minTimeBeforeBooking === null ? null : (int)$minTimeBeforeBooking;
-
-        $minTimeBeforeCanceling = $request->getBodyParam('minTimeBeforeCanceling');
-        $service->minTimeBeforeCanceling = $minTimeBeforeCanceling === '' || $minTimeBeforeCanceling === null ? null : (int)$minTimeBeforeCanceling;
-
-        $finalStepUrl = $request->getBodyParam('finalStepUrl');
-        $service->finalStepUrl = $finalStepUrl === '' ? null : $finalStepUrl;
-
-        // Handle parent service for hierarchy
-        $parentId = $request->getBodyParam('parentId');
-        $service->parentId = $parentId === '' || $parentId === null ? null : (int)$parentId;
-
-        // Set field values from field layout
-        $service->setFieldValuesFromRequest('fields');
-
-        if (!Craft::$app->elements->saveElement($service)) {
-            Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save service.'));
-            Craft::$app->urlManager->setRouteParams([
+            Craft::$app->getUrlManager()->setRouteParams([
                 'service' => $service,
             ]);
+
             return null;
         }
 
         // Save service extras assignments
         $selectedExtras = $request->getBodyParam('extras', []);
-        if (is_array($selectedExtras) && !empty($selectedExtras)) {
-            // Convert array values to integers
-            $selectedExtras = array_map('intval', $selectedExtras);
+        if (is_array($selectedExtras)) {
+            $selectedExtras = array_map('intval', array_filter($selectedExtras));
             Booked::getInstance()->serviceExtra->setExtrasForService($service->id, $selectedExtras);
-        } else {
-            // If no extras selected, clear all assignments for this service
-            Booked::getInstance()->serviceExtra->setExtrasForService($service->id, []);
         }
 
-        Craft::$app->session->setNotice(Craft::t('booked', 'Service saved.'));
-        return $this->redirect('booked/services');
+        Craft::$app->getSession()->setNotice(Craft::t('booked', 'Service saved.'));
+
+        return $this->redirectToPostedUrl($service);
+    }
+
+    /**
+     * Delete a service
+     */
+    public function actionDelete(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $id = Craft::$app->getRequest()->getRequiredBodyParam('id');
+
+        $service = Service::find()
+            ->id($id)
+            ->siteId('*')
+            ->status(null)
+            ->one();
+
+        if (!$service) {
+            throw new NotFoundHttpException('Service not found');
+        }
+
+        if (!Craft::$app->getElements()->deleteElement($service)) {
+            return $this->asJson(['success' => false]);
+        }
+
+        return $this->asJson(['success' => true]);
     }
 }

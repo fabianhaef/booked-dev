@@ -6,14 +6,13 @@ use Craft;
 use craft\base\Element;
 use craft\base\ElementInterface;
 use craft\elements\actions\Delete;
+use craft\elements\conditions\ElementConditionInterface;
 use craft\elements\db\ElementQueryInterface;
 use craft\helpers\ElementHelper;
 use craft\helpers\Html;
-use craft\helpers\UrlHelper;
-use craft\models\FieldLayout;
+use fabian\booked\elements\conditions\ServiceCondition;
 use fabian\booked\elements\db\ServiceQuery;
 use fabian\booked\records\ServiceRecord;
-use fabian\booked\Booked;
 
 /**
  * Service Element
@@ -80,6 +79,15 @@ class Service extends Element
 
     /**
      * @inheritdoc
+     * @return ServiceCondition
+     */
+    public static function createCondition(): ElementConditionInterface
+    {
+        return Craft::createObject(ServiceCondition::class, [static::class]);
+    }
+
+    /**
+     * @inheritdoc
      */
     protected static function defineActions(?string $source = null): array
     {
@@ -93,15 +101,7 @@ class Service extends Element
      */
     public static function hasContent(): bool
     {
-        return true; // Enable field layouts
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getFieldLayout(): ?FieldLayout
-    {
-        return Craft::$app->getFields()->getLayoutByType(self::class);
+        return true;
     }
 
     /**
@@ -117,7 +117,7 @@ class Service extends Element
      */
     public static function hasUris(): bool
     {
-        return false; // Services don't have public URLs
+        return false;
     }
 
     /**
@@ -279,9 +279,9 @@ class Service extends Element
     /**
      * @inheritdoc
      */
-    public function getCpEditUrl(): ?string
+    protected function cpEditUrl(): ?string
     {
-        return UrlHelper::cpUrl('booked/services/' . $this->id);
+        return sprintf('booked/services/%s', $this->getCanonicalId());
     }
 
     /**
@@ -396,41 +396,45 @@ class Service extends Element
      */
     public function afterSave(bool $isNew): void
     {
-        if (!$isNew) {
-            $record = ServiceRecord::findOne($this->id);
-            if (!$record) {
-                throw new \Exception('Invalid service ID: ' . $this->id);
+        if (!$this->propagating) {
+            // Always save to record table (including drafts) for proper element querying
+            if (!$isNew) {
+                $record = ServiceRecord::findOne($this->id);
+                if (!$record) {
+                    $record = new ServiceRecord();
+                    $record->id = (int)$this->id;
+                }
+            } else {
+                $record = new ServiceRecord();
+                $record->id = (int)$this->id;
             }
-        } else {
-            $record = new ServiceRecord();
-            $record->id = (int)$this->id;
-        }
 
-        $record->duration = $this->duration;
-        $record->bufferBefore = $this->bufferBefore;
-        $record->bufferAfter = $this->bufferAfter;
-        $record->price = $this->price;
-        $record->virtualMeetingProvider = $this->virtualMeetingProvider;
-        $record->minTimeBeforeBooking = $this->minTimeBeforeBooking;
-        $record->minTimeBeforeCanceling = $this->minTimeBeforeCanceling;
-        $record->finalStepUrl = $this->finalStepUrl;
+            $record->duration = $this->duration;
+            $record->bufferBefore = $this->bufferBefore;
+            $record->bufferAfter = $this->bufferAfter;
+            $record->price = $this->price;
+            $record->virtualMeetingProvider = $this->virtualMeetingProvider;
+            $record->minTimeBeforeBooking = $this->minTimeBeforeBooking;
+            $record->minTimeBeforeCanceling = $this->minTimeBeforeCanceling;
+            $record->finalStepUrl = $this->finalStepUrl;
 
-        $record->save(false);
+            $record->save(false);
 
-        // Handle structure positioning for hierarchy (only for new elements or when parent changed)
-        $structureId = static::getStructureId();
-        if ($structureId && $isNew) {
-            $structuresService = Craft::$app->getStructures();
+            // Handle structure positioning for hierarchy (only for new non-draft elements)
+            $structureId = static::getStructureId();
+            if ($structureId && $isNew) {
+                $structuresService = Craft::$app->getStructures();
 
-            if ($this->parentId) {
-                $parent = self::find()->id($this->parentId)->siteId('*')->one();
-                if ($parent) {
-                    $structuresService->append($structureId, $this, $parent);
+                if ($this->parentId) {
+                    $parent = self::find()->id($this->parentId)->siteId('*')->one();
+                    if ($parent) {
+                        $structuresService->append($structureId, $this, $parent);
+                    } else {
+                        $structuresService->appendToRoot($structureId, $this);
+                    }
                 } else {
                     $structuresService->appendToRoot($structureId, $this);
                 }
-            } else {
-                $structuresService->appendToRoot($structureId, $this);
             }
         }
 

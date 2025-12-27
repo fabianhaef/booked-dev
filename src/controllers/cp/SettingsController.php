@@ -105,39 +105,6 @@ class SettingsController extends Controller
     }
 
     /**
-     * Service Fields settings page
-     */
-    public function actionServiceFields(): Response
-    {
-        $fieldLayout = Craft::$app->getFields()->getLayoutByType(\fabian\booked\elements\Service::class);
-
-        return $this->renderTemplate('booked/settings/service-fields', [
-            'selectedSubnavItem' => 'settings',
-            'selectedSettingsSubnavItem' => 'service-fields',
-            'fieldLayout' => $fieldLayout,
-        ]);
-    }
-
-    /**
-     * Save service field layout
-     */
-    public function actionSaveServiceFields(): Response
-    {
-        $this->requirePostRequest();
-
-        $fieldLayout = Craft::$app->getFields()->assembleLayoutFromPost();
-        $fieldLayout->type = \fabian\booked\elements\Service::class;
-
-        if (!Craft::$app->getFields()->saveLayout($fieldLayout)) {
-            Craft::$app->session->setError(Craft::t('booked', 'Couldn\'t save service fields.'));
-            return null;
-        }
-
-        Craft::$app->session->setNotice(Craft::t('booked', 'Service fields saved.'));
-        return $this->redirectToPostedUrl();
-    }
-
-    /**
      * Save settings
      */
     public function actionSave(): Response

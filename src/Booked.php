@@ -19,7 +19,6 @@ use craft\services\UserPermissions;
 use craft\web\View;
 use craft\web\twig\variables\CraftVariable;
 use craft\commerce\elements\Order;
-use craft\commerce\services\Orders;
 use yii\base\Event;
 
 /**
@@ -330,7 +329,6 @@ class Booked extends Plugin
                     'booked/settings/calendar' => 'booked/cp/settings/calendar',
                     'booked/settings/meetings' => 'booked/cp/settings/meetings',
                     'booked/settings/notifications' => 'booked/cp/settings/notifications',
-                    'booked/settings/service-fields' => 'booked/cp/settings/service-fields',
                     'booked/settings/commerce' => 'booked/cp/settings/commerce',
                     'booked/settings/frontend' => 'booked/cp/settings/frontend',
 

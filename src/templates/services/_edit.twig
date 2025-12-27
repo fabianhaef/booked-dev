@@ -1,0 +1,181 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'services' %}
+{% set crumbs = [
+    { label: 'Booked'|t('booked'), url: url('booked') },
+    { label: 'Services'|t('booked'), url: url('booked/services') },
+    { label: title }
+] %}
+
+{% set fullPageForm = true %}
+
+{% block actionButton %}
+    <div class="btngroup">
+        <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
+    </div>
+{% endblock %}
+
+{% block content %}
+    <input type="hidden" name="action" value="booked/cp/services/save">
+    <input type="hidden" name="redirect" value="{{ 'booked/services/{id}'|hash }}">
+    {% if service.id %}
+        <input type="hidden" name="id" value="{{ service.id }}">
+    {% endif %}
+
+    {{ forms.lightswitchField({
+        label: 'Enabled'|t('app'),
+        id: 'enabled',
+        name: 'enabled',
+        on: service.enabled ?? true
+    }) }}
+
+    {{ forms.textField({
+        label: 'Title'|t('app'),
+        id: 'title',
+        name: 'title',
+        value: service.title,
+        required: true,
+        autofocus: true,
+        errors: service.getErrors('title')
+    }) }}
+
+    <hr>
+    <h2>{{ 'Service Configuration'|t('booked') }}</h2>
+
+    {{ forms.textField({
+        label: 'Duration'|t('booked'),
+        instructions: 'Duration of the service in minutes.'|t('booked'),
+        id: 'duration',
+        name: 'duration',
+        type: 'number',
+        min: 1,
+        value: service.duration,
+        errors: service.getErrors('duration'),
+        size: 10,
+        unit: 'min'|t('booked')
+    }) }}
+
+    {{ forms.textField({
+        label: 'Price'|t('booked'),
+        instructions: 'Price of the service.'|t('booked'),
+        id: 'price',
+        name: 'price',
+        type: 'number',
+        step: '0.01',
+        min: 0,
+        value: service.price,
+        errors: service.getErrors('price')
+    }) }}
+
+    <hr>
+    <h2>{{ 'Buffer Times'|t('booked') }}</h2>
+
+    {{ forms.textField({
+        label: 'Buffer Before'|t('booked'),
+        instructions: 'Buffer time before the service in minutes.'|t('booked'),
+        id: 'bufferBefore',
+        name: 'bufferBefore',
+        type: 'number',
+        min: 0,
+        value: service.bufferBefore,
+        errors: service.getErrors('bufferBefore'),
+        size: 10,
+        unit: 'min'|t('booked')
+    }) }}
+
+    {{ forms.textField({
+        label: 'Buffer After'|t('booked'),
+        instructions: 'Buffer time after the service in minutes.'|t('booked'),
+        id: 'bufferAfter',
+        name: 'bufferAfter',
+        type: 'number',
+        min: 0,
+        value: service.bufferAfter,
+        errors: service.getErrors('bufferAfter'),
+        size: 10,
+        unit: 'min'|t('booked')
+    }) }}
+
+    <hr>
+    <h2>{{ 'Booking Rules'|t('booked') }}</h2>
+
+    {{ forms.textField({
+        label: 'Minimum Time Before Booking'|t('booked'),
+        instructions: 'Minimum minutes in advance a customer must book. Leave empty to use global setting.'|t('booked'),
+        id: 'minTimeBeforeBooking',
+        name: 'minTimeBeforeBooking',
+        type: 'number',
+        min: 0,
+        value: service.minTimeBeforeBooking,
+        errors: service.getErrors('minTimeBeforeBooking'),
+        size: 10,
+        unit: 'min'|t('booked')
+    }) }}
+
+    {{ forms.textField({
+        label: 'Minimum Time Before Canceling'|t('booked'),
+        instructions: 'Minimum minutes in advance a customer can cancel. Leave empty to use global setting.'|t('booked'),
+        id: 'minTimeBeforeCanceling',
+        name: 'minTimeBeforeCanceling',
+        type: 'number',
+        min: 0,
+        value: service.minTimeBeforeCanceling,
+        errors: service.getErrors('minTimeBeforeCanceling'),
+        size: 10,
+        unit: 'min'|t('booked')
+    }) }}
+
+    {{ forms.textField({
+        label: 'Final Step URL'|t('booked'),
+        instructions: 'URL to redirect to after booking is complete. Leave empty to use default.'|t('booked'),
+        id: 'finalStepUrl',
+        name: 'finalStepUrl',
+        type: 'url',
+        value: service.finalStepUrl,
+        errors: service.getErrors('finalStepUrl')
+    }) }}
+
+    {% set settings = craft.app.plugins.getPlugin('booked').getSettings() %}
+    {% if settings.enableVirtualMeetings %}
+        <hr>
+        <h2>{{ 'Virtual Meetings'|t('booked') }}</h2>
+
+        {{ forms.selectField({
+            label: 'Virtual Meeting Provider'|t('booked'),
+            instructions: 'Select the virtual meeting provider for this service.'|t('booked'),
+            id: 'virtualMeetingProvider',
+            name: 'virtualMeetingProvider',
+            value: service.virtualMeetingProvider,
+            options: [
+                { label: 'None'|t('booked'), value: '' },
+                { label: 'Zoom', value: 'zoom' },
+                { label: 'Google Meet', value: 'google' },
+            ],
+            errors: service.getErrors('virtualMeetingProvider')
+        }) }}
+    {% endif %}
+
+    <hr>
+    <h2>{{ 'Available Add-Ons'|t('booked') }}</h2>
+    <p class="light">{{ 'Select the add-ons that can be booked with this service.'|t('booked') }}</p>
+
+    {% set selectedExtras = [] %}
+    {% for extraId in assignedExtras %}
+        {% set extra = craft.app.elements.getElementById(extraId, 'fabian\\booked\\elements\\ServiceExtra') %}
+        {% if extra %}
+            {% set selectedExtras = selectedExtras|merge([extra]) %}
+        {% endif %}
+    {% endfor %}
+
+    {{ forms.elementSelectField({
+        label: 'Add-Ons'|t('booked'),
+        id: 'extras',
+        name: 'extras',
+        elementType: 'fabian\\booked\\elements\\ServiceExtra',
+        elements: selectedExtras,
+        limit: null,
+        sources: '*',
+        instructions: 'Select which add-ons can be booked with this service.'|t('booked')
+    }) }}
+{% endblock %}
